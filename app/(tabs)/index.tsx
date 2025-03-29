@@ -9,34 +9,40 @@ import {
   ScrollView,
   ImageSourcePropType
 } from 'react-native';
-import { Asset } from 'expo-asset';
-import styles from './DashboardStyles'; 
+import { router } from 'expo-router'; // Importe o router
+import styles from './Styles'; 
 import { Colors } from '@/constants/Colors';
 
 interface MenuItem {
   id: number;
   title: string;
   icon: ImageSourcePropType;
+  route: string; // Nome da rota
 }
 
 const DashboardScreen = () => {
   const placeholderIcon = { uri: 'https://via.placeholder.com/50' };
   
   const menuItems: MenuItem[] = [
-    { id: 1, title: 'Coleta', icon: placeholderIcon },
-    { id: 2, title: 'Lotes', icon: placeholderIcon },
-    { id: 3, title: 'Geolocalização', icon: placeholderIcon },
-    { id: 4, title: 'Relatórios', icon: placeholderIcon },
-    { id: 5, title: 'Gráficos', icon: placeholderIcon },
-    { id: 6, title: 'Quem Somos', icon: placeholderIcon },
+    { id: 1, title: 'Coleta', icon: placeholderIcon, route: 'coleta' },
+    { id: 2, title: 'Lotes', icon: placeholderIcon, route: 'lotes' },
+    { id: 3, title: 'Geolocalização', icon: placeholderIcon, route: 'geolocalizacao' },
+    { id: 4, title: 'Relatórios', icon: placeholderIcon, route: 'relatorios' },
+    { id: 5, title: 'Gráficos', icon: placeholderIcon, route: 'graficos' },
+    { id: 6, title: 'Quem Somos', icon: placeholderIcon, route: 'sobre' },
   ];
+
+  const handleNavigation = (route: string) => {
+    // Navega para a rota especificada
+    router.push(route as any);
+  };
 
   const renderMenuItem = (item: MenuItem) => {
     return (
       <TouchableOpacity 
         key={item.id} 
         style={styles.menuItem}
-        onPress={() => console.log(`Clicou em ${item.title}`)}
+        onPress={() => handleNavigation(item.route)}
       >
         <View style={styles.iconContainer}>
           <Image source={item.icon} style={styles.icon} />
