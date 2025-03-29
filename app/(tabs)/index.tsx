@@ -1,74 +1,81 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import React from 'react';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  Image, 
+  SafeAreaView, 
+  StatusBar,
+  ScrollView,
+  ImageSourcePropType
+} from 'react-native';
+import { Asset } from 'expo-asset';
+import styles from './DashboardStyles'; 
+import { Colors } from '@/constants/Colors';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-
-export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+interface MenuItem {
+  id: number;
+  title: string;
+  icon: ImageSourcePropType;
 }
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
+const DashboardScreen = () => {
+  const placeholderIcon = { uri: 'https://via.placeholder.com/50' };
+  
+  const menuItems: MenuItem[] = [
+    { id: 1, title: 'Coleta', icon: placeholderIcon },
+    { id: 2, title: 'Lotes', icon: placeholderIcon },
+    { id: 3, title: 'Geolocalização', icon: placeholderIcon },
+    { id: 4, title: 'Relatórios', icon: placeholderIcon },
+    { id: 5, title: 'Gráficos', icon: placeholderIcon },
+    { id: 6, title: 'Quem Somos', icon: placeholderIcon },
+  ];
+
+  const renderMenuItem = (item: MenuItem) => {
+    return (
+      <TouchableOpacity 
+        key={item.id} 
+        style={styles.menuItem}
+        onPress={() => console.log(`Clicou em ${item.title}`)}
+      >
+        <View style={styles.iconContainer}>
+          <Image source={item.icon} style={styles.icon} />
+        </View>
+        <Text style={styles.menuItemText}>{item.title}</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor={Colors.appColors.primary} barStyle="light-content" />
+      
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.menuButton}>
+          <View style={styles.menuBar}></View>
+          <View style={styles.menuBar}></View>
+          <View style={styles.menuBar}></View>
+        </TouchableOpacity>
+        
+        <Text style={styles.headerText}>Olá, Wagner Sampaio</Text>
+        
+        <TouchableOpacity style={styles.profileButton}>
+          <Image 
+            source={placeholderIcon} 
+            style={styles.profileImage} 
+          />
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.searchBarPlaceholder}></View>
+      
+      <ScrollView style={styles.menuContainer}>
+        <View style={styles.menuGrid}>
+          {menuItems.map(item => renderMenuItem(item))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+export default DashboardScreen;
