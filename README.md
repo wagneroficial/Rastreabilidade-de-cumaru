@@ -1,50 +1,93 @@
-# Welcome to your Expo app 👋
+# Rastreabilidade de Cumaru
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Sobre o Projeto
 
-## Get started
+Aplicativo de rastreabilidade para a cadeia produtiva do Cumaru, desenvolvido para facilitar o monitoramento e registro de informações desde a coleta até a comercialização. O app utiliza tecnologias modernas como React Native e integração com blockchain para garantir a transparência e autenticidade dos dados.
 
-1. Install dependencies
+## Funcionalidades Principais
 
-   ```bash
-   npm install
-   ```
+- **Coleta**: Registro de coletas de sementes com identificação por QR Code
+- **Lotes**: Gerenciamento de lotes de produção e áreas de cultivo
+- **Geolocalização**: Mapeamento de áreas e rotas de coleta
+- **Relatórios**: Visualização de dados e geração de relatórios
+- **Gráficos**: Análises visuais de produtividade e outros indicadores
+- **Informações Institucionais**: Dados sobre o projeto e equipe
 
-2. Start the app
+## Tecnologias Utilizadas
 
-   ```bash
-    npx expo start
-   ```
+- React Native
+- Expo
+- TypeScript
+- Expo Router para navegação
+- Firebase (Autenticação, Firestore, Storage)
+- Armazenamento local com banco de dados SQLite
+- Integração com blockchain para rastreabilidade
+- Geolocalização
 
-In the output, you'll find options to open the app in a
+## Pré-requisitos
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- Node.js (v14 ou superior)
+- Expo CLI
+- Git
+- Conta Firebase
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Instalação
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+1. Clone o repositório:
+```
+git clone https://github.com/wagneroficial/Rastreabilidade-de-cumaru.git
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Navegue até o diretório do projeto:
+```
+cd Rastreabilidade-de-cumaru
+```
 
-## Learn more
+3. Instale as dependências:
+```
+npm install
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+4. Inicie o projeto:
+```
+npx expo start
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Estrutura do Projeto
 
-## Join the community
+```
+rastreabilidade-de-cumaru/
+├── app/                   # Rotas e telas do aplicativo
+├── assets/                # Imagens, fontes e outros recursos
+├── components/            # Componentes reutilizáveis
+├── constants/             # Constantes, como cores e tema
+├── hooks/                 # Hooks personalizados do React
+├── services/              # Serviços de API, banco de dados e blockchain
+└── firebase/              # Configuração e serviços do Firebase
+```
 
-Join our community of developers creating universal apps.
+## Roadmap
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- [x] Configuração inicial do projeto
+- [x] Design do dashboard principal
+- [ ] Implementação da tela de coleta
+- [ ] Implementação do sistema de lotes
+- [ ] Integração com sistema de geolocalização
+- [ ] Implementação do banco de dados local
+- [ ] Integração com Firebase (Autenticação e Firestore)
+- [ ] Sistema de sincronização offline/online
+- [ ] Integração com blockchain
+- [ ] Sistema de relatórios e análises
+- [ ] Testes e otimização
+
+## Contribuição
+
+Este projeto atualmente é privado e está sendo desenvolvido como parte de um trabalho de conclusão de curso.
+
+## Contato
+
+Wagner Sampaio - [Github](https://github.com/wagneroficial)
+
+## Licença
+
+Este projeto está sob a licença [Adicionar licença apropriada] - veja o arquivo LICENSE.md para mais detalhes.
