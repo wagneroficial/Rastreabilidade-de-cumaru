@@ -16,7 +16,6 @@ export default function RootLayout() {
         },
       }}>
       <Stack.Screen name="index" />
-      {/* Adicione outras telas aqui conforme necessário */}
       <Stack.Screen name="coleta" />
       <Stack.Screen name="lotes" />
       <Stack.Screen name="geolocalizacao" />
