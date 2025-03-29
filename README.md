@@ -80,14 +80,4 @@ rastreabilidade-de-cumaru/
 - [ ] Sistema de relatórios e análises
 - [ ] Testes e otimização
 
-## Contribuição
 
-Este projeto atualmente é privado e está sendo desenvolvido como parte de um trabalho de conclusão de curso.
-
-## Contato
-
-Wagner Sampaio - [Github](https://github.com/wagneroficial)
-
-## Licença
-
-Este projeto está sob a licença [Adicionar licença apropriada] - veja o arquivo LICENSE.md para mais detalhes.
