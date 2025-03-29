@@ -17,11 +17,7 @@ export default function RootLayout() {
       }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="coleta" />
-      <Stack.Screen name="lotes" />
-      <Stack.Screen name="geolocalizacao" />
-      <Stack.Screen name="relatorios" />
-      <Stack.Screen name="graficos" />
-      <Stack.Screen name="sobre" />
+
     </Stack>
   );
 }
