@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Colors } from '@/constants/Colors';
-import styles from './ColetaStyles';
+import styles from './Styles';
 
 const ColetaScreen = () => {
     const [kg, setKg] = useState('');
