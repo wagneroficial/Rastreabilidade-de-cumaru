@@ -18,6 +18,8 @@ export default function RootLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="coleta" />
       <Stack.Screen name="lotes" />
+      <Stack.Screen name="arvores" />
+      <Stack.Screen name="arvoreDetalhe" />
 
     </Stack>
   );
