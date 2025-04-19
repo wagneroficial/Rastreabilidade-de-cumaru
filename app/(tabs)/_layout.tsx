@@ -20,6 +20,10 @@ export default function RootLayout() {
       <Stack.Screen name="lotes" />
       <Stack.Screen name="arvores" />
       <Stack.Screen name="arvoreDetalhe" />
+      <Stack.Screen name="perfil" />
+      <Stack.Screen name="novaSenha" />
+      <Stack.Screen name="notifications" />
+      <Stack.Screen name="login" />
 
     </Stack>
   );

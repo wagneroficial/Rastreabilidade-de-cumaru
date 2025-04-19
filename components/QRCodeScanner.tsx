@@ -5,9 +5,10 @@ import {
   useCameraPermissions,
   BarcodeScanningResult,
 } from 'expo-camera';
+import * as Haptics from 'expo-haptics';
 
 interface QRCodeScannerProps {
-  onScan: (data: string) => void;
+  onScan: (data: { idDaArvore: string; idDoLote: string }) => void;
   onCancel: () => void;
 }
 
@@ -22,10 +23,24 @@ const QRCodeScanner: React.FC<QRCodeScannerProps> = ({ onScan, onCancel }) => {
     }
   }, [permission]);
 
-  const handleBarCodeScanned = (scanningResult: BarcodeScanningResult) => {
+  const handleBarCodeScanned = async (scanningResult: BarcodeScanningResult) => {
     if (!scanned && scanningResult?.data) {
       setScanned(true);
-      onScan(scanningResult.data);
+
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      try {
+        const parsedData = JSON.parse(scanningResult.data);
+        const { idDaArvore, idDoLote } = parsedData;
+
+        if (idDaArvore && idDoLote) {
+          onScan({ idDaArvore, idDoLote });
+        } else {
+          console.warn('QR Code não contém os campos esperados.');
+        }
+      } catch (error) {
+        console.warn('QR Code inválido ou mal formatado.');
+      }
     }
   };
 
@@ -42,7 +57,7 @@ const QRCodeScanner: React.FC<QRCodeScannerProps> = ({ onScan, onCancel }) => {
       <CameraView
         ref={cameraRef}
         style={StyleSheet.absoluteFill}
-        facing="back" // ou "front" para a câmera frontal
+        facing="back"
         barcodeScannerSettings={{
           barcodeTypes: ['qr'],
         }}

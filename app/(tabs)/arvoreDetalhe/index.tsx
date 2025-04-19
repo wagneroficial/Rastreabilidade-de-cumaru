@@ -7,14 +7,12 @@ import {
     SafeAreaView,
     StatusBar,
     Image,
-    ImageSourcePropType,
     ScrollView,
-    StyleSheet,
-    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Colors } from '@/constants/Colors';
+import stylesArvores from './Styles';
 
 // Imagens para os status das árvores
 const statusIcons = {
@@ -59,118 +57,118 @@ const ArvoreDetailScreen = () => {
     
     // Renderiza cada coleta na tabela de histórico
     const renderColetaItem = (coleta: Coleta) => (
-        <View key={coleta.id} style={styles.tableRow}>
-            <Text style={styles.tableCell}>{coleta.data}</Text>
-            <Text style={styles.tableCell}>{coleta.kg}kg</Text>
+        <View key={coleta.id} style={stylesArvores.tableRow}>
+            <Text style={stylesArvores.tableCell}>{coleta.data}</Text>
+            <Text style={stylesArvores.tableCell}>{coleta.kg}kg</Text>
         </View>
     );
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={stylesArvores.container}>
             <StatusBar backgroundColor={Colors.appColors.primary} barStyle="light-content" />
             
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity style={styles.menuButton} onPress={() => router.back()}>
+            <View style={stylesArvores.header}>
+                <TouchableOpacity style={stylesArvores.menuButton} onPress={() => router.back()}>
                     <Ionicons name="arrow-back" size={24} color="white" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Árvore {arvoreId}</Text>
+                <Text style={stylesArvores.headerTitle}>Árvore {arvoreId}</Text>
                 <View style={{ width: 44 }} />
             </View>
             
-            <ScrollView style={styles.scrollView}>
+            <ScrollView style={stylesArvores.scrollView}>
                 {/* Dados da árvore */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Dados da árvore</Text>
+                <View style={stylesArvores.section}>
+                    <Text style={stylesArvores.sectionTitle}>Dados da árvore</Text>
                     
-                    <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>ID árvore: </Text>
-                        <Text style={styles.infoValue}>{arvoreData.id}</Text>
+                    <View style={stylesArvores.infoRow}>
+                        <Text style={stylesArvores.infoLabel}>ID árvore: </Text>
+                        <Text style={stylesArvores.infoValue}>{arvoreData.id}</Text>
                         
-                        <View style={styles.qrContainer}>
+                        <View style={stylesArvores.qrContainer}>
                             <Image 
                                 source={require('./favicon.png')}
-                                style={styles.qrCode}
+                                style={stylesArvores.qrCode}
                             />
                         </View>
                     </View>
                     
-                    <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>ID lote: </Text>
-                        <Text style={styles.infoValue}>{arvoreData.idLote}</Text>
+                    <View style={stylesArvores.infoRow}>
+                        <Text style={stylesArvores.infoLabel}>ID lote: </Text>
+                        <Text style={stylesArvores.infoValue}>{arvoreData.idLote}</Text>
                     </View>
                     
-                    <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>KG coletados: </Text>
-                        <Text style={styles.infoValue}>{arvoreData.kgColetados}kg</Text>
+                    <View style={stylesArvores.infoRow}>
+                        <Text style={stylesArvores.infoLabel}>KG coletados: </Text>
+                        <Text style={stylesArvores.infoValue}>{arvoreData.kgColetados}kg</Text>
                     </View>
                 </View>
                 
                 {/* Status da árvore */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Status da árvore</Text>
+                <View style={stylesArvores.section}>
+                    <Text style={stylesArvores.sectionTitle}>Status da árvore</Text>
                     
-                    <View style={styles.statusContainer}>
+                    <View style={stylesArvores.statusContainer}>
                         <TouchableOpacity 
                             style={[
-                                styles.statusOption, 
-                                arvoreData.status === 'saudavel' && styles.statusSelected
+                                stylesArvores.statusOption, 
+                                arvoreData.status === 'saudavel' && stylesArvores.statusSelected
                             ]}
                             onPress={() => handleStatusSelect('saudavel')}
                         >
-                            <Image source={statusIcons.saudavel} style={styles.statusIcon} />
-                            <Text style={styles.statusText}>Saudável</Text>
+                            <Image source={statusIcons.saudavel} style={stylesArvores.statusIcon} />
+                            <Text style={stylesArvores.statusText}>Saudável</Text>
                         </TouchableOpacity>
                         
                         <TouchableOpacity 
                             style={[
-                                styles.statusOption,
-                                arvoreData.status === 'infectada' && styles.statusSelected
+                                stylesArvores.statusOption,
+                                arvoreData.status === 'infectada' && stylesArvores.statusSelected
                             ]}
                             onPress={() => handleStatusSelect('infectada')}
                         >
-                            <Image source={statusIcons.infectada} style={styles.statusIcon} />
-                            <Text style={styles.statusText}>Infectada</Text>
+                            <Image source={statusIcons.infectada} style={stylesArvores.statusIcon} />
+                            <Text style={stylesArvores.statusText}>Infectada</Text>
                         </TouchableOpacity>
                         
                         <TouchableOpacity 
                             style={[
-                                styles.statusOption,
-                                arvoreData.status === 'morta' && styles.statusSelected
+                                stylesArvores.statusOption,
+                                arvoreData.status === 'morta' && stylesArvores.statusSelected
                             ]}
                             onPress={() => handleStatusSelect('morta')}
                         >
-                            <Image source={statusIcons.morta} style={styles.statusIcon} />
-                            <Text style={styles.statusText}>Morta</Text>
+                            <Image source={statusIcons.morta} style={stylesArvores.statusIcon} />
+                            <Text style={stylesArvores.statusText}>Morta</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
                 
                 {/* Coletas feitas */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Coletas feitas</Text>
+                <View style={stylesArvores.section}>
+                    <Text style={stylesArvores.sectionTitle}>Coletas feitas</Text>
                     
-                    <View style={styles.dataInputContainer}>
-                        <Text style={styles.dataInputLabel}>Data:</Text>
-                        <View style={styles.dataInput}>
+                    <View style={stylesArvores.dataInputContainer}>
+                        <Text style={stylesArvores.dataInputLabel}>Data:</Text>
+                        <View style={stylesArvores.dataInput}>
                             <TextInput
-                                style={styles.dataInputText}
+                                style={stylesArvores.dataInputText}
                                 placeholder="DD/MM/AAAA"
                                 value={novaColetaData}
                                 onChangeText={setNovaColetaData}
                             />
-                            <TouchableOpacity style={styles.calendarButton}>
+                            <TouchableOpacity style={stylesArvores.calendarButton}>
                                 <Ionicons name="calendar" size={24} color={Colors.appColors.primary} />
                             </TouchableOpacity>
                         </View>
                     </View>
                     
                     {/* Tabela de coletas */}
-                    <View style={styles.tableContainer}>
+                    <View style={stylesArvores.tableContainer}>
                         {/* Cabeçalho da tabela */}
-                        <View style={styles.tableHeader}>
-                            <Text style={styles.tableHeaderCell}>Data</Text>
-                            <Text style={styles.tableHeaderCell}>KG</Text>
+                        <View style={stylesArvores.tableHeader}>
+                            <Text style={stylesArvores.tableHeaderCell}>Data</Text>
+                            <Text style={stylesArvores.tableHeaderCell}>KG</Text>
                         </View>
                         
                         {/* Linhas da tabela */}
@@ -182,144 +180,6 @@ const ArvoreDetailScreen = () => {
     );
 };
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
-    header: {
-        backgroundColor: Colors.appColors.primary,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
-        paddingBottom: 20,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
-    },
-    menuButton: {
-        padding: 10,
-    },
-    headerTitle: {
-        color: 'white',
-        fontSize: 18,
-        fontWeight: '500',
-    },
-    scrollView: {
-        flex: 1,
-        padding: 16,
-    },
-    section: {
-        marginBottom: 24,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 16,
-        textAlign: 'center',
-    },
-    infoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    infoLabel: {
-        fontSize: 16,
-        fontWeight: '400',
-        color: '#333',
-    },
-    infoValue: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#333',
-    },
-    qrContainer: {
-        marginLeft: 'auto',
-    },
-    qrCode: {
-        width: 60,
-        height: 60,
-        resizeMode: 'contain',
-    },
-    statusContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-    },
-    statusOption: {
-        alignItems: 'center',
-        padding: 8,
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        width: '30%',
-    },
-    statusSelected: {
-        borderColor: Colors.appColors.primary,
-        borderWidth: 2,
-    },
-    statusIcon: {
-        width: 40,
-        height: 40,
-        resizeMode: 'contain',
-        marginBottom: 8,
-    },
-    statusText: {
-        fontSize: 14,
-        color: '#333',
-    },
-    dataInputContainer: {
-        marginBottom: 16,
-    },
-    dataInputLabel: {
-        fontSize: 16,
-        color: '#333',
-        marginBottom: 8,
-    },
-    dataInput: {
-        flexDirection: 'row',
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    dataInputText: {
-        flex: 1,
-        padding: 12,
-        fontSize: 16,
-    },
-    calendarButton: {
-        padding: 12,
-    },
-    tableContainer: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        overflow: 'hidden',
-    },
-    tableHeader: {
-        flexDirection: 'row',
-        backgroundColor: Colors.appColors.primary,
-        padding: 12,
-    },
-    tableHeaderCell: {
-        flex: 1,
-        color: 'white',
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
-    tableRow: {
-        flexDirection: 'row',
-        borderTopWidth: 1,
-        borderTopColor: '#ddd',
-    },
-    tableCell: {
-        flex: 1,
-        padding: 12,
-        textAlign: 'center',
-    },
-});
+
 
 export default ArvoreDetailScreen;
