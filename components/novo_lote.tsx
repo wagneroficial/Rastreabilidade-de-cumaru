@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { addDoc, collection } from 'firebase/firestore';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
@@ -13,6 +14,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { db } from '../app/services/firebaseConfig';
 
 interface NovoLoteModalProps {
   visible: boolean;
@@ -85,13 +87,10 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
 
   const handleSubmit = async () => {
     setIsLoading(true);
-    
+
     try {
-      // Simular envio
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
       const newLote = {
-        id: `L-${Date.now().toString().slice(-3)}`,
+        codigo: `L-${Date.now().toString().slice(-3)}`,
         nome: formData.nome,
         area: `${formData.area} hectares`,
         arvores: parseInt(formData.numeroArvores) || 0,
@@ -99,20 +98,24 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
         status: 'planejado' as const,
         dataInicio: formData.dataInicio ? formData.dataInicio.toISOString().split('T')[0] : '',
         dataFim: formData.dataFim ? formData.dataFim.toISOString().split('T')[0] : '',
-        ultimaColeta: 'Não iniciado'
+        ultimaColeta: 'Não iniciado',
+        descricao: formData.descricao,
+        coordenadas: formData.coordenadas,
+        tipoSolo: formData.tipoSolo,
+        createdAt: new Date().toISOString(),
       };
-      
+
+      // Enviar para Firestore
+      await addDoc(collection(db, 'lotes'), newLote);
+
       onSuccess(newLote);
       resetForm();
       onClose();
-      
-      Alert.alert(
-        'Sucesso!',
-        'Lote criado com sucesso!',
-        [{ text: 'OK' }]
-      );
+
+      Alert.alert('Sucesso!', 'Lote criado com sucesso!', [{ text: 'OK' }]);
     } catch (error) {
       Alert.alert('Erro', 'Falha ao criar o lote. Tente novamente.');
+      console.error(error);
     } finally {
       setIsLoading(false);
     }

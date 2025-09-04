@@ -60,27 +60,73 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const stats: StatItem[] = [
     { label: 'Lotes Cadastrados', value: '12' },
     { label: 'Total Colhido', value: '1.2t' },
-    { label: 'Dias Ativos', value: '45' }
+    { label: 'Dias Ativo', value: '45' }
   ];
 
+  const handleLogout = () => {
+    try {
+      console.log('Iniciando processo de logout...');
+      console.log('Router disponível:', !!router);
+      
+      // Aqui você pode adicionar lógica para limpar dados do AsyncStorage, tokens, etc.
+      // Por exemplo:
+      // await AsyncStorage.clear();
+      // await SecureStore.deleteItemAsync('userToken');
+      
+      console.log('Redirecionando para login...');
+      
+      // Redirecionar para a tela de login e limpar o stack de navegação
+      router.replace('/');
+      
+      // Fallback para web se necessário
+      if (typeof window !== 'undefined') {
+        console.log('Tentando reload na web...');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Erro durante logout:', error);
+      // Fallback: recarregar página na web
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
+    }
+  };
+
   const handleMenuPress = (item: MenuItem) => {
+    console.log('Menu pressionado:', item.title);
+    
     if (item.action === 'logout') {
-      Alert.alert(
-        'Sair',
-        'Tem certeza que deseja sair do aplicativo?',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { 
-            text: 'Sair', 
-            style: 'destructive',
-            onPress: () => {
-              // Implementar logout
-              Alert.alert('Logout', 'Logout realizado com sucesso!');
+      console.log('Ação de logout detectada');
+      
+      // Para web, usar confirm() nativo
+      if (typeof window !== 'undefined') {
+        const confirmed = window.confirm('Tem certeza que deseja sair do aplicativo?');
+        if (confirmed) {
+          console.log('Usuário confirmou logout (web)');
+          handleLogout();
+        }
+      } else {
+        // Para mobile, usar Alert do React Native
+        Alert.alert(
+          'Sair',
+          'Tem certeza que deseja sair do aplicativo?',
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { 
+              text: 'Sair', 
+              style: 'destructive',
+              onPress: () => {
+                console.log('Usuário confirmou logout (mobile)');
+                handleLogout();
+              }
             }
-          }
-        ]
-      );
+          ]
+        );
+      }
     } else if (item.route) {
+      console.log('Navegando para:', item.route);
       router.push(item.route as any);
     }
   };

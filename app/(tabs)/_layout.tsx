@@ -33,7 +33,7 @@ export default function TabLayout() {
       
       {/* Tela Principal/Home */}
       <Tabs.Screen
-        name="index"
+        name="home"  // Mudado de "index" para "home"
         options={{
           title: 'Início',
           tabBarIcon: ({ color }) => <Ionicons name="home" size={20} color={color} />,

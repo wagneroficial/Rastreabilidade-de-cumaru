@@ -1,7 +1,7 @@
 import NovoLoteModal from '@/components/novo_lote';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -12,8 +12,12 @@ import {
   View,
 } from 'react-native';
 
+import { db } from '@/app/sevices/firebaseConfig';
+import { collection, onSnapshot } from 'firebase/firestore';
+
 interface Lote {
-  id: string;
+  id: string;         // ID do documento do Firestore
+  codigo: string;     // Código de identificação visual (L-123)
   nome: string;
   area: string;
   arvores: number;
@@ -27,61 +31,41 @@ interface Lote {
 const LotesScreen: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState('todos');
   const [showModal, setShowModal] = useState(false);
-  
-  const [lotes, setLotes] = useState<Lote[]>([
-    {
-      id: 'A-12',
-      nome: 'Lote Norte A-12',
-      area: '2.5 hectares',
-      arvores: 45,
-      colhidoTotal: '234.5 kg',
-      status: 'ativo',
-      dataInicio: '2024-01-15',
-      dataFim: '2024-03-30',
-      ultimaColeta: '2 horas atrás'
-    },
-    {
-      id: 'B-07',
-      nome: 'Lote Sul B-07',
-      area: '1.8 hectares',
-      arvores: 32,
-      colhidoTotal: '189.2 kg',
-      status: 'ativo',
-      dataInicio: '2024-01-20',
-      dataFim: '2024-04-05',
-      ultimaColeta: '1 dia atrás'
-    },
-    {
-      id: 'C-05',
-      nome: 'Lote Oeste C-05',
-      area: '3.2 hectares',
-      arvores: 67,
-      colhidoTotal: '456.8 kg',
-      status: 'concluido',
-      dataInicio: '2023-12-01',
-      dataFim: '2024-02-28',
-      ultimaColeta: '5 dias atrás'
-    },
-    {
-      id: 'D-15',
-      nome: 'Lote Leste D-15',
-      area: '2.1 hectares',
-      arvores: 38,
-      colhidoTotal: '0 kg',
-      status: 'planejado',
-      dataInicio: '2024-02-15',
-      dataFim: '2024-05-20',
-      ultimaColeta: 'Não iniciado'
-    }
-  ]); 
+  const [lotes, setLotes] = useState<Lote[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredLotes = lotes.filter(lote => {
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'lotes'), (querySnapshot) => {
+      const lotesFromFirestore: Lote[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        lotesFromFirestore.push({
+          id: doc.id,                                        // ID do documento do Firestore
+          codigo: data.codigo || `L-${doc.id.slice(-3)}`,   // Código com fallback
+          nome: data.nome || 'Lote sem nome',
+          area: data.area || '0 hectares',
+          arvores: data.arvores || 0,
+          colhidoTotal: data.colhidoTotal || '0 kg',
+          status: data.status || 'planejado',
+          dataInicio: data.dataInicio || '',
+          dataFim: data.dataFim || '',
+          ultimaColeta: data.ultimaColeta || 'Nunca',
+        });
+      });
+      setLotes(lotesFromFirestore);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const filteredLotes = lotes.filter((lote) => {
     if (activeFilter === 'todos') return true;
     return lote.status === activeFilter;
   });
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'ativo': return { backgroundColor: '#dcfce7', color: '#166534' };
       case 'concluido': return { backgroundColor: '#dbeafe', color: '#1e40af' };
       case 'planejado': return { backgroundColor: '#fed7aa', color: '#c2410c' };
@@ -90,7 +74,7 @@ const LotesScreen: React.FC = () => {
   };
 
   const getStatusText = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'ativo': return 'Ativo';
       case 'concluido': return 'Concluído';
       case 'planejado': return 'Planejado';
@@ -111,27 +95,45 @@ const LotesScreen: React.FC = () => {
   };
 
   const handleLoteCreated = (newLote: Lote) => {
-    setLotes(prev => [...prev, newLote]);
+    // Não precisa fazer nada aqui - o listener do Firestore vai detectar 
+    // automaticamente a mudança e atualizar a lista
+    console.log('Novo lote criado:', newLote.codigo);
   };
 
   const handleLotePress = (loteId: string) => {
-  router.push(`/lotes/detalhe?id=${loteId}`  as any);
-};
+    const lote = lotes.find((l) => l.id === loteId);
+    router.push({
+      pathname: '/lotes/detalhe',
+      params: {
+        id: loteId,
+        codigo: lote?.codigo || '',
+        nome: lote?.nome || '',
+      },
+    });
+  };
 
   const filters = [
     { key: 'todos', label: 'Todos' },
     { key: 'ativo', label: 'Ativos' },
     { key: 'concluido', label: 'Concluídos' },
-    { key: 'planejado', label: 'Planejados' }
+    { key: 'planejado', label: 'Planejados' },
   ];
 
   const totalLotes = lotes.length;
-  const lotesAtivos = lotes.filter(l => l.status === 'ativo').length;
+  const lotesAtivos = lotes.filter((l) => l.status === 'ativo').length;
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text>Carregando lotes...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#059669" barStyle="light-content" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -163,13 +165,17 @@ const LotesScreen: React.FC = () => {
                   onPress={() => setActiveFilter(filter.key)}
                   style={[
                     styles.filterButton,
-                    activeFilter === filter.key ? styles.filterButtonActive : styles.filterButtonInactive
+                    activeFilter === filter.key ? styles.filterButtonActive : styles.filterButtonInactive,
                   ]}
                 >
-                  <Text style={[
-                    styles.filterButtonText,
-                    activeFilter === filter.key ? styles.filterButtonTextActive : styles.filterButtonTextInactive
-                  ]}>
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      activeFilter === filter.key
+                        ? styles.filterButtonTextActive
+                        : styles.filterButtonTextInactive,
+                    ]}
+                  >
                     {filter.label}
                   </Text>
                 </TouchableOpacity>
@@ -183,21 +189,21 @@ const LotesScreen: React.FC = () => {
           <View style={styles.summaryGrid}>
             <View style={styles.summaryCard}>
               <Text style={[styles.summaryValue, { color: '#16a34a' }]}>
-                {lotes.filter(l => l.status === 'ativo').length}
+                {lotes.filter((l) => l.status === 'ativo').length}
               </Text>
               <Text style={styles.summaryLabel}>Ativos</Text>
             </View>
-            
+
             <View style={styles.summaryCard}>
               <Text style={[styles.summaryValue, { color: '#2563eb' }]}>
-                {lotes.filter(l => l.status === 'concluido').length}
+                {lotes.filter((l) => l.status === 'concluido').length}
               </Text>
               <Text style={styles.summaryLabel}>Concluídos</Text>
             </View>
-            
+
             <View style={styles.summaryCard}>
               <Text style={[styles.summaryValue, { color: '#ea580c' }]}>
-                {lotes.filter(l => l.status === 'planejado').length}
+                {lotes.filter((l) => l.status === 'planejado').length}
               </Text>
               <Text style={styles.summaryLabel}>Planejados</Text>
             </View>
@@ -206,61 +212,68 @@ const LotesScreen: React.FC = () => {
 
         {/* Lotes List */}
         <View style={styles.lotesContainer}>
-          {filteredLotes.map((lote) => (
-            <TouchableOpacity
-              key={lote.id}
-              style={styles.loteCard}
-              onPress={() => handleLotePress(lote.id)}
-            >
-              <View style={styles.loteHeader}>
-                <View style={styles.loteInfo}>
-                  <Text style={styles.loteNome}>{lote.nome}</Text>
-                  <Text style={styles.loteId}>ID: {lote.id}</Text>
+          {filteredLotes.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="leaf-outline" size={48} color="#9ca3af" />
+              <Text style={styles.emptyStateTitle}>Nenhum lote encontrado</Text>
+              <Text style={styles.emptyStateText}>
+                {activeFilter === 'todos' 
+                  ? 'Crie seu primeiro lote clicando no botão + acima'
+                  : `Nenhum lote com status "${filters.find(f => f.key === activeFilter)?.label}"`
+                }
+              </Text>
+            </View>
+          ) : (
+            filteredLotes.map((lote) => (
+              <TouchableOpacity 
+                key={`${lote.id}-${lote.codigo}`} 
+                style={styles.loteCard} 
+                onPress={() => handleLotePress(lote.id)}
+              >
+                <View style={styles.loteHeader}>
+                  <View style={styles.loteInfo}>
+                    <Text style={styles.loteNome}>{lote.nome}</Text>
+                    <Text style={styles.loteId}>Código: {lote.codigo}</Text>
+                  </View>
+                  <View style={[styles.statusBadge, getStatusColor(lote.status)]}>
+                    <Text style={[styles.statusText, { color: getStatusColor(lote.status).color }]}>
+                      {getStatusText(lote.status)}
+                    </Text>
+                  </View>
                 </View>
-                <View style={[styles.statusBadge, getStatusColor(lote.status)]}>
-                  <Text style={[styles.statusText, { color: getStatusColor(lote.status).color }]}>
-                    {getStatusText(lote.status)}
-                  </Text>
-                </View>
-              </View>
-              
-              <View style={styles.loteDetails}>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Área</Text>
-                  <Text style={styles.detailValue}>{lote.area}</Text>
-                </View>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Árvores</Text>
-                  <Text style={styles.detailValue}>{lote.arvores}</Text>
-                </View>
-              </View>
 
-              <View style={styles.loteFooter}>
-                <View style={styles.footerInfo}>
-                  <View>
-                    <Text style={styles.footerLabel}>Total Colhido</Text>
-                    <Text style={styles.totalColhido}>{lote.colhidoTotal}</Text>
+                <View style={styles.loteDetails}>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Área</Text>
+                    <Text style={styles.detailValue}>{lote.area}</Text>
                   </View>
-                  <View style={styles.ultimaColetaContainer}>
-                    <Text style={styles.footerLabel}>Última Coleta</Text>
-                    <Text style={styles.ultimaColeta}>{lote.ultimaColeta}</Text>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Árvores</Text>
+                    <Text style={styles.detailValue}>{lote.arvores}</Text>
                   </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+
+                <View style={styles.loteFooter}>
+                  <View style={styles.footerInfo}>
+                    <View>
+                      <Text style={styles.footerLabel}>Total Colhido</Text>
+                      <Text style={styles.totalColhido}>{lote.colhidoTotal}</Text>
+                    </View>
+                    <View style={styles.ultimaColetaContainer}>
+                      <Text style={styles.footerLabel}>Última Coleta</Text>
+                      <Text style={styles.ultimaColeta}>{lote.ultimaColeta}</Text>
+                    </View>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
-        {/* Bottom spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
 
-      {/* Modal para Novo Lote */}
-      <NovoLoteModal
-        visible={showModal}
-        onClose={handleModalClose}
-        onSuccess={handleLoteCreated}
-      />
+      <NovoLoteModal visible={showModal} onClose={handleModalClose} onSuccess={handleLoteCreated} />
     </SafeAreaView>
   );
 };
@@ -465,6 +478,25 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 80,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#4B5563',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 
