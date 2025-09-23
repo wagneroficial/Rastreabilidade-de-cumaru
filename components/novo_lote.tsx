@@ -1,18 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { addDoc, collection } from 'firebase/firestore';
-import React, { useState } from 'react';
+import * as Location from 'expo-location';
+import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { db } from '../app/services/firebaseConfig';
 
@@ -26,11 +27,28 @@ interface FormData {
   nome: string;
   area: string;
   descricao: string;
-  coordenadas: string;
+  latitude: string;
+  longitude: string;
   dataInicio: Date | null;
   dataFim: Date | null;
   tipoSolo: string;
   numeroArvores: string;
+  colaboradoresResponsaveis: string[];
+}
+
+interface Colaborador {
+  id: string;
+  nome: string;
+  email: string;
+  telefone?: string;
+  propriedade?: string;
+}
+
+interface LocationData {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  address?: string;
 }
 
 const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSuccess }) => {
@@ -38,23 +56,245 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
     nome: '',
     area: '',
     descricao: '',
-    coordenadas: '',
+    latitude: '',
+    longitude: '',
     dataInicio: null,
     dataFim: null,
     tipoSolo: '',
-    numeroArvores: ''
+    numeroArvores: '',
+    colaboradoresResponsaveis: []
   });
   
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [showSoloModal, setShowSoloModal] = useState(false);
+  const [showColaboradoresModal, setShowColaboradoresModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState<'inicio' | 'fim' | null>(null);
+  const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
+  const [loadingColaboradores, setLoadingColaboradores] = useState(false);
+  
+  // Estados para geolocalização
+  const [loadingLocation, setLoadingLocation] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
+  const [locationPermission, setLocationPermission] = useState<Location.PermissionStatus | null>(null);
 
-  const handleInputChange = (field: keyof FormData, value: string | Date | null) => {
+  // Verificar permissões de localização ao abrir o modal
+  useEffect(() => {
+    if (visible) {
+      checkLocationPermission();
+      fetchColaboradores();
+    }
+  }, [visible]);
+
+  const checkLocationPermission = async () => {
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      setLocationPermission(status);
+      
+      if (status !== Location.PermissionStatus.GRANTED) {
+        const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
+        setLocationPermission(newStatus);
+      }
+    } catch (error) {
+      console.error('Erro ao verificar permissões de localização:', error);
+    }
+  };
+
+  const getCurrentLocation = async () => {
+    setLoadingLocation(true);
+    try {
+      // Verificar se as permissões estão concedidas
+      if (locationPermission !== Location.PermissionStatus.GRANTED) {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== Location.PermissionStatus.GRANTED) {
+          Alert.alert(
+            'Permissão Negada',
+            'É necessário permitir o acesso à localização para usar esta funcionalidade.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+        setLocationPermission(status);
+      }
+
+      // Obter localização atual
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+        timeInterval: 5000,
+        distanceInterval: 1,
+      });
+
+      const { latitude, longitude } = location.coords;
+      
+      // Tentar obter o endereço (geocoding reverso)
+      let address = '';
+      try {
+        const reverseGeocode = await Location.reverseGeocodeAsync({
+          latitude,
+          longitude,
+        });
+        
+        if (reverseGeocode.length > 0) {
+          const location = reverseGeocode[0];
+          address = [
+            location.street,
+            location.streetNumber,
+            location.district,
+            location.city,
+            location.region,
+          ].filter(Boolean).join(', ');
+        }
+      } catch (geocodeError) {
+        console.log('Não foi possível obter o endereço:', geocodeError);
+      }
+
+      const locationData: LocationData = {
+        latitude,
+        longitude,
+        accuracy: location.coords.accuracy || undefined,
+        address: address || undefined,
+      };
+
+      setCurrentLocation(locationData);
+      
+      // Atualizar os campos do formulário
+      handleInputChange('latitude', latitude.toFixed(6));
+      handleInputChange('longitude', longitude.toFixed(6));
+
+      Alert.alert(
+        'Localização Obtida',
+        `Coordenadas: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}${address ? `\nEndereço: ${address}` : ''}`,
+        [{ text: 'OK' }]
+      );
+
+    } catch (error) {
+      console.error('Erro ao obter localização:', error);
+      Alert.alert(
+        'Erro de Localização',
+        'Não foi possível obter sua localização. Verifique se o GPS está ativado e tente novamente.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setLoadingLocation(false);
+    }
+  };
+
+  const validateCoordinates = (lat: string, lng: string): boolean => {
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+    
+    return !isNaN(latitude) && 
+           !isNaN(longitude) && 
+           latitude >= -90 && 
+           latitude <= 90 && 
+           longitude >= -180 && 
+           longitude <= 180;
+  };
+
+  const formatCoordinates = (lat: string, lng: string): string => {
+    if (!lat || !lng) return '';
+    
+    if (validateCoordinates(lat, lng)) {
+      const latitude = parseFloat(lat);
+      const longitude = parseFloat(lng);
+      return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+    }
+    
+    return 'Coordenadas inválidas';
+  };
+
+  const openInMaps = () => {
+    if (!formData.latitude || !formData.longitude) {
+      Alert.alert('Erro', 'Nenhuma coordenada definida para abrir no mapa.');
+      return;
+    }
+
+    if (!validateCoordinates(formData.latitude, formData.longitude)) {
+      Alert.alert('Erro', 'Coordenadas inválidas.');
+      return;
+    }
+
+    const lat = parseFloat(formData.latitude);
+    const lng = parseFloat(formData.longitude);
+    
+    // URL para abrir no Google Maps
+    const url = Platform.select({
+      ios: `maps:${lat},${lng}`,
+      android: `geo:${lat},${lng}?q=${lat},${lng}`,
+    });
+
+    if (url) {
+      // Em um app real, você usaria Linking.openURL(url)
+      Alert.alert(
+        'Abrir no Mapa',
+        `Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}\n\nEm um app real, isso abriria o aplicativo de mapas do dispositivo.`,
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  // Buscar colaboradores do Firestore
+  const fetchColaboradores = async () => {
+    setLoadingColaboradores(true);
+    try {
+      const q = query(
+        collection(db, 'usuarios'),
+        where('tipo', '==', 'colaborador'),
+        where('status', '==', 'aprovado')
+      );
+      const querySnapshot = await getDocs(q);
+      const colaboradoresList: Colaborador[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        colaboradoresList.push({
+          id: doc.id,
+          nome: data.nome,
+          email: data.email,
+          telefone: data.telefone,
+          propriedade: data.propriedade
+        });
+      });
+      
+      setColaboradores(colaboradoresList);
+    } catch (error) {
+      console.error('Erro ao buscar colaboradores:', error);
+      Alert.alert('Erro', 'Falha ao carregar colaboradores');
+    } finally {
+      setLoadingColaboradores(false);
+    }
+  };
+
+  const handleInputChange = (field: keyof FormData, value: string | Date | null | string[]) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleColaboradorToggle = (colaboradorId: string) => {
+    const currentColaboradores = formData.colaboradoresResponsaveis;
+    const isSelected = currentColaboradores.includes(colaboradorId);
+    
+    if (isSelected) {
+      handleInputChange('colaboradoresResponsaveis', 
+        currentColaboradores.filter(id => id !== colaboradorId)
+      );
+    } else {
+      handleInputChange('colaboradoresResponsaveis', 
+        [...currentColaboradores, colaboradorId]
+      );
+    }
+  };
+
+  const getSelectedColaboradoresText = () => {
+    const selected = formData.colaboradoresResponsaveis;
+    if (selected.length === 0) return 'Selecione os colaboradores';
+    if (selected.length === 1) {
+      const colaborador = colaboradores.find(c => c.id === selected[0]);
+      return colaborador?.nome || 'Colaborador selecionado';
+    }
+    return `${selected.length} colaboradores selecionados`;
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
@@ -89,23 +329,35 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
     setIsLoading(true);
 
     try {
+      // Validar coordenadas se fornecidas
+      if ((formData.latitude || formData.longitude) && 
+          !validateCoordinates(formData.latitude, formData.longitude)) {
+        Alert.alert('Erro', 'Coordenadas inválidas. Verifique os valores inseridos.');
+        return;
+      }
+
       const newLote = {
         codigo: `L-${Date.now().toString().slice(-3)}`,
         nome: formData.nome,
-        area: `${formData.area} hectares`,
+        area: formData.area,
         arvores: parseInt(formData.numeroArvores) || 0,
         colhidoTotal: '0 kg',
         status: 'planejado' as const,
         dataInicio: formData.dataInicio ? formData.dataInicio.toISOString().split('T')[0] : '',
         dataFim: formData.dataFim ? formData.dataFim.toISOString().split('T')[0] : '',
         ultimaColeta: 'Não iniciado',
-        descricao: formData.descricao,
-        coordenadas: formData.coordenadas,
+        observacoes: formData.descricao,
+        // Campos de geolocalização
+        latitude: formData.latitude || '',
+        longitude: formData.longitude || '',
+        localizacao: currentLocation?.address || 
+                    (formData.latitude && formData.longitude ? 
+                     formatCoordinates(formData.latitude, formData.longitude) : ''),
         tipoSolo: formData.tipoSolo,
+        colaboradoresResponsaveis: formData.colaboradoresResponsaveis,
         createdAt: new Date().toISOString(),
       };
 
-      // Enviar para Firestore
       await addDoc(collection(db, 'lotes'), newLote);
 
       onSuccess(newLote);
@@ -126,14 +378,18 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
       nome: '',
       area: '',
       descricao: '',
-      coordenadas: '',
+      latitude: '',
+      longitude: '',
       dataInicio: null,
       dataFim: null,
       tipoSolo: '',
-      numeroArvores: ''
+      numeroArvores: '',
+      colaboradoresResponsaveis: []
     });
     setCurrentStep(1);
+    setCurrentLocation(null);
     setShowSoloModal(false);
+    setShowColaboradoresModal(false);
     setShowDatePicker(null);
   };
 
@@ -155,7 +411,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
   };
 
   const isStep1Valid = formData.nome.trim() !== '' && formData.area.trim() !== '';
-  const isStep2Valid = true; // Coordenadas são opcionais
+  const isStep2Valid = true; // Localização é opcional
   const isStep3Valid = formData.dataInicio !== null && formData.dataFim !== null;
 
   const canProceed = () => {
@@ -280,52 +536,167 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
                   <Ionicons name="chevron-down" size={20} color="#9ca3af" />
                 </TouchableOpacity>
               </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Colaboradores Responsáveis</Text>
+                <TouchableOpacity
+                  style={styles.selectButton}
+                  onPress={() => setShowColaboradoresModal(true)}
+                >
+                  <Text style={[
+                    styles.selectButtonText,
+                    formData.colaboradoresResponsaveis.length === 0 && styles.selectButtonPlaceholder
+                  ]}>
+                    {getSelectedColaboradoresText()}
+                  </Text>
+                  <Ionicons name="chevron-down" size={20} color="#9ca3af" />
+                </TouchableOpacity>
+                {formData.colaboradoresResponsaveis.length > 0 && (
+                  <Text style={styles.helperText}>
+                    {formData.colaboradoresResponsaveis.length} colaborador(es) selecionado(s)
+                  </Text>
+                )}
+              </View>
             </View>
           )}
 
-          {/* Step 2: Localização */}
+          {/* Step 2: Localização com GPS funcional */}
           {currentStep === 2 && (
             <View style={styles.stepContainer}>
               <View style={styles.stepHeader}>
                 <Text style={styles.stepTitle}>Localização</Text>
-                <Text style={styles.stepSubtitle}>Defina a localização do lote</Text>
+                <Text style={styles.stepSubtitle}>Defina a localização GPS do lote</Text>
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Coordenadas GPS</Text>
-                <View style={styles.coordenadasContainer}>
-                  <TextInput
-                    style={[styles.input, styles.coordenadasInput]}
-                    value={formData.coordenadas}
-                    onChangeText={(value) => handleInputChange('coordenadas', value)}
-                    placeholder="Ex: -3.7195, -38.5434"
-                    placeholderTextColor="#9ca3af"
-                  />
-                  <TouchableOpacity style={styles.locationButton}>
-                    <Ionicons name="location" size={20} color="white" />
-                  </TouchableOpacity>
+              {/* Seção de localização atual */}
+              <View style={styles.locationSection}>
+                <View style={styles.locationHeader}>
+                  <View style={styles.locationHeaderLeft}>
+                    <Ionicons name="location" size={20} color="#16a34a" />
+                    <Text style={styles.locationTitle}>Localização GPS</Text>
+                  </View>
+                  {locationPermission === Location.PermissionStatus.GRANTED && (
+                    <View style={styles.permissionBadge}>
+                      <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
+                      <Text style={styles.permissionText}>Permitido</Text>
+                    </View>
+                  )}
                 </View>
-              </View>
 
-              <View style={styles.infoCard}>
-                <View style={styles.infoCardHeader}>
-                  <Ionicons name="map" size={20} color="#16a34a" />
-                  <Text style={styles.infoCardTitle}>Localização Atual</Text>
-                </View>
-                <Text style={styles.infoCardText}>Sua localização atual será usada como referência</Text>
-                <TouchableOpacity style={styles.infoCardButton}>
-                  <Ionicons name="map-outline" size={16} color="#374151" />
-                  <Text style={styles.infoCardButtonText}>Usar Localização Atual</Text>
+                <TouchableOpacity
+                  style={[styles.getCurrentLocationButton, loadingLocation && styles.disabledButton]}
+                  onPress={getCurrentLocation}
+                  disabled={loadingLocation}
+                >
+                  {loadingLocation ? (
+                    <>
+                      <ActivityIndicator size="small" color="white" />
+                      <Text style={styles.getCurrentLocationText}>Obtendo localização...</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="navigate" size={20} color="white" />
+                      <Text style={styles.getCurrentLocationText}>Usar Localização Atual</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
+
+                {currentLocation && (
+                  <View style={styles.currentLocationInfo}>
+                    <View style={styles.locationInfoHeader}>
+                      <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
+                      <Text style={styles.locationInfoTitle}>Localização Obtida</Text>
+                    </View>
+                    <Text style={styles.coordinatesText}>
+                      {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}
+                    </Text>
+                    {currentLocation.address && (
+                      <Text style={styles.addressText}>{currentLocation.address}</Text>
+                    )}
+                    {currentLocation.accuracy && (
+                      <Text style={styles.accuracyText}>
+                        Precisão: ±{Math.round(currentLocation.accuracy)}m
+                      </Text>
+                    )}
+                  </View>
+                )}
               </View>
 
-              <View style={styles.mapCard}>
-                <Text style={styles.mapCardTitle}>Mapa de Referência</Text>
-                <View style={styles.mapPlaceholder}>
-                  <Ionicons name="map-outline" size={48} color="#93c5fd" />
+              {/* Entrada manual de coordenadas */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Coordenadas Manuais (opcional)</Text>
+                <View style={styles.coordenadasContainer}>
+                  <View style={styles.coordenadasInputs}>
+                    <View style={styles.coordenadaInput}>
+                      <Text style={styles.coordenadasLabel}>Latitude</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={formData.latitude}
+                        onChangeText={(value) => handleInputChange('latitude', value)}
+                        placeholder="-3.7195"
+                        placeholderTextColor="#9ca3af"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={styles.coordenadaInput}>
+                      <Text style={styles.coordenadasLabel}>Longitude</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={formData.longitude}
+                        onChangeText={(value) => handleInputChange('longitude', value)}
+                        placeholder="-38.5434"
+                        placeholderTextColor="#9ca3af"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                  </View>
                 </View>
-                <Text style={styles.mapCardText}>Visualização do mapa será exibida aqui</Text>
+                
+                {formData.latitude && formData.longitude && (
+                  <View style={styles.coordinatesValidation}>
+                    {validateCoordinates(formData.latitude, formData.longitude) ? (
+                      <View style={styles.validationSuccess}>
+                        <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
+                        <Text style={styles.validationText}>
+                          Coordenadas válidas: {formatCoordinates(formData.latitude, formData.longitude)}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.validationError}>
+                        <Ionicons name="alert-circle" size={16} color="#dc2626" />
+                        <Text style={styles.validationTextError}>Coordenadas inválidas</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
+
+              {/* Botão para abrir no mapa */}
+              {formData.latitude && formData.longitude && validateCoordinates(formData.latitude, formData.longitude) && (
+                <TouchableOpacity style={styles.openMapButton} onPress={openInMaps}>
+                  <Ionicons name="map-outline" size={16} color="#374151" />
+                  <Text style={styles.openMapButtonText}>Ver no Mapa</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Informações sobre permissões */}
+              {locationPermission !== Location.PermissionStatus.GRANTED && (
+                <View style={styles.permissionWarning}>
+                  <Ionicons name="information-circle" size={20} color="#f59e0b" />
+                  <View style={styles.permissionWarningContent}>
+                    <Text style={styles.permissionWarningTitle}>Permissão de Localização</Text>
+                    <Text style={styles.permissionWarningText}>
+                      Para usar a localização automática, é necessário permitir o acesso à localização do dispositivo.
+                    </Text>
+                    <TouchableOpacity 
+                      style={styles.permissionButton}
+                      onPress={checkLocationPermission}
+                    >
+                      <Text style={styles.permissionButtonText}>Solicitar Permissão</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
             </View>
           )}
 
@@ -381,16 +752,6 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
                 />
               </View>
 
-              <View style={styles.tipCard}>
-                <View style={styles.tipHeader}>
-                  <Ionicons name="bulb" size={18} color="#d97706" />
-                  <Text style={styles.tipTitle}>Dica</Text>
-                </View>
-                <Text style={styles.tipText}>
-                  O número de árvores pode ser ajustado posteriormente conforme a identificação no campo.
-                </Text>
-              </View>
-
               {/* Resumo */}
               <View style={styles.summaryCard}>
                 <Text style={styles.summaryTitle}>Resumo do Lote</Text>
@@ -408,11 +769,29 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
                     <Text style={styles.summaryValue}>{formData.numeroArvores || 'Não informado'}</Text>
                   </View>
                   <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Localização:</Text>
+                    <Text style={styles.summaryValue}>
+                      {formData.latitude && formData.longitude 
+                        ? formatCoordinates(formData.latitude, formData.longitude)
+                        : 'Não informado'
+                      }
+                    </Text>
+                  </View>
+                  <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Período:</Text>
                     <Text style={styles.summaryValue}>
                       {formData.dataInicio && formData.dataFim 
                         ? `${formatDate(formData.dataInicio)} - ${formatDate(formData.dataFim)}`
                         : 'Não informado'
+                      }
+                    </Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Responsáveis:</Text>
+                    <Text style={styles.summaryValue}>
+                      {formData.colaboradoresResponsaveis.length > 0 
+                        ? `${formData.colaboradoresResponsaveis.length} colaborador(es)`
+                        : 'Nenhum'
                       }
                     </Text>
                   </View>
@@ -506,6 +885,88 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
                   </TouchableOpacity>
                 ))}
               </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal para seleção de colaboradores */}
+        <Modal
+          visible={showColaboradoresModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowColaboradoresModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Colaboradores Responsáveis</Text>
+                <TouchableOpacity onPress={() => setShowColaboradoresModal(false)}>
+                  <Ionicons name="close" size={24} color="#6b7280" />
+                </TouchableOpacity>
+              </View>
+              
+              {loadingColaboradores ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#16a34a" />
+                  <Text style={styles.loadingText}>Carregando colaboradores...</Text>
+                </View>
+              ) : (
+                <ScrollView style={styles.modalOptions}>
+                  {colaboradores.length === 0 ? (
+                    <View style={styles.emptyCollaboratorsContainer}>
+                      <Ionicons name="people-outline" size={48} color="#9ca3af" />
+                      <Text style={styles.emptyCollaboratorsText}>
+                        Nenhum colaborador aprovado encontrado
+                      </Text>
+                    </View>
+                  ) : (
+                    colaboradores.map((colaborador) => {
+                      const isSelected = formData.colaboradoresResponsaveis.includes(colaborador.id);
+                      return (
+                        <TouchableOpacity
+                          key={colaborador.id}
+                          style={[
+                            styles.colaboradorOption,
+                            isSelected && styles.colaboradorOptionSelected
+                          ]}
+                          onPress={() => handleColaboradorToggle(colaborador.id)}
+                        >
+                          <View style={styles.colaboradorInfo}>
+                            <Text style={[
+                              styles.colaboradorNome,
+                              isSelected && styles.colaboradorNomeSelected
+                            ]}>
+                              {colaborador.nome}
+                            </Text>
+                            <Text style={styles.colaboradorEmail}>
+                              {colaborador.email}
+                            </Text>
+                            {colaborador.propriedade && (
+                              <Text style={styles.colaboradorPropriedade}>
+                                {colaborador.propriedade}
+                              </Text>
+                            )}
+                          </View>
+                          {isSelected && (
+                            <Ionicons name="checkmark-circle" size={24} color="#16a34a" />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })
+                  )}
+                </ScrollView>
+              )}
+              
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={styles.modalFooterButton}
+                  onPress={() => setShowColaboradoresModal(false)}
+                >
+                  <Text style={styles.modalFooterButtonText}>
+                    Confirmar ({formData.colaboradoresResponsaveis.length} selecionados)
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>
@@ -656,67 +1117,146 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginTop: 4,
   },
-  pickerContainer: {
-    gap: 8,
-  },
-  pickerOption: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  pickerOptionSelected: {
-    borderColor: '#16a34a',
-    backgroundColor: '#f0fdf4',
-  },
-  pickerOptionText: {
-    fontSize: 14,
-    color: '#374151',
-  },
-  pickerOptionTextSelected: {
+  helperText: {
+    fontSize: 12,
     color: '#16a34a',
+    marginTop: 4,
     fontWeight: '500',
   },
-  coordenadasContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  coordenadasInput: {
-    flex: 1,
-  },
-  locationButton: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#16a34a',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  infoCard: {
-    backgroundColor: '#f3f4f6',
+  // Estilos específicos para geolocalização
+  locationSection: {
+    backgroundColor: '#f8fafc',
     borderRadius: 12,
     padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  locationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
   },
-  infoCardHeader: {
+  locationHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 8,
+    gap: 8,
   },
-  infoCardTitle: {
+  locationTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#1f2937',
   },
-  infoCardText: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 12,
+  permissionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  infoCardButton: {
+  permissionText: {
+    fontSize: 12,
+    color: '#166534',
+    fontWeight: '500',
+  },
+  getCurrentLocationButton: {
+    backgroundColor: '#16a34a',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  getCurrentLocationText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  currentLocationInfo: {
+    backgroundColor: '#dcfce7',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  locationInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  locationInfoTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#166534',
+  },
+  coordinatesText: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    color: '#15803d',
+    marginBottom: 4,
+  },
+  addressText: {
+    fontSize: 12,
+    color: '#166534',
+    marginBottom: 4,
+  },
+  accuracyText: {
+    fontSize: 11,
+    color: '#16a34a',
+  },
+  coordenadasContainer: {
+    gap: 12,
+  },
+  coordenadasInputs: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  coordenadaInput: {
+    flex: 1,
+  },
+  coordenadasLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6b7280',
+    marginBottom: 6,
+  },
+  coordinatesValidation: {
+    marginTop: 8,
+  },
+  validationSuccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  validationError: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#fecaca',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  validationText: {
+    fontSize: 12,
+    color: '#166534',
+    fontWeight: '500',
+  },
+  validationTextError: {
+    fontSize: 12,
+    color: '#dc2626',
+    fontWeight: '500',
+  },
+  openMapButton: {
     backgroundColor: 'white',
     borderWidth: 1,
     borderColor: '#e5e7eb',
@@ -726,55 +1266,48 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
+    marginTop: 12,
   },
-  infoCardButtonText: {
+  openMapButtonText: {
     fontSize: 14,
     fontWeight: '500',
     color: '#374151',
   },
-  mapCard: {
-    backgroundColor: '#eff6ff',
+  permissionWarning: {
+    backgroundColor: '#fef3c7',
     borderRadius: 12,
     padding: 16,
-  },
-  mapCardTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1e40af',
-    marginBottom: 12,
-  },
-  mapPlaceholder: {
-    height: 120,
-    backgroundColor: '#bfdbfe',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  mapCardText: {
-    fontSize: 12,
-    color: '#1e40af',
-  },
-  tipCard: {
-    backgroundColor: '#fffbeb',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  tipHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    gap: 12,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#fbbf24',
+  },
+  permissionWarningContent: {
+    flex: 1,
+  },
+  permissionWarningTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400e',
+    marginBottom: 4,
+  },
+  permissionWarningText: {
+    fontSize: 12,
+    color: '#a16207',
     marginBottom: 8,
   },
-  tipTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#92400e',
+  permissionButton: {
+    backgroundColor: '#f59e0b',
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
   },
-  tipText: {
-    fontSize: 14,
-    color: '#a16207',
+  permissionButtonText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: 'white',
   },
   summaryCard: {
     backgroundColor: '#f0fdf4',
@@ -867,7 +1400,6 @@ const styles = StyleSheet.create({
   disabledButtonText: {
     color: '#9ca3af',
   },
-  // Novos estilos para Select e DatePicker
   selectButton: {
     backgroundColor: 'white',
     borderWidth: 1,
@@ -916,7 +1448,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 16,
     width: '100%',
-    maxHeight: '70%',
+    maxHeight: '80%',
     overflow: 'hidden',
   },
   modalHeader: {
@@ -933,7 +1465,7 @@ const styles = StyleSheet.create({
     color: '#1f2937',
   },
   modalOptions: {
-    maxHeight: 300,
+    maxHeight: 400,
   },
   modalOption: {
     flexDirection: 'row',
@@ -954,6 +1486,74 @@ const styles = StyleSheet.create({
   modalOptionTextSelected: {
     color: '#16a34a',
     fontWeight: '500',
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6b7280',
+  },
+  emptyCollaboratorsContainer: {
+    padding: 40,
+    alignItems: 'center',
+    gap: 16,
+  },
+  emptyCollaboratorsText: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  colaboradorOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    gap: 12,
+  },
+  colaboradorOptionSelected: {
+    backgroundColor: '#f0fdf4',
+  },
+  colaboradorInfo: {
+    flex: 1,
+  },
+  colaboradorNome: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 2,
+  },
+  colaboradorNomeSelected: {
+    color: '#16a34a',
+  },
+  colaboradorEmail: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 2,
+  },
+  colaboradorPropriedade: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  modalFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    padding: 20,
+  },
+  modalFooterButton: {
+    backgroundColor: '#16a34a',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalFooterButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
   },
 });
 

@@ -2,17 +2,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { createUserWithEmailAndPassword } from "firebase/auth";
@@ -141,6 +141,7 @@ export default function Cadastro() {
         email: formData.email,
         telefone: formData.telefone,
         propriedade: formData.propriedade,
+        tipo: 'colaborador', // Por padrão, sempre colaborador
         criadoEm: new Date(),
         status: 'pendente', // Para aprovação do admin
       });
@@ -398,7 +399,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 100, // Espaço extra para o último elemento
+    paddingBottom: 100, 
   },
   formContainer: {
     paddingHorizontal: 16,

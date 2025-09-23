@@ -2,19 +2,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from './services/firebaseConfig';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from './services/firebaseConfig';
 
 interface FormData {
   email: string;
@@ -43,17 +44,79 @@ export default function Login() {
 
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      router.replace('/(tabs)/home');
+      // Primeiro, autentica o usuário
+      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      const user = userCredential.user;
+
+      // Depois, verifica se o usuário está aprovado
+      const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
+      
+      if (!userDoc.exists()) {
+        // Se não existe documento do usuário, fazer logout e mostrar erro
+        await signOut(auth);
+        Alert.alert(
+          'Conta não encontrada',
+          'Sua conta não foi encontrada no sistema. Entre em contato com o administrador.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const userData = userDoc.data();
+      const userStatus = userData.status;
+
+      if (userStatus === 'pendente') {
+        // Usuário existe mas ainda não foi aprovado
+        await signOut(auth);
+        Alert.alert(
+          'Aguardando Aprovação',
+          'Sua conta foi criada com sucesso, mas ainda precisa ser aprovada pelo administrador. Você receberá um e-mail quando sua conta for ativada.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      if (userStatus === 'rejeitado') {
+        // Usuário foi rejeitado
+        await signOut(auth);
+        Alert.alert(
+          'Acesso Negado',
+          'Sua solicitação de conta foi rejeitada pelo administrador. Entre em contato para mais informações.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      if (userStatus === 'aprovado') {
+        // Usuário aprovado, pode prosseguir
+        router.replace('/(tabs)/home');
+      } else {
+        // Status desconhecido
+        await signOut(auth);
+        Alert.alert(
+          'Erro de Autorização',
+          'Status da conta não reconhecido. Entre em contato com o administrador.',
+          [{ text: 'OK' }]
+        );
+      }
+
     } catch (error: any) {
       let message = 'Erro ao fazer login.';
+      
       if (error.code === 'auth/user-not-found') {
-        message = 'Usuário não encontrado.';
+        message = 'Usuário não encontrado. Verifique seu e-mail ou cadastre-se.';
       } else if (error.code === 'auth/wrong-password') {
-        message = 'Senha incorreta.';
+        message = 'Senha incorreta. Tente novamente.';
       } else if (error.code === 'auth/invalid-email') {
-        message = 'E-mail inválido.';
+        message = 'E-mail inválido. Verifique o formato do e-mail.';
+      } else if (error.code === 'auth/user-disabled') {
+        message = 'Esta conta foi desabilitada. Entre em contato com o administrador.';
+      } else if (error.code === 'auth/too-many-requests') {
+        message = 'Muitas tentativas de login. Tente novamente mais tarde.';
+      } else if (error.code === 'auth/invalid-credential') {
+        message = 'Credenciais inválidas. Verifique seu e-mail e senha.';
       }
+      
       Alert.alert('Erro', message);
     } finally {
       setIsLoading(false);
@@ -145,7 +208,7 @@ export default function Login() {
             {isLoading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color="white" />
-                <Text style={styles.loginButtonText}>Entrando...</Text>
+                <Text style={styles.loginButtonText}>Verificando...</Text>
               </View>
             ) : (
               <Text style={styles.loginButtonText}>Entrar</Text>
@@ -158,6 +221,8 @@ export default function Login() {
               <Text style={styles.registerLink}>Cadastre-se</Text>
             </TouchableOpacity>
           </View>
+
+   
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -203,7 +268,7 @@ const styles = StyleSheet.create({
   },
   welcomeSection: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   welcomeTitle: {
     fontSize: 24,
@@ -214,6 +279,30 @@ const styles = StyleSheet.create({
   welcomeSubtitle: {
     fontSize: 16,
     color: '#6B7280',
+  },
+  infoCard: {
+    backgroundColor: '#eff6ff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+  },
+  infoCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  infoCardTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e40af',
+  },
+  infoCardText: {
+    fontSize: 14,
+    color: '#3730a3',
+    lineHeight: 20,
   },
   inputGroup: {
     marginBottom: 24,
@@ -309,6 +398,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 32,
   },
   registerText: {
     fontSize: 16,
@@ -319,4 +409,6 @@ const styles = StyleSheet.create({
     color: '#16A34A',
     fontWeight: '600',
   },
+
+
 });

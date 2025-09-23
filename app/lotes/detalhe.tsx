@@ -3,6 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
+  Modal,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -12,12 +14,13 @@ import {
   View,
 } from 'react-native';
 
-import { db } from '@/app/sevices/firebaseConfig';
-import { collection, doc, getDoc, getDocs, query, updateDoc, where } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { collection, doc, getDoc, getDocs, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
+import { auth, db } from '../services/firebaseConfig';
 
 interface Lote {
-  id: string;         // ID do documento do Firestore
-  codigo: string;     // Código de identificação visual (L-123)
+  id: string;
+  codigo: string;
   nome: string;
   area: string;
   arvores: number;
@@ -31,15 +34,24 @@ interface Lote {
   latitude?: string;
   longitude?: string;
   observacoes?: string;
+  colaboradoresResponsaveis?: string[];
+}
+
+interface Colaborador {
+  id: string;
+  nome: string;
+  email: string;
+  telefone?: string;
+  propriedade?: string;
 }
 
 interface HistoricoItem {
   id: string;
   data: string;
   responsavel: string;
-  arvoresColetadas: number;
-  producaoTotal: string;
+  quantidade: string;
   observacoes?: string;
+  hora: string;
 }
 
 interface ArvoreItem {
@@ -72,30 +84,48 @@ export default function DetalheLoteScreen() {
   const [activeTab, setActiveTab] = useState('visao-geral');
   const [modalVisible, setModalVisible] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [colaboradoresModalVisible, setColaboradoresModalVisible] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  
+  // Estados para admin
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [userLoading, setUserLoading] = useState(true);
+  const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
+  const [loadingColaboradores, setLoadingColaboradores] = useState(false);
+
+  // Verificar se o usuário é admin
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setIsAdmin(userData.tipo === 'admin');
+          }
+        } catch (error) {
+          console.error('Erro ao verificar tipo de usuário:', error);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
+      setUserLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (!id) return;
 
-    const fetchData = async () => {
+    const loteId = Array.isArray(id) ? id[0] : id;
+    if (!loteId) return;
+
+    const fetchInitialData = async () => {
       setLoading(true);
       try {
-        const loteId = Array.isArray(id) ? id[0] : id;
-
-        if (!loteId) {
-          console.log('ID do lote é inválido ou vazio');
-          return;
-        }
-
-        // Buscar dados do lote
         await fetchLoteData(loteId);
-        
-        // Buscar árvores do lote
-        await fetchArvores(loteId);
-        
-        // Buscar histórico do lote
-        await fetchHistorico(loteId);
-
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
       } finally {
@@ -103,8 +133,207 @@ export default function DetalheLoteScreen() {
       }
     };
 
-    fetchData();
+    fetchInitialData();
+
+    // Configurar listeners para dados em tempo real
+    setupRealtimeListeners(loteId);
+
   }, [id]);
+
+  // Configurar listeners em tempo real
+  const setupRealtimeListeners = (loteId: string) => {
+    // Estados para armazenar dados calculados
+    let coletasPorArvore: Record<string, { total: number, ultima: string, diasAtras: number }> = {};
+    let coletasDoLote: HistoricoItem[] = [];
+    let totalColetadoLote = 0;
+    let ultimaColetaLote = 'Nunca';
+
+    // Listener para árvores
+    const unsubscribeArvores = onSnapshot(
+      query(collection(db, 'arvores'), where('loteId', '==', loteId)),
+      (arvoresSnapshot) => {
+        const arvoresList: ArvoreItem[] = [];
+        
+        arvoresSnapshot.docs.forEach(doc => {
+          const arv = doc.data();
+          const coletasInfo = coletasPorArvore[doc.id];
+          
+          arvoresList.push({
+            id: doc.id,
+            codigo: arv.codigo || `ARV-${doc.id.slice(-3)}`,
+            tipo: arv.especie || arv.tipo || 'Não informado',
+            ultimaColeta: coletasInfo?.ultima || 'Nunca coletada',
+            producaoTotal: coletasInfo ? `${coletasInfo.total.toFixed(1)} kg` : '0 kg',
+            diasAtras: coletasInfo?.diasAtras || 0,
+            estadoSaude: arv.estadoSaude || 'Saudável',
+          });
+        });
+        
+        setArvores(arvoresList);
+
+        // Atualizar contador de árvores no lote
+        setLoteData(prev => prev ? { ...prev, arvores: arvoresList.length } : null);
+      }
+    );
+
+    // Listener para coletas
+    const unsubscribeColetas = onSnapshot(
+      query(collection(db, 'coletas'), where('loteId', '==', loteId)),
+      async (coletasSnapshot) => {
+        // Resetar dados
+        coletasPorArvore = {};
+        coletasDoLote = [];
+        totalColetadoLote = 0;
+        let ultimaDataColeta = new Date(0);
+
+        // Processar coletas
+        for (const docSnapshot of coletasSnapshot.docs) {
+          const data = docSnapshot.data();
+          const quantidade = data.quantidade || 0;
+          const dataColeta = data.dataColeta?.toDate?.() || new Date();
+          const arvoreId = data.arvoreId;
+          const coletorId = data.coletorId;
+
+          // Somar total do lote
+          totalColetadoLote += quantidade;
+
+          // Verificar última coleta do lote
+          if (dataColeta > ultimaDataColeta) {
+            ultimaDataColeta = dataColeta;
+            ultimaColetaLote = dataColeta.toLocaleDateString('pt-BR', { 
+              day: '2-digit', 
+              month: '2-digit' 
+            });
+          }
+
+          // Calcular produção por árvore
+          if (arvoreId) {
+            if (!coletasPorArvore[arvoreId]) {
+              coletasPorArvore[arvoreId] = { total: 0, ultima: '', diasAtras: 0 };
+            }
+            
+            coletasPorArvore[arvoreId].total += quantidade;
+            
+            // Verificar última coleta da árvore
+            if (!coletasPorArvore[arvoreId].ultima || dataColeta > new Date(coletasPorArvore[arvoreId].ultima)) {
+              coletasPorArvore[arvoreId].ultima = dataColeta.toLocaleDateString('pt-BR', { 
+                day: '2-digit', 
+                month: '2-digit' 
+              });
+              
+              // Calcular dias atrás
+              const hoje = new Date();
+              const diffTime = Math.abs(hoje.getTime() - dataColeta.getTime());
+              coletasPorArvore[arvoreId].diasAtras = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            }
+          }
+
+          // Buscar nome do coletor
+          let nomeColetorCompleto = 'Coletor não encontrado';
+          try {
+            if (coletorId) {
+              const coletorDoc = await getDoc(doc(db, 'usuarios', coletorId));
+              if (coletorDoc.exists()) {
+                const coletorData = coletorDoc.data();
+                nomeColetorCompleto = coletorData.nome || data.coletorNome || 'Coletor';
+              } else {
+                nomeColetorCompleto = data.coletorNome || 'Coletor';
+              }
+            }
+          } catch (error) {
+            nomeColetorCompleto = data.coletorNome || 'Coletor';
+          }
+
+          // Adicionar ao histórico
+          coletasDoLote.push({
+            id: docSnapshot.id,
+            data: dataColeta.toLocaleDateString('pt-BR'),
+            responsavel: nomeColetorCompleto,
+            quantidade: `${quantidade.toFixed(1)} kg`,
+            observacoes: data.observacoes || '',
+            hora: dataColeta.toLocaleTimeString('pt-BR', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })
+          });
+        }
+
+        // Ordenar histórico por data decrescente
+        coletasDoLote.sort((a, b) => {
+          const dateA = new Date(a.data.split('/').reverse().join('-'));
+          const dateB = new Date(b.data.split('/').reverse().join('-'));
+          return dateB.getTime() - dateA.getTime();
+        });
+
+        // Atualizar estados
+        setHistoricoData(coletasDoLote);
+        
+        // Atualizar dados do lote
+        setLoteData(prev => prev ? {
+          ...prev,
+          colhidoTotal: `${totalColetadoLote.toFixed(1)} kg`,
+          ultimaColeta: ultimaColetaLote
+        } : null);
+
+        // Forçar re-renderização das árvores com novos dados
+        setArvores(currentArvores => 
+          currentArvores.map(arvore => {
+            const coletasInfo = coletasPorArvore[arvore.id];
+            return {
+              ...arvore,
+              ultimaColeta: coletasInfo?.ultima || 'Nunca coletada',
+              producaoTotal: coletasInfo ? `${coletasInfo.total.toFixed(1)} kg` : '0 kg',
+              diasAtras: coletasInfo?.diasAtras || 0
+            };
+          })
+        );
+      }
+    );
+
+    // Retornar função de cleanup
+    return () => {
+      unsubscribeArvores();
+      unsubscribeColetas();
+    };
+  };
+
+  // Buscar colaboradores quando modal abrir
+  useEffect(() => {
+    if (colaboradoresModalVisible) {
+      fetchColaboradores();
+    }
+  }, [colaboradoresModalVisible]);
+
+  const fetchColaboradores = async () => {
+    setLoadingColaboradores(true);
+    try {
+      const q = query(
+        collection(db, 'usuarios'),
+        where('tipo', '==', 'colaborador'),
+        where('status', '==', 'aprovado')
+      );
+      const querySnapshot = await getDocs(q);
+      const colaboradoresList: Colaborador[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        colaboradoresList.push({
+          id: doc.id,
+          nome: data.nome,
+          email: data.email,
+          telefone: data.telefone,
+          propriedade: data.propriedade
+        });
+      });
+      
+      setColaboradores(colaboradoresList);
+    } catch (error) {
+      console.error('Erro ao buscar colaboradores:', error);
+      Alert.alert('Erro', 'Falha ao carregar colaboradores');
+    } finally {
+      setLoadingColaboradores(false);
+    }
+  };
 
   const fetchLoteData = async (loteId: string) => {
     try {
@@ -115,21 +344,22 @@ export default function DetalheLoteScreen() {
         const data = loteDoc.data();
         
         setLoteData({
-          id: loteDoc.id,           // ID do documento do Firestore
-          codigo: data.codigo || `L-${loteDoc.id.slice(-3)}`, // Código de identificação, com fallback
+          id: loteDoc.id,
+          codigo: data.codigo || `L-${loteDoc.id.slice(-3)}`,
           nome: data.nome || '',
           area: data.area || '0',
           arvores: data.arvores || 0,
-          colhidoTotal: data.colhidoTotal || '0',
+          colhidoTotal: '0 kg', // Será calculado em tempo real
           status: data.status || 'Inativo',
           dataInicio: data.dataInicio || '',
           dataFim: data.dataFim || '',
-          ultimaColeta: data.ultimaColeta || 'Nunca',
+          ultimaColeta: 'Nunca', // Será calculado em tempo real
           localizacao: data.localizacao || '',
           responsavel: data.responsavel || '',
           latitude: data.latitude || '',
           longitude: data.longitude || '',
           observacoes: data.observacoes || '',
+          colaboradoresResponsaveis: data.colaboradoresResponsaveis || [],
         });
       } else {
         console.log('Lote não encontrado!');
@@ -139,103 +369,13 @@ export default function DetalheLoteScreen() {
     }
   };
 
-  const fetchArvores = async (loteId: string) => {
-    try {
-      const arvoresQuery = query(
-        collection(db, 'arvores'),
-        where('loteId', '==', loteId)
-      );
-
-      const arvoresSnapshot = await getDocs(arvoresQuery);
-      const arvoresList: ArvoreItem[] = [];
-      
-      arvoresSnapshot.forEach(doc => {
-        const arv = doc.data();
-        arvoresList.push({
-          id: doc.id,
-          codigo: arv.codigo || `ARV-${doc.id}`,
-          tipo: arv.especie || arv.tipo || 'Não informado',
-          ultimaColeta: arv.ultimaColeta || 'Nunca coletada',
-          producaoTotal: arv.producaoTotal || '0 kg',
-          diasAtras: arv.diasAtras || 0,
-          estadoSaude: arv.estadoSaude || 'Não informado',
-        });
-      });
-      
-      setArvores(arvoresList);
-    } catch (error) {
-      console.error('Erro ao buscar árvores:', error);
-    }
-  };
-
-  const fetchHistorico = async (loteId: string) => {
-    try {
-      // Primeiro, tenta buscar sem orderBy para evitar erro de índice
-      const historicoQuery = query(
-        collection(db, 'historico_coletas'),
-        where('loteId', '==', loteId)
-      );
-      
-      const historicoSnapshot = await getDocs(historicoQuery);
-      const historicoList: HistoricoItem[] = [];
-      
-      historicoSnapshot.forEach(doc => {
-        const hist = doc.data();
-        historicoList.push({
-          id: doc.id,
-          data: hist.data || '',
-          responsavel: hist.responsavel || 'Não informado',
-          arvoresColetadas: hist.arvoresColetadas || 0,
-          producaoTotal: hist.producaoTotal || '0 kg',
-          observacoes: hist.observacoes || '',
-        });
-      });
-      
-      // Ordenar no cliente por data (mais recente primeiro)
-      historicoList.sort((a, b) => {
-        if (!a.data || !b.data) return 0;
-        
-        // Tenta diferentes formatos de data
-        const dateA = new Date(a.data.split('/').reverse().join('-')); // DD/MM/YYYY -> YYYY-MM-DD
-        const dateB = new Date(b.data.split('/').reverse().join('-'));
-        
-        if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
-          return 0; // Se não conseguir converter, mantém ordem original
-        }
-        
-        return dateB.getTime() - dateA.getTime();
-      });
-      
-      setHistoricoData(historicoList);
-    } catch (error) {
-      console.error('Erro ao buscar histórico:', error);
-      // Se der erro, define array vazio
-      setHistoricoData([]);
-    }
-  };
-
   const handleBack = () => {
     router.back();
   };
 
   const handleNovaArvore = async (arvoreData: ArvoreFormData) => {
-    // Atualizar o estado local imediatamente para feedback do usuário
-    const novaArvore: ArvoreItem = {
-      id: `temp-${Date.now()}`,
-      codigo: arvoreData.idArvore,
-      tipo: arvoreData.especie,
-      ultimaColeta: 'Nunca coletada',
-      producaoTotal: '0 kg',
-      diasAtras: 0,
-      estadoSaude: arvoreData.estadoSaude,
-    };
-    
-    setArvores(prev => [...prev, novaArvore]);
-    
-    // Atualizar o contador de árvores no lote
-    if (loteData) {
-      setLoteData(prev => prev ? { ...prev, arvores: prev.arvores + 1 } : null);
-    }
+    // A árvore será adicionada automaticamente pelo listener
+    console.log('Nova árvore cadastrada:', arvoreData.idArvore);
   };
 
   const handleStatusChange = async (novoStatus: string) => {
@@ -246,51 +386,75 @@ export default function DetalheLoteScreen() {
       const loteId = Array.isArray(id) ? id[0] : id;
       const loteDocRef = doc(db, 'lotes', loteId);
       
-      // Atualizar no Firebase
       await updateDoc(loteDocRef, {
         status: novoStatus
       });
       
-      // Atualizar estado local
       setLoteData(prev => prev ? { ...prev, status: novoStatus } : null);
-      
       setStatusModalVisible(false);
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
-      // Aqui você pode adicionar um toast ou alert para mostrar o erro
     } finally {
       setUpdatingStatus(false);
     }
   };
 
+  const handleColaboradorToggle = async (colaboradorId: string) => {
+    if (!loteData) return;
+
+    const currentColaboradores = loteData.colaboradoresResponsaveis || [];
+    const isSelected = currentColaboradores.includes(colaboradorId);
+    
+    let newColaboradores: string[];
+    if (isSelected) {
+      newColaboradores = currentColaboradores.filter(id => id !== colaboradorId);
+    } else {
+      newColaboradores = [...currentColaboradores, colaboradorId];
+    }
+
+    try {
+      const loteId = Array.isArray(id) ? id[0] : id;
+      const loteDocRef = doc(db, 'lotes', loteId);
+      
+      await updateDoc(loteDocRef, {
+        colaboradoresResponsaveis: newColaboradores
+      });
+      
+      setLoteData(prev => prev ? { 
+        ...prev, 
+        colaboradoresResponsaveis: newColaboradores 
+      } : null);
+      
+    } catch (error) {
+      console.error('Erro ao atualizar colaboradores:', error);
+      Alert.alert('Erro', 'Falha ao atualizar colaboradores responsáveis');
+    }
+  };
+
+  const getColaboradorNome = (colaboradorId: string) => {
+    const colaborador = colaboradores.find(c => c.id === colaboradorId);
+    return colaborador?.nome || 'Colaborador';
+  };
+
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'ativo':
-        return '#10B981'; // Verde
-      case 'planejado':
-        return '#F59E0B'; // Amarelo
+      case 'ativo': return '#10B981';
+      case 'planejado': return '#F59E0B';
       case 'concluido':
-      case 'concluído':
-        return '#6B7280'; // Cinza
-      default:
-        return '#6B7280';
+      case 'concluído': return '#6B7280';
+      default: return '#6B7280';
     }
   };
 
   const getQualidadeColor = (qualidade: string) => {
     switch (qualidade.toLowerCase()) {
       case 'saudavel':
-      case 'saudável': 
-        return '#10B981';
-      case 'excelente': 
-        return '#059669';
-      case 'bom': 
-        return '#F59E0B';
+      case 'saudável': return '#10B981';
+      case 'excelente': return '#059669';
+      case 'bom': return '#F59E0B';
       case 'ruim':
-      case 'doente':
-        return '#EF4444';
-      default: 
-        return '#6B7280';
+      case 'doente': return '#EF4444';
+      default: return '#6B7280';
     }
   };
 
@@ -309,10 +473,6 @@ export default function DetalheLoteScreen() {
             <Text style={styles.infoValue}>{loteData?.localizacao || 'Não informado'}</Text>
           </View>
           <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Responsável</Text>
-            <Text style={styles.infoValue}>{loteData?.responsavel || 'Não informado'}</Text>
-          </View>
-          <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Data Início</Text>
             <Text style={styles.infoValue}>{loteData?.dataInicio || 'Não informado'}</Text>
           </View>
@@ -325,6 +485,41 @@ export default function DetalheLoteScreen() {
             <Text style={styles.infoValue}>{loteData?.ultimaColeta || 'Nunca'}</Text>
           </View>
         </View>
+      </View>
+
+      {/* Colaboradores Responsáveis */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Colaboradores Responsáveis</Text>
+          {isAdmin && (
+            <TouchableOpacity 
+              style={styles.manageButton}
+              onPress={() => setColaboradoresModalVisible(true)}
+            >
+              <Ionicons name="settings-outline" size={16} color="#059669" />
+              <Text style={styles.manageButtonText}>Gerenciar</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        
+        {loteData?.colaboradoresResponsaveis && loteData.colaboradoresResponsaveis.length > 0 ? (
+          <View style={styles.colaboradoresList}>
+            {loteData.colaboradoresResponsaveis.map((colaboradorId, index) => (
+              <View key={colaboradorId} style={styles.colaboradorItem}>
+                <View style={styles.colaboradorAvatar}>
+                  <Ionicons name="person" size={16} color="#059669" />
+                </View>
+                <Text style={styles.colaboradorNome}>
+                  {getColaboradorNome(colaboradorId)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.noColaboradores}>
+            {isAdmin ? 'Nenhum colaborador atribuído. Clique em "Gerenciar" para adicionar.' : 'Nenhum colaborador atribuído a este lote.'}
+          </Text>
+        )}
       </View>
 
       {/* Localização GPS */}
@@ -365,7 +560,7 @@ export default function DetalheLoteScreen() {
           <Ionicons name="leaf-outline" size={48} color="#9CA3AF" />
           <Text style={styles.emptyStateTitle}>Nenhuma árvore cadastrada</Text>
           <Text style={styles.emptyStateText}>
-            Cadastre a primeira árvore deste lote clicando no botão acima.
+            {isAdmin ? 'Cadastre a primeira árvore deste lote clicando no botão acima.' : 'Ainda não há árvores cadastradas neste lote.'}
           </Text>
         </View>
       ) : (
@@ -389,7 +584,10 @@ export default function DetalheLoteScreen() {
               <View style={styles.arvoreDetailItem}>
                 <Text style={styles.arvoreDetailLabel}>Última Coleta</Text>
                 <Text style={styles.arvoreDetailValue}>
-                  {arvore.diasAtras === 0 ? 'Nunca coletada' : `${arvore.diasAtras} dias atrás`}
+                  {arvore.diasAtras === 0 ? arvore.ultimaColeta : 
+                   arvore.ultimaColeta === 'Nunca coletada' ? 'Nunca coletada' : 
+                   `${arvore.ultimaColeta} (${arvore.diasAtras} dias atrás)`
+                  }
                 </Text>
               </View>
               <View style={styles.arvoreDetailItem}>
@@ -420,17 +618,14 @@ export default function DetalheLoteScreen() {
               <View style={styles.historicoData}>
                 <Text style={styles.historicoDate}>{item.data}</Text>
                 <Text style={styles.historicoResponsavel}>por {item.responsavel}</Text>
+                <Text style={styles.historicoHora}>às {item.hora}</Text>
               </View>
-              <Text style={styles.historicoProducao}>{item.producaoTotal}</Text>
-            </View>
-            <View style={styles.historicoDetails}>
-              <Ionicons name="leaf-outline" size={16} color="#059669" />
-              <Text style={styles.historicoArvores}>
-                {item.arvoresColetadas} árvores coletadas
-              </Text>
+              <Text style={styles.historicoProducao}>{item.quantidade}</Text>
             </View>
             {item.observacoes && (
-              <Text style={styles.historicoObservacoes}>{item.observacoes}</Text>
+              <View style={styles.historicoObservacoesContainer}>
+                <Text style={styles.historicoObservacoes}>"{item.observacoes}"</Text>
+              </View>
             )}
           </View>
         ))
@@ -440,18 +635,14 @@ export default function DetalheLoteScreen() {
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'visao-geral':
-        return renderVisaoGeral();
-      case 'arvores':
-        return renderArvores();
-      case 'historico':
-        return renderHistorico();
-      default:
-        return renderVisaoGeral();
+      case 'visao-geral': return renderVisaoGeral();
+      case 'arvores': return renderArvores();
+      case 'historico': return renderHistorico();
+      default: return renderVisaoGeral();
     }
   };
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <Text style={styles.loadingText}>Carregando dados do lote...</Text>
@@ -486,15 +677,17 @@ export default function DetalheLoteScreen() {
               <Text style={styles.headerSubtitle}>Código: {loteData.codigo}</Text>
             </View>
           </View>
-          <View style={[styles.statusContainer, { backgroundColor: getStatusColor(loteData.status) }]}>
-            <TouchableOpacity 
-              onPress={() => setStatusModalVisible(true)}
-              style={styles.statusTouchable}
-            >
-              <Text style={styles.statusText}>{loteData.status}</Text>
-              <Ionicons name="chevron-down" size={16} color="white" />
-            </TouchableOpacity>
-          </View>
+          {isAdmin && (
+            <View style={[styles.statusContainer, { backgroundColor: getStatusColor(loteData.status) }]}>
+              <TouchableOpacity 
+                onPress={() => setStatusModalVisible(true)}
+                style={styles.statusTouchable}
+              >
+                <Text style={styles.statusText}>{loteData.status}</Text>
+                <Ionicons name="chevron-down" size={16} color="white" />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
         
         {/* Stats */}
@@ -515,16 +708,18 @@ export default function DetalheLoteScreen() {
         </View>
       </View>
 
-      {/* Botão Cadastrar Nova Árvore */}
-      <View style={styles.cadastrarContainer}>
-        <TouchableOpacity 
-          style={styles.cadastrarButton} 
-          onPress={() => setModalVisible(true)}
-        >
-          <Ionicons name="add-outline" size={20} color="white" />
-          <Text style={styles.cadastrarButtonText}>Cadastrar Nova Árvore</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Botão Cadastrar Nova Árvore - Só para Admin */}
+      {isAdmin && (
+        <View style={styles.cadastrarContainer}>
+          <TouchableOpacity 
+            style={styles.cadastrarButton} 
+            onPress={() => setModalVisible(true)}
+          >
+            <Ionicons name="add-outline" size={20} color="white" />
+            <Text style={styles.cadastrarButtonText}>Cadastrar Nova Árvore</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Tabs */}
       <View style={styles.tabsContainer}>
@@ -560,16 +755,18 @@ export default function DetalheLoteScreen() {
         <View style={styles.bottomSpacing} />
       </ScrollView>
 
-      {/* Modal de Cadastro */}
-      <CadastrarArvoreModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        onSubmit={handleNovaArvore}
-        loteId={loteData.id}
-      />
+      {/* Modal de Cadastro - Só para Admin */}
+      {isAdmin && (
+        <CadastrarArvoreModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          onSubmit={handleNovaArvore}
+          loteId={loteData.id}
+        />
+      )}
 
-      {/* Modal de Status */}
-      {statusModalVisible && (
+      {/* Modal de Status - Só para Admin */}
+      {isAdmin && statusModalVisible && (
         <View style={styles.modalOverlay}>
           <View style={styles.statusModal}>
             <View style={styles.statusModalHeader}>
@@ -583,7 +780,7 @@ export default function DetalheLoteScreen() {
             </View>
             
             <View style={styles.statusOptions}>
-              {['Ativo', 'Planejado', 'Concluído'].map((status) => (
+              {['ativo', 'planejado', 'concluído'].map((status) => (
                 <TouchableOpacity
                   key={status}
                   style={[
@@ -617,6 +814,89 @@ export default function DetalheLoteScreen() {
             )}
           </View>
         </View>
+      )}
+
+      {/* Modal de Colaboradores - Só para Admin */}
+      {isAdmin && (
+        <Modal
+          visible={colaboradoresModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setColaboradoresModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.colaboradoresModal}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Gerenciar Colaboradores</Text>
+                <TouchableOpacity onPress={() => setColaboradoresModalVisible(false)}>
+                  <Ionicons name="close" size={24} color="#6b7280" />
+                </TouchableOpacity>
+              </View>
+              
+              {loadingColaboradores ? (
+                <View style={styles.loadingContainer}>
+                  <Text style={styles.loadingText}>Carregando colaboradores...</Text>
+                </View>
+              ) : (
+                <ScrollView style={styles.modalContent}>
+                  {colaboradores.length === 0 ? (
+                    <View style={styles.emptyCollaboratorsContainer}>
+                      <Ionicons name="people-outline" size={48} color="#9ca3af" />
+                      <Text style={styles.emptyCollaboratorsText}>
+                        Nenhum colaborador aprovado encontrado
+                      </Text>
+                    </View>
+                  ) : (
+                    colaboradores.map((colaborador) => {
+                      const isSelected = loteData.colaboradoresResponsaveis?.includes(colaborador.id) || false;
+                      return (
+                        <TouchableOpacity
+                          key={colaborador.id}
+                          style={[
+                            styles.colaboradorModalOption,
+                            isSelected && styles.colaboradorModalOptionSelected
+                          ]}
+                          onPress={() => handleColaboradorToggle(colaborador.id)}
+                        >
+                          <View style={styles.colaboradorModalInfo}>
+                            <Text style={[
+                              styles.colaboradorModalNome,
+                              isSelected && styles.colaboradorModalNomeSelected
+                            ]}>
+                              {colaborador.nome}
+                            </Text>
+                            <Text style={styles.colaboradorModalEmail}>
+                              {colaborador.email}
+                            </Text>
+                            {colaborador.propriedade && (
+                              <Text style={styles.colaboradorModalPropriedade}>
+                                {colaborador.propriedade}
+                              </Text>
+                            )}
+                          </View>
+                          {isSelected && (
+                            <Ionicons name="checkmark-circle" size={24} color="#059669" />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })
+                  )}
+                </ScrollView>
+              )}
+              
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={styles.modalFooterButton}
+                  onPress={() => setColaboradoresModalVisible(false)}
+                >
+                  <Text style={styles.modalFooterButtonText}>
+                    Confirmar ({loteData.colaboradoresResponsaveis?.length || 0} selecionados)
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       )}
     </SafeAreaView>
   );
@@ -786,11 +1066,55 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 16,
+  },
+  manageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  manageButtonText: {
+    fontSize: 12,
+    color: '#059669',
+    fontWeight: '500',
+  },
+  colaboradoresList: {
+    gap: 8,
+  },
+  colaboradorItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  colaboradorAvatar: {
+    width: 32,
+    height: 32,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  colaboradorNome: {
+    fontSize: 14,
+    color: '#1F2937',
+    fontWeight: '500',
+  },
+  noColaboradores: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontStyle: 'italic',
   },
   infoGrid: {
     gap: 16,
@@ -950,30 +1274,31 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 2,
   },
+  historicoHora: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 1,
+  },
   historicoProducao: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#059669',
   },
-  historicoDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  historicoArvores: {
-    fontSize: 12,
-    color: '#6B7280',
+  historicoObservacoesContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
   },
   historicoObservacoes: {
     fontSize: 12,
     color: '#6B7280',
-    marginTop: 8,
     fontStyle: 'italic',
+    lineHeight: 16,
   },
   bottomSpacing: {
     height: 32,
   },
-  // Estilos do Modal de Status
   modalOverlay: {
     position: 'absolute',
     top: 0,
@@ -1047,5 +1372,87 @@ const styles = StyleSheet.create({
   updatingText: {
     fontSize: 14,
     color: '#6B7280',
+  },
+  colaboradoresModal: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    width: '90%',
+    maxHeight: '80%',
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  modalContent: {
+    maxHeight: 400,
+  },
+  emptyCollaboratorsContainer: {
+    padding: 40,
+    alignItems: 'center',
+    gap: 16,
+  },
+  emptyCollaboratorsText: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  colaboradorModalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    gap: 12,
+  },
+  colaboradorModalOptionSelected: {
+    backgroundColor: '#f0fdf4',
+  },
+  colaboradorModalInfo: {
+    flex: 1,
+  },
+  colaboradorModalNome: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 2,
+  },
+  colaboradorModalNomeSelected: {
+    color: '#059669',
+  },
+  colaboradorModalEmail: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 2,
+  },
+  colaboradorModalPropriedade: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  modalFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    padding: 20,
+  },
+  modalFooterButton: {
+    backgroundColor: '#059669',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalFooterButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
   },
 });

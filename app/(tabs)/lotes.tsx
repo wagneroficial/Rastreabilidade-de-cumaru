@@ -12,20 +12,23 @@ import {
   View,
 } from 'react-native';
 
-import { db } from '@/app/sevices/firebaseConfig';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/firestore';
+import { auth, db } from '../services/firebaseConfig';
 
 interface Lote {
-  id: string;         // ID do documento do Firestore
-  codigo: string;     // Código de identificação visual (L-123)
+  id: string;
+  codigo: string;
   nome: string;
   area: string;
-  arvores: number;
-  colhidoTotal: string;
-  status: 'ativo' | 'concluido' | 'planejado';
+  arvoresEstimadas: number;  // Quantidade planejada/estimada
+  arvoresReais: number;      // Quantidade real cadastrada
+  colhidoTotal: string;      // Agora será calculado das coletas reais
+  status: 'ativo' | 'concluído' | 'planejado';
   dataInicio: string;
   dataFim: string;
   ultimaColeta: string;
+  colaboradoresResponsaveis?: string[];
 }
 
 const LotesScreen: React.FC = () => {
@@ -33,31 +36,160 @@ const LotesScreen: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [lotes, setLotes] = useState<Lote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [userLoading, setUserLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
+  // Verificar se o usuário é admin e obter ID do usuário
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'lotes'), (querySnapshot) => {
-      const lotesFromFirestore: Lote[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        lotesFromFirestore.push({
-          id: doc.id,                                        // ID do documento do Firestore
-          codigo: data.codigo || `L-${doc.id.slice(-3)}`,   // Código com fallback
-          nome: data.nome || 'Lote sem nome',
-          area: data.area || '0 hectares',
-          arvores: data.arvores || 0,
-          colhidoTotal: data.colhidoTotal || '0 kg',
-          status: data.status || 'planejado',
-          dataInicio: data.dataInicio || '',
-          dataFim: data.dataFim || '',
-          ultimaColeta: data.ultimaColeta || 'Nunca',
-        });
-      });
-      setLotes(lotesFromFirestore);
-      setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setCurrentUserId(user.uid);
+        try {
+          const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setIsAdmin(userData.tipo === 'admin');
+          }
+        } catch (error) {
+          console.error('Erro ao verificar tipo de usuário:', error);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+        setCurrentUserId(null);
+      }
+      setUserLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
+
+  // Buscar lotes e configurar listeners
+  useEffect(() => {
+    if (userLoading || !currentUserId) return;
+
+    let lotesQuery;
+
+    if (isAdmin) {
+      lotesQuery = collection(db, 'lotes');
+    } else {
+      lotesQuery = query(
+        collection(db, 'lotes'),
+        where('colaboradoresResponsaveis', 'array-contains', currentUserId)
+      );
+    }
+
+    // Estados para armazenar contagens
+    let arvoresPorLote: Record<string, number> = {};
+    let coletasPorLote: Record<string, { total: number, ultima: string }> = {};
+
+    // Listener para árvores
+    const unsubscribeArvores = onSnapshot(collection(db, 'arvores'), (arvoresSnapshot) => {
+      // Resetar contagem
+      arvoresPorLote = {};
+      
+      // Contar árvores por lote
+      arvoresSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const loteId = data.loteId;
+        if (loteId) {
+          arvoresPorLote[loteId] = (arvoresPorLote[loteId] || 0) + 1;
+        }
+      });
+
+      // Atualizar apenas a contagem de árvores reais nos lotes existentes
+      setLotes(currentLotes => 
+        currentLotes.map(lote => ({
+          ...lote,
+          arvoresReais: arvoresPorLote[lote.id] || 0
+        }))
+      );
+    });
+
+    // Listener para coletas - NOVA FUNCIONALIDADE
+    const unsubscribeColetas = onSnapshot(collection(db, 'coletas'), (coletasSnapshot) => {
+      // Resetar contagem
+      coletasPorLote = {};
+      
+      // Processar coletas por lote
+      coletasSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const loteId = data.loteId;
+        const quantidade = data.quantidade || 0;
+        const dataColeta = data.dataColeta?.toDate?.() || new Date();
+        
+        if (loteId && quantidade > 0) {
+          if (!coletasPorLote[loteId]) {
+            coletasPorLote[loteId] = { total: 0, ultima: '' };
+          }
+          
+          // Somar quantidade total
+          coletasPorLote[loteId].total += quantidade;
+          
+          // Verificar se é a coleta mais recente
+          const dataFormatada = dataColeta.toLocaleDateString('pt-BR', { 
+            day: '2-digit', 
+            month: '2-digit' 
+          });
+          
+          if (!coletasPorLote[loteId].ultima || dataColeta > new Date(coletasPorLote[loteId].ultima)) {
+            coletasPorLote[loteId].ultima = dataFormatada;
+          }
+        }
+      });
+
+      // Atualizar coletas nos lotes existentes
+      setLotes(currentLotes => 
+        currentLotes.map(lote => {
+          const coletasInfo = coletasPorLote[lote.id];
+          return {
+            ...lote,
+            colhidoTotal: coletasInfo ? `${coletasInfo.total.toFixed(1)} kg` : '0 kg',
+            ultimaColeta: coletasInfo?.ultima || 'Nunca'
+          };
+        })
+      );
+    });
+
+    const unsubscribeLotes = onSnapshot(lotesQuery, async (querySnapshot) => {
+      const lotesFromFirestore: Lote[] = [];
+      
+      // Processar cada lote
+      for (const docSnapshot of querySnapshot.docs) {
+        const data = docSnapshot.data();
+        const loteId = docSnapshot.id;
+        
+        // Obter dados das coletas e árvores para este lote específico
+        const coletasInfo = coletasPorLote[loteId];
+        const arvoresReais = arvoresPorLote[loteId] || 0;
+        
+        lotesFromFirestore.push({
+          id: loteId,
+          codigo: data.codigo || `L-${loteId.slice(-3)}`,
+          nome: data.nome || 'Lote sem nome',
+          area: data.area || '0 hectares',
+          arvoresEstimadas: data.arvores || 0,
+          arvoresReais: arvoresReais,
+          colhidoTotal: coletasInfo ? `${coletasInfo.total.toFixed(1)} kg` : '0 kg',
+          status: data.status || 'planejado',
+          dataInicio: data.dataInicio || '',
+          dataFim: data.dataFim || '',
+          ultimaColeta: coletasInfo?.ultima || 'Nunca',
+          colaboradoresResponsaveis: data.colaboradoresResponsaveis || [],
+        });
+      }
+      
+      setLotes(lotesFromFirestore);
+      setLoading(false);
+    });
+
+    return () => {
+      unsubscribeArvores();
+      unsubscribeColetas();
+      unsubscribeLotes();
+    };
+  }, [isAdmin, userLoading, currentUserId]);
 
   const filteredLotes = lotes.filter((lote) => {
     if (activeFilter === 'todos') return true;
@@ -76,10 +208,30 @@ const LotesScreen: React.FC = () => {
   const getStatusText = (status: string) => {
     switch (status.toLowerCase()) {
       case 'ativo': return 'Ativo';
-      case 'concluido': return 'Concluído';
+      case 'concluído': return 'Concluído';
       case 'planejado': return 'Planejado';
       default: return 'Indefinido';
     }
+  };
+
+  const getArvoresStatusColor = (estimadas: number, reais: number) => {
+    if (reais === 0) return '#6b7280'; // Cinza - nenhuma cadastrada
+    if (reais >= estimadas) return '#059669'; // Verde - meta atingida
+    if (reais >= estimadas * 0.7) return '#f59e0b'; // Amarelo - parcialmente atingida
+    return '#ef4444'; // Vermelho - baixo progresso
+  };
+
+  // Função para obter estatísticas totais
+  const getTotalStats = () => {
+    const totalColhido = lotes.reduce((acc, lote) => {
+      const quantidade = parseFloat(lote.colhidoTotal.replace(' kg', '')) || 0;
+      return acc + quantidade;
+    }, 0);
+
+    return {
+      totalColhido: `${totalColhido.toFixed(1)} kg`,
+      totalArvores: lotes.reduce((acc, lote) => acc + lote.arvoresReais, 0)
+    };
   };
 
   const handleBack = () => {
@@ -94,9 +246,7 @@ const LotesScreen: React.FC = () => {
     setShowModal(false);
   };
 
-  const handleLoteCreated = (newLote: Lote) => {
-    // Não precisa fazer nada aqui - o listener do Firestore vai detectar 
-    // automaticamente a mudança e atualizar a lista
+  const handleLoteCreated = (newLote: any) => {
     console.log('Novo lote criado:', newLote.codigo);
   };
 
@@ -121,8 +271,9 @@ const LotesScreen: React.FC = () => {
 
   const totalLotes = lotes.length;
   const lotesAtivos = lotes.filter((l) => l.status === 'ativo').length;
+  const stats = getTotalStats();
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <Text>Carregando lotes...</Text>
@@ -142,15 +293,19 @@ const LotesScreen: React.FC = () => {
               <Ionicons name="arrow-back" size={24} color="white" />
             </TouchableOpacity>
             <View style={styles.headerInfo}>
-              <Text style={styles.headerTitle}>Meus Lotes</Text>
+              <Text style={styles.headerTitle}>
+                {isAdmin ? 'Todos os Lotes' : 'Meus Lotes'}
+              </Text>
               <Text style={styles.headerSubtitle}>
-                {totalLotes} lotes • {lotesAtivos} ativos
+                {totalLotes} lotes • {lotesAtivos} ativos • {stats.totalColhido} coletados
               </Text>
             </View>
           </View>
-          <TouchableOpacity onPress={handleAddLote} style={styles.addButton}>
-            <Ionicons name="add" size={24} color="white" />
-          </TouchableOpacity>
+          {isAdmin && (
+            <TouchableOpacity onPress={handleAddLote} style={styles.addButton}>
+              <Ionicons name="add" size={24} color="white" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -196,7 +351,7 @@ const LotesScreen: React.FC = () => {
 
             <View style={styles.summaryCard}>
               <Text style={[styles.summaryValue, { color: '#2563eb' }]}>
-                {lotes.filter((l) => l.status === 'concluido').length}
+                {lotes.filter((l) => l.status === 'concluído').length}
               </Text>
               <Text style={styles.summaryLabel}>Concluídos</Text>
             </View>
@@ -218,7 +373,10 @@ const LotesScreen: React.FC = () => {
               <Text style={styles.emptyStateTitle}>Nenhum lote encontrado</Text>
               <Text style={styles.emptyStateText}>
                 {activeFilter === 'todos' 
-                  ? 'Crie seu primeiro lote clicando no botão + acima'
+                  ? (isAdmin 
+                      ? 'Crie seu primeiro lote clicando no botão + acima'
+                      : 'Você ainda não foi atribuído a nenhum lote'
+                    )
                   : `Nenhum lote com status "${filters.find(f => f.key === activeFilter)?.label}"`
                 }
               </Text>
@@ -249,14 +407,34 @@ const LotesScreen: React.FC = () => {
                   </View>
                   <View style={styles.detailItem}>
                     <Text style={styles.detailLabel}>Árvores</Text>
-                    <Text style={styles.detailValue}>{lote.arvores}</Text>
+                    <View style={styles.arvoresContainer}>
+                      <Text 
+                        style={[
+                          styles.detailValue,
+                          { color: getArvoresStatusColor(lote.arvoresEstimadas, lote.arvoresReais) }
+                        ]}
+                      >
+                        {lote.arvoresReais}/{lote.arvoresEstimadas}
+                      </Text>
+                      <View style={styles.progressBar}>
+                        <View 
+                          style={[
+                            styles.progressFill,
+                            { 
+                              width: `${lote.arvoresEstimadas > 0 ? (lote.arvoresReais / lote.arvoresEstimadas) * 100 : 0}%`,
+                              backgroundColor: getArvoresStatusColor(lote.arvoresEstimadas, lote.arvoresReais)
+                            }
+                          ]} 
+                        />
+                      </View>
+                    </View>
                   </View>
                 </View>
 
                 <View style={styles.loteFooter}>
                   <View style={styles.footerInfo}>
                     <View>
-                      <Text style={styles.footerLabel}>Total Colhido</Text>
+                      <Text style={styles.footerLabel}>Total Coletado</Text>
                       <Text style={styles.totalColhido}>{lote.colhidoTotal}</Text>
                     </View>
                     <View style={styles.ultimaColetaContainer}>
@@ -265,6 +443,16 @@ const LotesScreen: React.FC = () => {
                     </View>
                   </View>
                 </View>
+
+                {/* Indicador para admin - mostra se é responsável pelo lote */}
+                {isAdmin && lote.colaboradoresResponsaveis && lote.colaboradoresResponsaveis.length > 0 && (
+                  <View style={styles.colaboradoresIndicator}>
+                    <Ionicons name="people" size={14} color="#6b7280" />
+                    <Text style={styles.colaboradoresText}>
+                      {lote.colaboradoresResponsaveis.length} responsável(eis)
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
             ))
           )}
@@ -273,7 +461,10 @@ const LotesScreen: React.FC = () => {
         <View style={styles.bottomSpacing} />
       </ScrollView>
 
-      <NovoLoteModal visible={showModal} onClose={handleModalClose} onSuccess={handleLoteCreated} />
+      {/* Modal só aparece para admins */}
+      {isAdmin && (
+        <NovoLoteModal visible={showModal} onClose={handleModalClose} onSuccess={handleLoteCreated} />
+      )}
     </SafeAreaView>
   );
 };
@@ -448,6 +639,21 @@ const styles = StyleSheet.create({
     color: '#1f2937',
     marginTop: 2,
   },
+  arvoresContainer: {
+    marginTop: 2,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 2,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
+    minWidth: 2,
+  },
   loteFooter: {
     borderTopWidth: 1,
     borderTopColor: '#f3f4f6',
@@ -497,6 +703,19 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  colaboradoresIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+  },
+  colaboradoresText: {
+    fontSize: 12,
+    color: '#6b7280',
   },
 });
 
