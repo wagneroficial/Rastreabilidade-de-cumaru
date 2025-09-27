@@ -3,8 +3,25 @@ import { Stack } from 'expo-router';
 
 export default function RootLayout() {
   return (
-    <Stack>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      {/* Tela inicial do app - será exibida primeiro */}
+      <Stack.Screen 
+        name="index"
+        options={{ 
+          headerShown: false,
+          presentation: 'card'
+        }} 
+      />
+      
+      {/* Tabs - será navegado após o index inicial */}
+      <Stack.Screen 
+        name="(tabs)" 
+        options={{ 
+          headerShown: false 
+        }} 
+      />
+      
+      {/* Outras telas */}
       <Stack.Screen 
         name="notificacoes" 
         options={{ 
@@ -47,14 +64,20 @@ export default function RootLayout() {
           presentation: 'card'
         }} 
       />
-       <Stack.Screen 
+      <Stack.Screen 
         name="lotes/detalhe"
         options={{ 
           headerShown: false,
           presentation: 'card'
         }} 
       />
+      <Stack.Screen 
+        name="cadastro"
+        options={{ 
+          headerShown: false,
+          presentation: 'card'
+        }} 
+      />
     </Stack>
-    
   );
 }

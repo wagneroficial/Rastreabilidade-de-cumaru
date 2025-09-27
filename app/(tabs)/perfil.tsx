@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   SafeAreaView,
@@ -12,6 +12,10 @@ import {
   View,
 } from 'react-native';
 
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../services/firebaseConfig';
+
 interface PerfilScreenProps {
   navigation: any;
 }
@@ -21,7 +25,7 @@ interface UserData {
   email: string;
   telefone: string;
   propriedade: string;
-  localizacao: string;
+  tipo: 'admin' | 'colaborador';
   cadastro: string;
 }
 
@@ -39,14 +43,51 @@ interface StatItem {
 }
 
 const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
-  const userData: UserData = {
-    nome: 'João Silva',
-    email: 'joao.silva@email.com',
-    telefone: '(92) 99999-9999',
-    propriedade: 'Fazenda São Francisco',
-    localizacao: 'Oriximina, Pará',
-    cadastro: '15/01/2024'
-  };
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Buscar dados do usuário logado
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setIsAuthenticated(true);
+        try {
+          const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setUserData({
+              nome: data.nome || 'Usuário',
+              email: data.email || user.email || '',
+              telefone: data.telefone || 'Não informado',
+              propriedade: data.propriedade || 'Não informado',
+              tipo: data.tipo || 'colaborador',
+              cadastro: data.criadoEm ? 
+                (data.criadoEm.seconds ? 
+                  new Date(data.criadoEm.seconds * 1000).toLocaleDateString('pt-BR') : 
+                  new Date(data.criadoEm).toLocaleDateString('pt-BR')
+                ) : 'Não informado'
+            });
+          }
+        } catch (error) {
+          console.error('Erro ao buscar dados do usuário:', error);
+        }
+      } else {
+        setIsAuthenticated(false);
+        setUserData(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Redirecionar para login se não estiver autenticado (usando useEffect)
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.replace('/');
+    }
+  }, [loading, isAuthenticated]);
 
   const menuItems: MenuItem[] = [
     { title: 'Relatórios', icon: 'document-text-outline', route: '/relatorios' },
@@ -60,11 +101,39 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const stats: StatItem[] = [
     { label: 'Lotes Cadastrados', value: '12' },
     { label: 'Total Colhido', value: '1.2t' },
-    { label: 'Dias Ativos', value: '45' }
+    { label: 'Dias Ativo', value: '45' }
   ];
 
+  const handleLogout = async () => {
+    try {
+      console.log('Iniciando processo de logout...');
+      
+      // Fazer logout do Firebase Auth
+      await signOut(auth);
+      console.log('Logout do Firebase realizado com sucesso');
+      
+      // O redirecionamento será feito automaticamente pelo useEffect
+      // quando onAuthStateChanged detectar que o usuário não está mais logado
+      
+    } catch (error) {
+      console.error('Erro durante logout:', error);
+      
+      // Mostrar erro para o usuário
+      Alert.alert(
+        'Erro',
+        'Ocorreu um erro ao sair. Tente novamente.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   const handleMenuPress = (item: MenuItem) => {
+    console.log('Menu pressionado:', item.title);
+    
     if (item.action === 'logout') {
+      console.log('Ação de logout detectada');
+      
+      // Mostrar confirmação antes do logout
       Alert.alert(
         'Sair',
         'Tem certeza que deseja sair do aplicativo?',
@@ -74,20 +143,35 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
             text: 'Sair', 
             style: 'destructive',
             onPress: () => {
-              // Implementar logout
-              Alert.alert('Logout', 'Logout realizado com sucesso!');
+              console.log('Usuário confirmou logout');
+              handleLogout();
             }
           }
         ]
       );
     } else if (item.route) {
+      console.log('Navegando para:', item.route);
       router.push(item.route as any);
     }
   };
 
-  const handleBottomNavigation = (route: string) => {
-    navigation.navigate(route);
-  };
+  // Mostrar loading enquanto carrega dados do usuário
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centerContent]}>
+        <Text style={styles.loadingText}>Carregando perfil...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  // Se não há usuário logado, mostrar tela vazia (redirecionamento será feito pelo useEffect)
+  if (!isAuthenticated || !userData) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centerContent]}>
+        <Text style={styles.loadingText}>Redirecionando...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -102,7 +186,14 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
             </View>
             <Text style={styles.userName}>{userData.nome}</Text>
             <Text style={styles.userProperty}>{userData.propriedade}</Text>
-            <Text style={styles.userLocation}>{userData.localizacao}</Text>
+            <View style={styles.userTypeContainer}>
+              <Text style={[
+                styles.userType, 
+                userData.tipo === 'admin' ? styles.userTypeAdmin : styles.userTypeColaborador
+              ]}>
+                {userData.tipo === 'admin' ? 'Administrador' : 'Colaborador'}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -130,6 +221,12 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
               <View style={[styles.profileInfoItem, styles.profileInfoItemBorder]}>
                 <Text style={styles.profileInfoLabel}>Telefone</Text>
                 <Text style={styles.profileInfoValue}>{userData.telefone}</Text>
+              </View>
+              <View style={[styles.profileInfoItem, styles.profileInfoItemBorder]}>
+                <Text style={styles.profileInfoLabel}>Tipo de Usuário</Text>
+                <Text style={styles.profileInfoValue}>
+                  {userData.tipo === 'admin' ? 'Administrador' : 'Colaborador'}
+                </Text>
               </View>
               <View style={styles.profileInfoItem}>
                 <Text style={styles.profileInfoLabel}>Cadastro</Text>
@@ -185,8 +282,6 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
         {/* Bottom spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
-
-   
     </SafeAreaView>
   );
 };
@@ -195,6 +290,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f9fafb',
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6b7280',
   },
   scrollView: {
     flex: 1,
@@ -227,10 +330,24 @@ const styles = StyleSheet.create({
     color: '#bbf7d0',
     marginTop: 4,
   },
-  userLocation: {
-    fontSize: 14,
-    color: '#bbf7d0',
-    marginTop: 2,
+  userTypeContainer: {
+    marginTop: 8,
+  },
+  userType: {
+    fontSize: 12,
+    fontWeight: '600',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  userTypeAdmin: {
+    backgroundColor: '#fef3c7',
+    color: '#92400e',
+  },
+  userTypeColaborador: {
+    backgroundColor: '#e0f2fe',
+    color: '#0277bd',
   },
   statsContainer: {
     paddingHorizontal: 16,
@@ -305,6 +422,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#1f2937',
+    textAlign: 'right',
+    flex: 1,
+    marginLeft: 16,
   },
   menuContainer: {
     paddingHorizontal: 16,
@@ -383,27 +503,6 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 80,
-  },
-  bottomNavigation: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    flexDirection: 'row',
-    paddingVertical: 8,
-  },
-  bottomNavItem: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  bottomNavText: {
-    fontSize: 12,
-    color: '#9ca3af',
-    marginTop: 4,
   },
 });
 
