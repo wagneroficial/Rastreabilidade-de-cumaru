@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { collection, getDocs } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
@@ -11,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { db } from '../services/firebaseConfig';
+import { auth, db } from '../services/firebaseConfig';
 
 const HomeScreen: React.FC = () => {
   const router = useRouter();
@@ -21,70 +22,157 @@ const HomeScreen: React.FC = () => {
   const [kgHoje, setKgHoje] = useState(0);
   const [lotesAtivos, setLotesAtivos] = useState(0);
   const [atividadeRecente, setAtividadeRecente] = useState<any[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Verificar tipo de usuário
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setCurrentUserId(user.uid);
+        try {
+          const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setIsAdmin(userData.tipo === 'admin');
+          }
+        } catch (error) {
+          console.error('Erro ao verificar tipo de usuário:', error);
+          setIsAdmin(false);
+        }
+      } else {
+        setCurrentUserId(null);
+        setIsAdmin(false);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
+    if (loading || !currentUserId) return;
+
     const carregarDados = async () => {
       try {
+        let lotesDoUsuario: string[] = [];
+
         // --- LOTES ---
-        const lotesSnap = await getDocs(collection(db, "lotes"));
+        let lotesQuery;
+        if (isAdmin) {
+          // Admin vê todos os lotes
+          lotesQuery = collection(db, "lotes");
+        } else {
+          // Colaborador vê apenas lotes atribuídos a ele
+          lotesQuery = query(
+            collection(db, "lotes"),
+            where('colaboradoresResponsaveis', 'array-contains', currentUserId)
+          );
+        }
+
+        const lotesSnap = await getDocs(lotesQuery);
         setLotesCount(lotesSnap.size);
 
-        // cria mapa de ID -> código
+        // cria mapa de ID -> código e coleta IDs dos lotes
         const lotesMap: Record<string, string> = {};
         lotesSnap.forEach(doc => {
           const data = doc.data();
           lotesMap[doc.id] = data.codigo || "Sem código";
+          lotesDoUsuario.push(doc.id);
         });
 
+        // Contar lotes ativos do usuário
+        const ativos = lotesSnap.docs.filter(doc => doc.data().status === "ativo");
+        setLotesAtivos(ativos.length);
+
         // --- ÁRVORES ---
-        const arvoresSnap = await getDocs(collection(db, "arvores"));
-        setArvoresCount(arvoresSnap.size);
+        // Apenas árvores dos lotes do usuário
+        let arvoresQuery;
+        if (lotesDoUsuario.length > 0) {
+          arvoresQuery = query(
+            collection(db, "arvores"),
+            where('loteId', 'in', lotesDoUsuario)
+          );
+          const arvoresSnap = await getDocs(arvoresQuery);
+          setArvoresCount(arvoresSnap.size);
+        } else {
+          setArvoresCount(0);
+        }
 
         // --- COLETAS ---
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
 
-        const coletasSnap = await getDocs(collection(db, "coletas"));
+        let coletasQuery;
+        if (isAdmin) {
+          // Admin vê todas as coletas
+          coletasQuery = collection(db, "coletas");
+        } else {
+          // Colaborador vê apenas coletas dos seus lotes
+          if (lotesDoUsuario.length > 0) {
+            coletasQuery = query(
+              collection(db, "coletas"),
+              where('loteId', 'in', lotesDoUsuario)
+            );
+          } else {
+            setKgHoje(0);
+            setAtividadeRecente([]);
+            return;
+          }
+        }
+
+        const coletasSnap = await getDocs(coletasQuery);
         let totalHoje = 0;
         let recentes: any[] = [];
 
         coletasSnap.forEach(doc => {
           const data = doc.data();
-          const dataColeta = data.data?.toDate?.() || null;
+          const dataColeta = data.dataColeta?.toDate?.() || null;
 
-          if (dataColeta && dataColeta >= hoje) {
-            totalHoje += data.quantidade || 0;
+          if (dataColeta) {
+            // Criar data sem horas para comparação
+            const dataColetaSemHora = new Date(dataColeta);
+            dataColetaSemHora.setHours(0, 0, 0, 0);
+
+            // Verificar se é hoje
+            if (dataColetaSemHora.getTime() === hoje.getTime()) {
+              totalHoje += data.quantidade || 0;
+            }
+
+            // pega o código do lote usando o map
+            const loteCodigo = data.loteId ? lotesMap[data.loteId] : "Sem lote";
+
+            recentes.push({
+              action: "Coleta realizada",
+              lote: loteCodigo,
+              amount: `${data.quantidade || 0} kg`,
+              time: dataColeta.toLocaleDateString("pt-BR"),
+              timestamp: dataColeta.getTime()
+            });
           }
-
-          // pega o código do lote usando o map
-          const loteCodigo = data.loteId ? lotesMap[data.loteId] : "Sem lote";
-
-          recentes.push({
-            action: "Coleta realizada",
-            lote: loteCodigo,
-            amount: `${data.quantidade || 0} kg`,
-            time: dataColeta
-              ? dataColeta.toLocaleDateString("pt-BR")
-              : "Sem data"
-          });
         });
 
         setKgHoje(totalHoje);
-        setAtividadeRecente(recentes.slice(0, 5));
 
-        // --- LOTES ATIVOS ---
-        const ativos = lotesSnap.docs.filter(doc => doc.data().status === "ativo");
-        setLotesAtivos(ativos.length);
+        // Ordenar por data mais recente e pegar apenas as 5 primeiras
+        const recentesOrdenadas = recentes
+          .sort((a, b) => b.timestamp - a.timestamp)
+          .slice(0, 5)
+          .map(({ timestamp, ...rest }) => rest);
+
+        setAtividadeRecente(recentesOrdenadas);
+
       } catch (err) {
         console.error("Erro ao carregar dados da Home:", err);
       }
     };
 
     carregarDados();
-  }, []);
+  }, [isAdmin, currentUserId, loading]);
 
   const stats = [
-    { label: 'Lotes Cadastrados', value: lotesCount.toString(), icon: 'map-outline' as const },
+    { label: isAdmin ? 'Lotes Cadastrados' : 'Meus Lotes', value: lotesCount.toString(), icon: 'map-outline' as const },
     { label: 'Árvores Registradas', value: arvoresCount.toString(), icon: 'leaf-outline' as const },
     { label: 'Kg Colhidos Hoje', value: kgHoje.toFixed(1), icon: 'scale-outline' as const },
     { label: 'Lotes Ativos', value: lotesAtivos.toString(), icon: 'checkmark-circle-outline' as const }
@@ -105,6 +193,14 @@ const HomeScreen: React.FC = () => {
     router.push('/notificacoes');
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: '#6b7280' }}>Carregando...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#16a34a" barStyle="light-content" />
@@ -114,7 +210,9 @@ const HomeScreen: React.FC = () => {
         <View style={styles.headerContent}>
           <View>
             <Text style={styles.headerTitle}>CumaruApp</Text>
-            <Text style={styles.headerSubtitle}>Gestão de Colheitas</Text>
+            <Text style={styles.headerSubtitle}>
+              {isAdmin ? 'Gestão de Colheitas' : 'Minhas Colheitas'}
+            </Text>
           </View>
           <TouchableOpacity onPress={handleNotifications} style={styles.notificationButton}>
             <Ionicons name="notifications-outline" size={24} color="white" />
@@ -180,7 +278,11 @@ const HomeScreen: React.FC = () => {
                 </View>
               ))
             ) : (
-              <Text style={{ color: '#6b7280' }}>Nenhuma atividade recente</Text>
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>
+                  {isAdmin ? 'Nenhuma atividade recente' : 'Você ainda não tem coletas registradas'}
+                </Text>
+              </View>
             )}
           </View>
         </View>
@@ -264,6 +366,17 @@ const styles = StyleSheet.create({
   activityAction: { fontSize: 16, fontWeight: '500', color: '#1f2937' },
   activityDetails: { fontSize: 14, color: '#4b5563', marginTop: 2 },
   activityTime: { fontSize: 12, color: '#9ca3af' },
+  emptyState: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
   bottomSpacing: { height: 20 },
 });
 
