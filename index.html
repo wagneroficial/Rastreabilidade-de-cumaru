@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Gerador QR Code - Árvores</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 16px;
+    }
+    button {
+      background: #16a34a;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+    }
+    #qrcode {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .info {
+      margin-top: 15px;
+      padding: 15px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Gerador de QR Code</h1>
+  
+  <label>Código do Lote:</label>
+  <input type="text" id="codigoLote" placeholder="Ex: L-001" value="L-114">
+  
+  <label>Código da Árvore:</label>
+  <input type="text" id="codigoArvore" placeholder="Ex: ARV-042" value="A57">
+  
+  <button onclick="gerarQR()">Gerar QR Code</button>
+  
+  <div id="qrcode"></div>
+
+  <script>
+    function gerarQR() {
+      const codigoLote = document.getElementById('codigoLote').value.trim();
+      const codigoArvore = document.getElementById('codigoArvore').value.trim();
+
+      if (!codigoLote || !codigoArvore) {
+        alert('Preencha todos os campos');
+        return;
+      }
+
+      // Formato simples: L-001|ARV-042
+      const qrContent = `${codigoLote}|${codigoArvore}`;
+
+      document.getElementById('qrcode').innerHTML = `
+        <div class="info">
+          <strong>Conteúdo do QR:</strong><br>
+          ${qrContent}<br><br>
+          <strong>Lote:</strong> ${codigoLote}<br>
+          <strong>Árvore:</strong> ${codigoArvore}
+        </div>
+      `;
+      
+      new QRCode(document.getElementById('qrcode'), {
+        text: qrContent,
+        width: 256,
+        height: 256
+      });
+    }
+  </script>
+</body>
+</html>

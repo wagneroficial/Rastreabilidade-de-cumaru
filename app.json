@@ -33,6 +33,12 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permitir que $(PRODUCT_NAME) acesse sua câmera para escanear QR codes das árvores."
+        }
       ]
     ],
     "experiments": {

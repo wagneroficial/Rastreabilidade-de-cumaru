@@ -43,7 +43,8 @@
     "react-native-webview": "13.15.0",
     "expo-file-system": "~19.0.14",
     "expo-sharing": "~14.0.7",
-    "expo-location": "~19.0.7"
+    "expo-location": "~19.0.7",
+    "expo-camera": "~17.0.8"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
