@@ -52,16 +52,10 @@ const LoteHeader: React.FC<LoteHeaderProps> = ({
       {/* Stats */}
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{loteData.area}</Text>
-          <Text style={styles.statLabel}>hectares</Text>
-          <Text style={styles.statSubLabel}>Área Total</Text>
+    
         </View>
         <View style={styles.statItem}>
 
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{loteData.colhidoTotal}</Text>
-          <Text style={styles.statLabel}>Colhido</Text>
         </View>
       </View>
     </View>
