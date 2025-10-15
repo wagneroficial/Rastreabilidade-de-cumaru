@@ -1,8 +1,9 @@
 // components/detalhe-lote/ArvoresTab.tsx
 import { ArvoreItem } from '@/types/lote.types';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface ArvoresTabProps {
   arvores: ArvoreItem[];
@@ -10,6 +11,8 @@ interface ArvoresTabProps {
 }
 
 const ArvoresTab: React.FC<ArvoresTabProps> = ({ arvores, isAdmin }) => {
+  const router = useRouter();
+
   const getQualidadeColor = (qualidade: string) => {
     switch (qualidade.toLowerCase()) {
       case 'saudavel':
@@ -20,6 +23,11 @@ const ArvoresTab: React.FC<ArvoresTabProps> = ({ arvores, isAdmin }) => {
       case 'doente': return '#EF4444';
       default: return '#6B7280';
     }
+  };
+
+  const handleArvorePress = (arvoreId: string) => {
+    // Solução: usar 'as any' para evitar erro de tipagem do Expo Router
+    router.push(`/arvore/${arvoreId}` as any);
   };
 
   if (arvores.length === 0) {
@@ -39,19 +47,27 @@ const ArvoresTab: React.FC<ArvoresTabProps> = ({ arvores, isAdmin }) => {
   return (
     <View style={styles.container}>
       {arvores.map((arvore) => (
-        <View key={arvore.id} style={styles.arvoreCard}>
+        <TouchableOpacity 
+          key={arvore.id} 
+          style={styles.arvoreCard}
+          onPress={() => handleArvorePress(arvore.id)}
+          activeOpacity={0.7}
+        >
           <View style={styles.arvoreHeader}>
-            <View>
+            <View style={styles.arvoreHeaderLeft}>
               <Text style={styles.arvoreCode}>{arvore.codigo}</Text>
               <Text style={styles.arvoreTipo}>{arvore.tipo}</Text>
             </View>
-            <View style={[
-              styles.qualidadeBadge, 
-              { backgroundColor: getQualidadeColor(arvore.estadoSaude || 'Saudável') }
-            ]}>
-              <Text style={styles.qualidadeText}>
-                {arvore.estadoSaude || 'Saudável'}
-              </Text>
+            <View style={styles.arvoreHeaderRight}>
+              <View style={[
+                styles.qualidadeBadge, 
+                { backgroundColor: getQualidadeColor(arvore.estadoSaude || 'Saudável') }
+              ]}>
+                <Text style={styles.qualidadeText}>
+                  {arvore.estadoSaude || 'Saudável'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#9CA3AF" style={styles.chevron} />
             </View>
           </View>
           <View style={styles.arvoreDetails}>
@@ -69,7 +85,7 @@ const ArvoresTab: React.FC<ArvoresTabProps> = ({ arvores, isAdmin }) => {
               <Text style={styles.arvoreDetailValue}>{arvore.producaoTotal}</Text>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
       ))}
     </View>
   );
@@ -114,6 +130,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 12,
   },
+  arvoreHeaderLeft: {
+    flex: 1,
+  },
+  arvoreHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   arvoreCode: {
     fontSize: 16,
     fontWeight: '600',
@@ -133,6 +157,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'white',
     fontWeight: '500',
+  },
+  chevron: {
+    marginLeft: 4,
   },
   arvoreDetails: {
     flexDirection: 'row',

@@ -9,11 +9,11 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { useBiometric } from '@/contexts/BiometricContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
-const INACTIVITY_TIMEOUT = 30 * 1000; // 30 segundos para teste (use 5 * 60 * 1000 em produção)
+const INACTIVITY_TIMEOUT = 5 * 60 * 1000; 
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { biometriaAtivada, isAuthenticated, logout } = useBiometric();
+  const { biometriaAtivada, isAuthenticated, lockApp } = useBiometric(); // MUDOU: 'logout' -> 'lockApp'
   const appState = useRef(AppState.currentState);
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -25,8 +25,8 @@ export default function TabLayout() {
         nextAppState.match(/inactive|background/)
       ) {
         if (biometriaAtivada) {
-          console.log('App foi para background - logout');
-          logout(); // Desloga quando o app vai para o background
+          console.log('🔒 App foi para background - bloqueando (SEM logout do Firebase)');
+          lockApp(); // MUDOU: apenas bloqueia, não faz logout
         }
       }
 
@@ -49,10 +49,10 @@ export default function TabLayout() {
       }
 
       if (biometriaAtivada && isAuthenticated) {
-        console.log('Timer de inatividade iniciado - 30 segundos');
+        console.log('⏱️ Timer de inatividade iniciado - 5 minutos');
         inactivityTimer.current = setTimeout(() => {
-          console.log('Timeout atingido - logout por inatividade');
-          logout(); // Desloga após período de inatividade
+          console.log('⏰ Timeout atingido - bloqueando por inatividade');
+          lockApp(); // MUDOU: apenas bloqueia, não faz logout
         }, INACTIVITY_TIMEOUT);
       }
     };

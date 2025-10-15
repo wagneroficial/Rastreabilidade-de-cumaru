@@ -79,6 +79,13 @@ export default function RootLayout() {
             presentation: 'card'
           }} 
         />
+        <Stack.Screen 
+          name="arvore/[id]"
+          options={{ 
+            headerShown: false,
+            presentation: 'card'
+          }} 
+/>
       </Stack>
     </BiometricProvider>
   );

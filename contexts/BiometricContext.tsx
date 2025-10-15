@@ -7,14 +7,14 @@ interface BiometricContextData {
   setBiometriaAtivada: (value: boolean) => void;
   isAuthenticated: boolean;
   authenticate: () => Promise<boolean>;
-  logout: () => void;
+  lockApp: () => void; // MUDOU: de 'logout' para 'lockApp'
 }
 
 const BiometricContext = createContext<BiometricContextData>({} as BiometricContextData);
 
 export const BiometricProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [biometriaAtivada, setBiometriaAtivadaState] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(true); // Inicia autenticado
 
   useEffect(() => {
     loadBiometriaConfig();
@@ -42,7 +42,6 @@ export const BiometricProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const authenticate = async (): Promise<boolean> => {
     try {
-      // Verifica se o dispositivo suporta biometria
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       if (!hasHardware) {
         console.log('Dispositivo não suporta biometria');
@@ -50,7 +49,6 @@ export const BiometricProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return true;
       }
 
-      // Verifica se há biometria cadastrada
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
       if (!isEnrolled) {
         console.log('Nenhuma biometria cadastrada');
@@ -58,7 +56,6 @@ export const BiometricProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return true;
       }
 
-      // Tenta autenticar
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Autentique-se para continuar',
         fallbackLabel: 'Usar senha',
@@ -79,7 +76,10 @@ export const BiometricProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  const logout = () => {
+  // MUDOU: agora é 'lockApp' em vez de 'logout'
+  // Apenas bloqueia o app, NÃO faz logout do Firebase
+  const lockApp = () => {
+    console.log('🔒 Bloqueando app (sem fazer logout do Firebase)');
     setIsAuthenticated(false);
   };
 
@@ -90,7 +90,7 @@ export const BiometricProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setBiometriaAtivada,
         isAuthenticated,
         authenticate,
-        logout,
+        lockApp, // MUDOU: exporta 'lockApp'
       }}
     >
       {children}
