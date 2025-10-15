@@ -12,9 +12,10 @@ import {
   View,
 } from 'react-native';
 
+import { auth, db } from '@/app/services/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/firestore';
-import { auth, db } from '../services/firebaseConfig';
+
 
 interface Lote {
   id: string;

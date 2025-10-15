@@ -12,9 +12,9 @@ import {
   View,
 } from 'react-native';
 
+import { auth, db } from '@/app/services/firebaseConfig';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../services/firebaseConfig';
 
 interface PerfilScreenProps {
   navigation: any;
@@ -93,7 +93,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
     { title: 'Relatórios', icon: 'document-text-outline', route: '/relatorios' },
     { title: 'Notificações', icon: 'notifications-outline', route: '/notificacoes' },
     { title: 'Quem Somos', icon: 'information-circle-outline', route: '/quem-somos' },
-    { title: 'Configurações', icon: 'settings-outline', route: '/configuracoes' },
+    { title: 'Segurança', icon: 'shield-checkmark-outline', route: '/seguranca' },
     { title: 'Ajuda', icon: 'help-circle-outline', route: '/ajuda' },
     { title: 'Sair', icon: 'log-out-outline', action: 'logout', color: '#dc2626' }
   ];
