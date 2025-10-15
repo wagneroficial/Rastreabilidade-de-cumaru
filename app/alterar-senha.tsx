@@ -1,19 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword
+} from 'firebase/auth';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { auth } from './services/firebaseConfig'; // Ajuste o caminho conforme necessário
 
 export default function AlterarSenhaScreen() {
   const [senhaAtual, setSenhaAtual] = useState('');
@@ -45,28 +51,99 @@ export default function AlterarSenhaScreen() {
       return false;
     }
 
+    if (senhaAtual === novaSenha) {
+      Alert.alert('Erro', 'A nova senha deve ser diferente da senha atual');
+      return false;
+    }
+
     return true;
   };
 
   const handleAlterarSenha = async () => {
     if (!validarFormulario()) return;
 
+    const user = auth.currentUser;
+
+    if (!user || !user.email) {
+      Alert.alert('Erro', 'Usuário não autenticado. Faça login novamente.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // Simular processo de alteração
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 1. Reautenticar o usuário com a senha atual
+      console.log('Tentando reautenticar usuário...');
+      const credential = EmailAuthProvider.credential(user.email, senhaAtual);
+      await reauthenticateWithCredential(user, credential);
       
-      setShowSuccess(true);
+      console.log('Reautenticação bem-sucedida! Atualizando senha...');
+
+      // 2. Atualizar a senha
+      await updatePassword(user, novaSenha);
+      
+      console.log('Senha atualizada com sucesso!');
+
+      // 3. Limpar campos e mostrar sucesso
       setSenhaAtual('');
       setNovaSenha('');
       setConfirmarSenha('');
-      
+      setShowSuccess(true);
+
+      // Fechar modal após 3 segundos
       setTimeout(() => {
         setShowSuccess(false);
+        router.back();
       }, 3000);
-    } catch (error) {
-      Alert.alert('Erro', 'Erro ao alterar senha. Tente novamente.');
+
+    } catch (error: any) {
+      console.log('Erro capturado:', error);
+      console.log('Código do erro:', error.code);
+      console.log('Mensagem do erro:', error.message);
+      
+      let mensagemErro = 'Erro ao alterar senha. Tente novamente.';
+
+      // Tratamento de erros específicos
+      if (error.code) {
+        switch (error.code) {
+          case 'auth/invalid-credential':
+          case 'auth/wrong-password':
+          case 'auth/invalid-password':
+            mensagemErro = 'Senha atual incorreta. Verifique e tente novamente.';
+            break;
+          
+          case 'auth/weak-password':
+            mensagemErro = 'A nova senha é muito fraca. Use uma senha mais forte.';
+            break;
+          
+          case 'auth/requires-recent-login':
+            mensagemErro = 'Por segurança, você precisa fazer login novamente antes de alterar a senha.';
+            break;
+          
+          case 'auth/too-many-requests':
+            mensagemErro = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+            break;
+          
+          case 'auth/network-request-failed':
+            mensagemErro = 'Erro de conexão. Verifique sua internet e tente novamente.';
+            break;
+          
+          case 'auth/user-disabled':
+            mensagemErro = 'Sua conta foi desabilitada. Entre em contato com o suporte.';
+            break;
+          
+          case 'auth/user-not-found':
+            mensagemErro = 'Usuário não encontrado. Faça login novamente.';
+            break;
+          
+          default:
+            mensagemErro = `Erro: ${error.message}`;
+            break;
+        }
+      }
+
+      console.log('Mensagem de erro final:', mensagemErro);
+      Alert.alert('Erro', mensagemErro);
     } finally {
       setIsLoading(false);
     }
@@ -97,6 +174,8 @@ export default function AlterarSenhaScreen() {
           secureTextEntry={!showPassword}
           placeholder={placeholder}
           placeholderTextColor="#9CA3AF"
+          autoCapitalize="none"
+          autoCorrect={false}
         />
         <TouchableOpacity
           onPress={() => setShowPassword(!showPassword)}
@@ -172,7 +251,7 @@ export default function AlterarSenhaScreen() {
             {requisitos.map((requisito, index) => (
               <View key={index} style={styles.requirementItem}>
                 <Ionicons
-                  name={requisito.atendido ? "checkmark" : "close"}
+                  name={requisito.atendido ? "checkmark-circle" : "close-circle"}
                   size={16}
                   color={requisito.atendido ? "#059669" : "#EF4444"}
                 />
@@ -187,18 +266,8 @@ export default function AlterarSenhaScreen() {
           </View>
         ) : null}
 
-        {/* Dicas de Segurança */}
-        <View style={styles.tipsContainer}>
-          <View style={styles.tipsHeader}>
-            <Ionicons name="information-circle" size={20} color="#1D4ED8" />
-            <Text style={styles.tipsTitle}>Dicas de Segurança</Text>
-          </View>
-          <Text style={styles.tipText}>• Use uma combinação de letras, números e símbolos</Text>
-          <Text style={styles.tipText}>• Evite informações pessoais óbvias</Text>
-          <Text style={styles.tipText}>• Não compartilhe sua senha com ninguém</Text>
-          <Text style={styles.tipText}>• Altere sua senha regularmente</Text>
-        </View>
 
+     
         {/* Botão de Alteração */}
         <TouchableOpacity
           onPress={handleAlterarSenha}
@@ -217,6 +286,9 @@ export default function AlterarSenhaScreen() {
             <Text style={styles.submitButtonText}>Alterar Senha</Text>
           )}
         </TouchableOpacity>
+
+        {/* Espaçamento extra para evitar conflito com controles do sistema */}
+        <View style={styles.bottomSpacer} />
       </ScrollView>
 
       {/* Modal de Sucesso */}
@@ -235,7 +307,10 @@ export default function AlterarSenhaScreen() {
               Sua senha foi alterada com sucesso. Use a nova senha no próximo login.
             </Text>
             <TouchableOpacity
-              onPress={() => setShowSuccess(false)}
+              onPress={() => {
+                setShowSuccess(false);
+                router.back();
+              }}
               style={styles.modalButton}
             >
               <Text style={styles.modalButtonText}>Entendi</Text>
@@ -391,7 +466,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     marginTop: 24,
-    marginBottom: 32,
+    marginBottom: 16,
   },
   submitButtonDisabled: {
     backgroundColor: '#D1D5DB',
@@ -412,6 +487,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'white',
     marginLeft: 8,
+  },
+  bottomSpacer: {
+    height: 40,
   },
   modalOverlay: {
     flex: 1,
@@ -461,6 +539,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: 'white',
-    textAlign: 'center' as const,
+    textAlign: 'center',
   },
 });

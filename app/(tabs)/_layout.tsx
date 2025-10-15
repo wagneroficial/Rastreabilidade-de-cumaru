@@ -1,26 +1,86 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { AppState, Platform } from 'react-native';
 
+import BiometricLock from '@/components/BiometricLock';
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
+import { useBiometric } from '@/contexts/BiometricContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
+
+const INACTIVITY_TIMEOUT = 30 * 1000; // 30 segundos para teste (use 5 * 60 * 1000 em produção)
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { biometriaAtivada, isAuthenticated, logout } = useBiometric();
+  const appState = useRef(AppState.currentState);
+  const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      // App foi para o background
+      if (
+        appState.current.match(/active/) &&
+        nextAppState.match(/inactive|background/)
+      ) {
+        if (biometriaAtivada) {
+          console.log('App foi para background - logout');
+          logout(); // Desloga quando o app vai para o background
+        }
+      }
+
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+      if (inactivityTimer.current) {
+        clearTimeout(inactivityTimer.current);
+      }
+    };
+  }, [biometriaAtivada]);
+
+  // Timer de inatividade
+  useEffect(() => {
+    const resetInactivityTimer = () => {
+      if (inactivityTimer.current) {
+        clearTimeout(inactivityTimer.current);
+      }
+
+      if (biometriaAtivada && isAuthenticated) {
+        console.log('Timer de inatividade iniciado - 30 segundos');
+        inactivityTimer.current = setTimeout(() => {
+          console.log('Timeout atingido - logout por inatividade');
+          logout(); // Desloga após período de inatividade
+        }, INACTIVITY_TIMEOUT);
+      }
+    };
+
+    resetInactivityTimer();
+
+    return () => {
+      if (inactivityTimer.current) {
+        clearTimeout(inactivityTimer.current);
+      }
+    };
+  }, [biometriaAtivada, isAuthenticated]);
+
+  // Se a biometria está ativada e não está autenticado, mostra a tela de bloqueio
+  if (biometriaAtivada && !isAuthenticated) {
+    return <BiometricLock />;
+  }
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#16a34a', // Verde do CumaruApp
-        tabBarInactiveTintColor: '#9ca3af', // Cinza claro
+        tabBarActiveTintColor: '#16a34a',
+        tabBarInactiveTintColor: '#9ca3af',
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
-            // Use a transparent background on iOS to show the blur effect
             position: 'absolute',
           },
           default: {
@@ -31,16 +91,14 @@ export default function TabLayout() {
         }),
       }}>
       
-      {/* Tela Principal/Home */}
       <Tabs.Screen
-        name="home"  // Mudado de "index" para "home"
+        name="home"
         options={{
           title: 'Início',
           tabBarIcon: ({ color }) => <Ionicons name="home" size={20} color={color} />,
         }}
       />
       
-      {/* Lotes */}
       <Tabs.Screen
         name="lotes"
         options={{
@@ -49,7 +107,6 @@ export default function TabLayout() {
         }}
       />
       
-      {/* Coleta - Ação principal */}
       <Tabs.Screen
         name="coleta"
         options={{
@@ -58,7 +115,6 @@ export default function TabLayout() {
         }}
       />
       
-      {/* Gráficos */}
       <Tabs.Screen
         name="relatorios"
         options={{
@@ -67,7 +123,6 @@ export default function TabLayout() {
         }}
       />
       
-      {/* Perfil */}
       <Tabs.Screen
         name="perfil"
         options={{
@@ -75,15 +130,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={20} color={color} />,
         }}
       />
-
-        {/* <Tabs.Screen
-        name="popular"
-        options={{
-          title: 'popular',
-          tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={20} color={color} />,
-        }}
-      /> */}
     </Tabs>
-    
   );
 }
