@@ -19,7 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { auth } from './services/firebaseConfig'; // Ajuste o caminho conforme necessário
+import { auth } from './services/firebaseConfig.js'; // Ajuste o caminho conforme necessário
 
 export default function AlterarSenhaScreen() {
   const [senhaAtual, setSenhaAtual] = useState('');

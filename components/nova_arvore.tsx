@@ -14,7 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { db } from '../app/services/firebaseConfig';
+import { db } from '../app/services/firebaseConfig.js';
 
 interface CadastrarArvoreModalProps {
   visible: boolean;
@@ -26,7 +26,6 @@ interface CadastrarArvoreModalProps {
 interface ArvoreFormData {
   idArvore: string;
   estadoSaude: string;
-  especie: string;
   dataPlantio: string;
   latitude: string;
   longitude: string;
@@ -34,20 +33,9 @@ interface ArvoreFormData {
 }
 
 const estadosSaude = [
-  { label: 'Excelente', value: 'excelente' },
   { label: 'Saudável', value: 'saudavel' },
-  { label: 'Bom', value: 'bom' },
   { label: 'Ruim', value: 'ruim' },
-  { label: 'Doente', value: 'doente' },
-];
-
-const especies = [
-  { label: 'Cumaru', value: 'cumaru' },
-  { label: 'Castanheira', value: 'castanheira' },
-  { label: 'Açaí', value: 'acai' },
-  { label: 'Cupuaçu', value: 'cupuacu' },
-  { label: 'Andiroba', value: 'andiroba' },
-  { label: 'Outra', value: 'outra' },
+  { label: 'Morta', value: 'morta' },
 ];
 
 export default function CadastrarArvoreModal({ 
@@ -59,11 +47,9 @@ export default function CadastrarArvoreModal({
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showEstadoModal, setShowEstadoModal] = useState(false);
-  const [showEspecieModal, setShowEspecieModal] = useState(false);
   const [formData, setFormData] = useState<ArvoreFormData>({
     idArvore: '',
     estadoSaude: '',
-    especie: '',
     dataPlantio: '',
     latitude: '',
     longitude: '',
@@ -81,9 +67,6 @@ export default function CadastrarArvoreModal({
       }
       if (!formData.estadoSaude.trim()) {
         newErrors.estadoSaude = 'Estado de saúde é obrigatório';
-      }
-      if (!formData.especie.trim()) {
-        newErrors.especie = 'Espécie é obrigatória';
       }
       if (!formData.dataPlantio.trim()) {
         newErrors.dataPlantio = 'Data do plantio é obrigatória';
@@ -126,11 +109,9 @@ export default function CadastrarArvoreModal({
 
     setIsLoading(true);
     try {
-      // Dados da árvore para salvar no Firebase
       const arvoreData = {
         codigo: formData.idArvore,
-        loteId: loteId, // Associa a árvore ao lote
-        especie: formData.especie,
+        loteId: loteId,
         estadoSaude: formData.estadoSaude,
         dataPlantio: formData.dataPlantio,
         latitude: formData.latitude,
@@ -142,14 +123,9 @@ export default function CadastrarArvoreModal({
         createdAt: new Date().toISOString(),
       };
 
-      // Salvar no Firebase
       const docRef = await addDoc(collection(db, 'arvores'), arvoreData);
 
-      // Chamar callback com dados para atualização local
-      onSubmit({
-        ...formData,
-        // Adicionar ID do documento se necessário
-      });
+      onSubmit(formData);
 
       Alert.alert('Sucesso!', 'Árvore cadastrada com sucesso!', [
         { text: 'OK', onPress: handleClose }
@@ -168,7 +144,6 @@ export default function CadastrarArvoreModal({
     setFormData({
       idArvore: '',
       estadoSaude: '',
-      especie: '',
       dataPlantio: '',
       latitude: '',
       longitude: '',
@@ -176,7 +151,6 @@ export default function CadastrarArvoreModal({
     });
     setErrors({});
     setShowEstadoModal(false);
-    setShowEspecieModal(false);
     onClose();
   };
 
@@ -188,7 +162,6 @@ export default function CadastrarArvoreModal({
   };
 
   const handleUseCurrentLocation = () => {
-    // Simular captura de localização atual
     updateFormData('latitude', '-3.123456');
     updateFormData('longitude', '-60.123456');
   };
@@ -198,22 +171,15 @@ export default function CadastrarArvoreModal({
     return estado ? estado.label : 'Selecione um estado';
   };
 
-  const getEspecieLabel = (value: string) => {
-    const especie = especies.find(e => e.value === value);
-    return especie ? especie.label : 'Selecione a espécie';
-  };
-
   const renderStep1 = () => (
     <View style={styles.stepContent}>
-      {/* Header Icon */}
       <View style={styles.iconContainer}>
         <View style={styles.iconCircle}>
           <Ionicons name="leaf-outline" size={24} color="#059669" />
         </View>
       </View>
 
-      <Text style={styles.stepTitle}>Informações da Árvore</Text>
-      <Text style={styles.stepSubtitle}>Detalhes básicos sobre a árvore</Text>
+      <Text style={styles.stepSubtitle}>Preencha os dados abaixo para vincular esta árvore à sua produção</Text>
 
       <View style={styles.form}>
         <View style={styles.inputGroup}>
@@ -229,7 +195,7 @@ export default function CadastrarArvoreModal({
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Estado da saúde*</Text>
+          <Text style={styles.inputLabel}>Estado da Árvore*</Text>
           <TouchableOpacity
             style={[styles.input, styles.selectInput, errors.estadoSaude && styles.inputError]}
             onPress={() => setShowEstadoModal(true)}
@@ -243,23 +209,6 @@ export default function CadastrarArvoreModal({
             <Ionicons name="chevron-down" size={20} color="#6B7280" />
           </TouchableOpacity>
           {errors.estadoSaude && <Text style={styles.errorText}>{errors.estadoSaude}</Text>}
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Espécie*</Text>
-          <TouchableOpacity
-            style={[styles.input, styles.selectInput, errors.especie && styles.inputError]}
-            onPress={() => setShowEspecieModal(true)}
-          >
-            <Text style={[
-              styles.selectText,
-              !formData.especie && styles.selectPlaceholder
-            ]}>
-              {getEspecieLabel(formData.especie)}
-            </Text>
-            <Ionicons name="chevron-down" size={20} color="#6B7280" />
-          </TouchableOpacity>
-          {errors.especie && <Text style={styles.errorText}>{errors.especie}</Text>}
         </View>
 
         <View style={styles.inputGroup}>
@@ -284,15 +233,13 @@ export default function CadastrarArvoreModal({
 
   const renderStep2 = () => (
     <View style={styles.stepContent}>
-      {/* Header Icon */}
       <View style={styles.iconContainer}>
         <View style={styles.iconCircle}>
           <Ionicons name="location-outline" size={24} color="#059669" />
         </View>
       </View>
 
-      <Text style={styles.stepTitle}>Localização e notas</Text>
-      <Text style={styles.stepSubtitle}>Coordenadas GPS e informações adicionais</Text>
+      <Text style={styles.stepSubtitle}> Adicione a Localização da Árvore</Text>
 
       <View style={styles.form}>
         <View style={styles.inputGroup}>
@@ -361,9 +308,7 @@ export default function CadastrarArvoreModal({
     }
   };
 
-  const getButtonText = () => {
-    return currentStep === 1 ? 'Continuar' : 'Cadastrar';
-  };
+  const getButtonText = () => currentStep === 1 ? 'Continuar' : 'Cadastrar';
 
   return (
     <Modal
@@ -373,9 +318,7 @@ export default function CadastrarArvoreModal({
       onRequestClose={handleClose}
     >
       <SafeAreaView style={styles.container}>
-        <StatusBar backgroundColor="#059669" barStyle="light-content" />
         
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="white" />
@@ -389,12 +332,10 @@ export default function CadastrarArvoreModal({
           </TouchableOpacity>
         </View>
 
-        {/* Content */}
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {renderCurrentStep()}
         </ScrollView>
 
-        {/* Bottom Buttons */}
         <View style={styles.bottomButtons}>
           {currentStep > 1 && (
             <TouchableOpacity style={styles.backButtonBottom} onPress={handleBack}>
@@ -417,7 +358,6 @@ export default function CadastrarArvoreModal({
           </TouchableOpacity>
         </View>
 
-        {/* Modal Estado de Saúde */}
         <Modal
           visible={showEstadoModal}
           transparent
@@ -427,7 +367,7 @@ export default function CadastrarArvoreModal({
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Estado de Saúde</Text>
+                <Text style={styles.modalTitle}>Estado da Árvore</Text>
                 <TouchableOpacity onPress={() => setShowEstadoModal(false)}>
                   <Ionicons name="close" size={24} color="#6b7280" />
                 </TouchableOpacity>
@@ -461,69 +401,24 @@ export default function CadastrarArvoreModal({
             </View>
           </View>
         </Modal>
-
-        {/* Modal Espécie */}
-        <Modal
-          visible={showEspecieModal}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowEspecieModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Espécie</Text>
-                <TouchableOpacity onPress={() => setShowEspecieModal(false)}>
-                  <Ionicons name="close" size={24} color="#6b7280" />
-                </TouchableOpacity>
-              </View>
-              
-              <ScrollView style={styles.modalOptions}>
-                {especies.map((especie) => (
-                  <TouchableOpacity
-                    key={especie.value}
-                    style={[
-                      styles.modalOption,
-                      formData.especie === especie.value && styles.modalOptionSelected
-                    ]}
-                    onPress={() => {
-                      updateFormData('especie', especie.value);
-                      setShowEspecieModal(false);
-                    }}
-                  >
-                    <Text style={[
-                      styles.modalOptionText,
-                      formData.especie === especie.value && styles.modalOptionTextSelected
-                    ]}>
-                      {especie.label}
-                    </Text>
-                    {formData.especie === especie.value && (
-                      <Ionicons name="checkmark" size={20} color="#16a34a" />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          </View>
-        </Modal>
       </SafeAreaView>
     </Modal>
   );
 }
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#fdfdfd',
   },
   header: {
-    backgroundColor: '#059669',
+    backgroundColor: '#16a34a',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    paddingTop: 48,
   },
   backButton: {
     width: 40,
@@ -571,18 +466,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#D1FAE5',
   },
-  stepTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
   stepSubtitle: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: 18,
+    color: '#1F2937',
     marginBottom: 32,
     textAlign: 'center',
+    fontWeight: 600,
   },
   form: {
     width: '100%',
@@ -650,7 +539,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   locationButton: {
-    backgroundColor: '#059669',
+    backgroundColor: '#16a34a',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -690,7 +579,7 @@ const styles = StyleSheet.create({
   },
   backButtonBottom: {
     paddingVertical: 16,
-    paddingHorizontal: 24,
+    paddingHorizontal: 56,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#D1D5DB',
@@ -704,7 +593,7 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     flex: 1,
-    backgroundColor: '#059669',
+    backgroundColor: '#16a34a',
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: 'center',

@@ -28,16 +28,8 @@ const VisaoGeralTab: React.FC<VisaoGeralTabProps> = ({
             <Text style={styles.infoValue}>{loteData.codigo || 'Não informado'}</Text>
           </View>
           <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Localização</Text>
-            <Text style={styles.infoValue}>{loteData.localizacao || 'Não informado'}</Text>
-          </View>
-          <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Data Início</Text>
             <Text style={styles.infoValue}>{loteData.dataInicio || 'Não informado'}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Fim do cultivo</Text>
-            <Text style={styles.infoValue}>{loteData.dataFim || 'Não informado'}</Text>
           </View>
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Última coleta</Text>
@@ -52,8 +44,7 @@ const VisaoGeralTab: React.FC<VisaoGeralTabProps> = ({
           <Text style={styles.sectionTitle}>Colaboradores Responsáveis</Text>
           {isAdmin && onManageColaboradores && (
             <TouchableOpacity style={styles.manageButton} onPress={onManageColaboradores}>
-              <Ionicons name="settings-outline" size={16} color="#059669" />
-              <Text style={styles.manageButtonText}>Gerenciar</Text>
+              <Ionicons name="settings-outline" size={24} color="#059669" />
             </TouchableOpacity>
           )}
         </View>
@@ -119,22 +110,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1F2937',
+    paddingBottom: 16,
   },
   manageButton: {
     flexDirection: 'row',

@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { db } from '../app/services/firebaseConfig';
+import { db } from '../app/services/firebaseConfig.js';
 
 interface NovoLoteModalProps {
   visible: boolean;
