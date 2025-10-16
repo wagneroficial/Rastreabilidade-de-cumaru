@@ -35,6 +35,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    marginBottom: 20,
   },
   tab: {
     flex: 1,

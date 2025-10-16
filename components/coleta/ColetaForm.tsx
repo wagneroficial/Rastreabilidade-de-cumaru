@@ -178,22 +178,20 @@ const ColetaForm: React.FC<ColetaFormProps> = ({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
+    backgroundColor: 'white',
   },
   card: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    paddingTop: 20,
     shadowRadius: 3,
-    elevation: 2,
+
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1f2937',
-    marginBottom: 16,
+    marginBottom: 24,
   },
   noDataContainer: {
     alignItems: 'center',

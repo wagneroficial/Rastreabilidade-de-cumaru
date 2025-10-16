@@ -78,7 +78,8 @@ const RecentCollections: React.FC<RecentCollectionsProps> = ({ collections }) =>
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    marginTop: 24,
+    marginTop: 36,
+    backgroundColor: 'white',
   },
   title: {
     fontSize: 18,
@@ -102,15 +103,13 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    paddingTop: 8,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   info: {
     flex: 1,

@@ -101,7 +101,7 @@ const RelatoriosAnalyticsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#fdfdfd',
   },
   loadingContainer: {
     flex: 1,

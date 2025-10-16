@@ -58,31 +58,30 @@ const styles = StyleSheet.create({
   },
   chartSelectorButtons: {
     flexDirection: 'row',
-    gap: 8,
+
   },
   chartSelectorButton: {
-    flex: 1,
     paddingVertical: 12,
-    borderRadius: 8,
+    flex: 1,
     alignItems: 'center',
   },
   chartSelectorButtonActive: {
-    backgroundColor: '#16a34a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#16a34a',
   },
   chartSelectorButtonInactive: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
   },
   chartSelectorButtonText: {
     fontSize: 14,
     fontWeight: '500',
   },
   chartSelectorButtonTextActive: {
-    color: 'white',
+    color:'#16a34a',
   },
   chartSelectorButtonTextInactive: {
-    color: '#4b5563',
+    color:  '#4b5563',
   },
 });
 

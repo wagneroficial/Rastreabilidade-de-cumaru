@@ -41,10 +41,10 @@ const PeriodSelector: React.FC<PeriodSelectorProps> = ({ periods, selectedPeriod
 
 const styles = StyleSheet.create({
   section: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   sectionTitle: {
+    paddingHorizontal: 16,
     fontSize: 18,
     fontWeight: '600',
     color: '#1f2937',

@@ -126,33 +126,13 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
 
       const { latitude, longitude } = location.coords;
       
-      // Tentar obter o endereço (geocoding reverso)
-      let address = '';
-      try {
-        const reverseGeocode = await Location.reverseGeocodeAsync({
-          latitude,
-          longitude,
-        });
-        
-        if (reverseGeocode.length > 0) {
-          const location = reverseGeocode[0];
-          address = [
-            location.street,
-            location.streetNumber,
-            location.district,
-            location.city,
-            location.region,
-          ].filter(Boolean).join(', ');
-        }
-      } catch (geocodeError) {
-        console.log('Não foi possível obter o endereço:', geocodeError);
-      }
+
 
       const locationData: LocationData = {
         latitude,
         longitude,
         accuracy: location.coords.accuracy || undefined,
-        address: address || undefined,
+ 
       };
 
       setCurrentLocation(locationData);
@@ -163,7 +143,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
 
       Alert.alert(
         'Localização Obtida',
-        `Coordenadas: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}${address ? `\nEndereço: ${address}` : ''}`,
+        `Coordenadas: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
         [{ text: 'OK' }]
       );
 
@@ -448,31 +428,16 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#6b7280" />
+              <Ionicons name="arrow-back" size={24} color="white" />
             </TouchableOpacity>
             <View style={styles.headerInfo}>
-              <Text style={styles.headerTitle}>Novo Lote</Text>
-              <Text style={styles.headerSubtitle}>Etapa {currentStep} de 3</Text>
+              <Text style={styles.headerTitle}>Cadastrar Novo Lote</Text>
+              <Text style={styles.headerSubtitle}>Etapa {currentStep} de 2</Text>
             </View>
           </View>
         </View>
 
-        {/* Progress Bar */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressStep, currentStep >= 1 && styles.progressStepActive]}>
-              <Text style={[styles.progressStepText, currentStep >= 1 && styles.progressStepTextActive]}>1</Text>
-            </View>
-            <View style={[styles.progressLine, currentStep >= 2 && styles.progressLineActive]} />
-            <View style={[styles.progressStep, currentStep >= 2 && styles.progressStepActive]}>
-              <Text style={[styles.progressStepText, currentStep >= 2 && styles.progressStepTextActive]}>2</Text>
-            </View>
-            <View style={[styles.progressLine, currentStep >= 3 && styles.progressLineActive]} />
-            <View style={[styles.progressStep, currentStep >= 3 && styles.progressStepActive]}>
-              <Text style={[styles.progressStepText, currentStep >= 3 && styles.progressStepTextActive]}>3</Text>
-            </View>
-          </View>
-        </View>
+
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Step 1: Informações Básicas */}
@@ -520,6 +485,17 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
                 />
                 <Text style={styles.charCount}>{formData.descricao.length}/500 caracteres</Text>
               </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Número de Árvores (estimado)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.numeroArvores}
+                  onChangeText={(value) => handleInputChange('numeroArvores', value)}
+                  placeholder="Ex: 45"
+                  placeholderTextColor="#9ca3af"
+                  keyboardType="numeric"
+                />
+              </View>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Tipo de Solo</Text>
@@ -557,7 +533,51 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
                   </Text>
                 )}
               </View>
-            </View>
+              {/* Resumo */}
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryTitle}>Resumo do Lote</Text>
+                <View style={styles.summaryContent}>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Nome:</Text>
+                    <Text style={styles.summaryValue}>{formData.nome || 'Não informado'}</Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Área:</Text>
+                    <Text style={styles.summaryValue}>{formData.area ? `${formData.area} ha` : 'Não informado'}</Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Árvores:</Text>
+                    <Text style={styles.summaryValue}>{formData.numeroArvores || 'Não informado'}</Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Localização:</Text>
+                    <Text style={styles.summaryValue}>
+                      {formData.latitude && formData.longitude 
+                        ? formatCoordinates(formData.latitude, formData.longitude)
+                        : 'Não informado'
+                      }
+                    </Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Período:</Text>
+                    <Text style={styles.summaryValue}>
+                      {formData.dataInicio && formData.dataFim 
+                        ? `${formatDate(formData.dataInicio)} - ${formatDate(formData.dataFim)}`
+                        : 'Não informado'
+                      }
+                    </Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Responsáveis:</Text>
+                    <Text style={styles.summaryValue}>
+                      {formData.colaboradoresResponsaveis.length > 0 
+                        ? `${formData.colaboradoresResponsaveis.length} colaborador(es)`
+                        : 'Nenhum'
+                      }
+                    </Text>
+                  </View>
+                </View>
+              </View>2          </View>
           )}
 
           {/* Step 2: Localização com GPS funcional */}
@@ -610,9 +630,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
                     <Text style={styles.coordinatesText}>
                       {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}
                     </Text>
-                    {currentLocation.address && (
-                      <Text style={styles.addressText}>{currentLocation.address}</Text>
-                    )}
+
                     {currentLocation.accuracy && (
                       <Text style={styles.accuracyText}>
                         Precisão: ±{Math.round(currentLocation.accuracy)}m
@@ -699,106 +717,6 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
               )}
             </View>
           )}
-
-          {/* Step 3: Planejamento */}
-          {currentStep === 3 && (
-            <View style={styles.stepContainer}>
-              <View style={styles.stepHeader}>
-                <Text style={styles.stepTitle}>Planejamento</Text>
-                <Text style={styles.stepSubtitle}>Defina o período de colheita</Text>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Data de Início</Text>
-                <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() => setShowDatePicker('inicio')}
-                >
-                  <Ionicons name="calendar-outline" size={20} color="#16a34a" />
-                  <Text style={[
-                    styles.dateButtonText,
-                    !formData.dataInicio && styles.dateButtonPlaceholder
-                  ]}>
-                    {formatDateForDisplay(formData.dataInicio)}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Data de Fim</Text>
-                <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() => setShowDatePicker('fim')}
-                >
-                  <Ionicons name="calendar-outline" size={20} color="#16a34a" />
-                  <Text style={[
-                    styles.dateButtonText,
-                    !formData.dataFim && styles.dateButtonPlaceholder
-                  ]}>
-                    {formatDateForDisplay(formData.dataFim)}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Número de Árvores (estimado)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.numeroArvores}
-                  onChangeText={(value) => handleInputChange('numeroArvores', value)}
-                  placeholder="Ex: 45"
-                  placeholderTextColor="#9ca3af"
-                  keyboardType="numeric"
-                />
-              </View>
-
-              {/* Resumo */}
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryTitle}>Resumo do Lote</Text>
-                <View style={styles.summaryContent}>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Nome:</Text>
-                    <Text style={styles.summaryValue}>{formData.nome || 'Não informado'}</Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Área:</Text>
-                    <Text style={styles.summaryValue}>{formData.area ? `${formData.area} ha` : 'Não informado'}</Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Árvores:</Text>
-                    <Text style={styles.summaryValue}>{formData.numeroArvores || 'Não informado'}</Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Localização:</Text>
-                    <Text style={styles.summaryValue}>
-                      {formData.latitude && formData.longitude 
-                        ? formatCoordinates(formData.latitude, formData.longitude)
-                        : 'Não informado'
-                      }
-                    </Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Período:</Text>
-                    <Text style={styles.summaryValue}>
-                      {formData.dataInicio && formData.dataFim 
-                        ? `${formatDate(formData.dataInicio)} - ${formatDate(formData.dataFim)}`
-                        : 'Não informado'
-                      }
-                    </Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Responsáveis:</Text>
-                    <Text style={styles.summaryValue}>
-                      {formData.colaboradoresResponsaveis.length > 0 
-                        ? `${formData.colaboradoresResponsaveis.length} colaborador(es)`
-                        : 'Nenhum'
-                      }
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-          )}
         </ScrollView>
 
         {/* Navigation Buttons */}
@@ -811,7 +729,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
               </TouchableOpacity>
             )}
             
-            {currentStep < 3 ? (
+            {currentStep < 2? (
               <TouchableOpacity
                 onPress={nextStep}
                 disabled={!canProceed()}
@@ -994,13 +912,13 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#fdfdfd',
   },
   header: {
-    backgroundColor: 'white',
+    backgroundColor: '#16a34a',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 16,
   },
   headerContent: {
@@ -1012,7 +930,6 @@ const styles = StyleSheet.create({
   closeButton: {
     width: 40,
     height: 40,
-    backgroundColor: '#f3f4f6',
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1023,11 +940,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: '#ffffff',
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#ffffff',
     marginTop: 2,
   },
   progressContainer: {

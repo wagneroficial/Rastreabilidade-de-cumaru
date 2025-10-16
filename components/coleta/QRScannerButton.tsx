@@ -11,10 +11,10 @@ const QRScannerButton: React.FC<QRScannerButtonProps> = ({ onPress }) => {
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={onPress} style={styles.button}>
-        <Ionicons name="qr-code-outline" size={48} color="white" />
+        <Ionicons name="qr-code-outline" size={48} color='#16a34a' />
         <View style={styles.textContainer}>
           <Text style={styles.title}>Escanear QR Code</Text>
-          <Text style={styles.subtitle}>Aponte para o QR da árvore</Text>
+          <Text style={styles.subtitle}>Clique aqui para registrar sua coleta</Text>
         </View>
       </TouchableOpacity>
     </View>
@@ -25,18 +25,16 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     paddingVertical: 24,
+    backgroundColor: 'white',
   },
   button: {
-    backgroundColor: '#16a34a',
+    borderWidth: 1,
+    borderColor:'#16a34a70',
+    backgroundColor: '#16a34a13',
     borderRadius: 12,
     padding: 24,
     alignItems: 'center',
     gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   textContainer: {
     alignItems: 'center',
@@ -44,11 +42,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: 'white',
+    color:  '#1f2937',
   },
   subtitle: {
     fontSize: 14,
-    color: '#bbf7d0',
+    color: '#1f2937',
     marginTop: 4,
   },
 });

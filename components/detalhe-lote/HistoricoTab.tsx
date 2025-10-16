@@ -66,7 +66,7 @@ const HistoricoTab: React.FC<HistoricoTabProps> = ({ historico }) => {
           </View>
           {item.observacoes && (
             <View style={styles.historicoObservacoesContainer}>
-              <Text style={styles.historicoObservacoes}>"{item.observacoes}"</Text>
+              <Text style={styles.historicoObservacoes}>{`"${item.observacoes}"`}</Text>
             </View>
           )}
         </View>
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
-    elevation: 2,
+    elevation: 1,
   },
   historicoHeader: {
     flexDirection: 'row',

@@ -20,7 +20,6 @@ const PerformanceIndicators: React.FC<PerformanceIndicatorsProps> = ({ indicator
               style={[styles.performanceItem, { backgroundColor: indicator.backgroundColor }]}
             >
               <View style={styles.performanceContent}>
-                <Ionicons name={indicator.icon as any} size={20} color={indicator.color} />
                 <View style={styles.performanceInfo}>
                   <Text style={styles.performanceItemTitle}>{indicator.title}</Text>
                   <Text style={styles.performanceSubtitle}>{indicator.subtitle}</Text>
@@ -43,20 +42,13 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   performanceCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+ marginTop: 24,
   },
   performanceTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1f2937',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   performanceList: {
     gap: 16,
@@ -65,8 +57,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
     borderRadius: 8,
+    
   },
   performanceContent: {
     flexDirection: 'row',
@@ -89,7 +83,7 @@ const styles = StyleSheet.create({
   },
   performanceValue: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 });
 

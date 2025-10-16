@@ -31,7 +31,7 @@ export default function RootLayout() {
           }} 
         />
         <Stack.Screen 
-          name="relatorios" 
+          name="elatorios" 
           options={{ 
             headerShown: false,
             presentation: 'card'

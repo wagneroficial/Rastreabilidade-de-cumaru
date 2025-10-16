@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { db } from '../app/services/firebaseConfig.js';
+import { Background } from '@react-navigation/elements';
 
 interface CadastrarArvoreModalProps {
   visible: boolean;
@@ -327,9 +328,6 @@ export default function CadastrarArvoreModal({
             <Text style={styles.headerTitle}>Cadastrar Nova Árvore</Text>
             <Text style={styles.headerSubtitle}>Etapa {currentStep} de 2</Text>
           </View>
-          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="white" />
-          </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -428,7 +426,7 @@ const styles = StyleSheet.create({
   },
   headerInfo: {
     flex: 1,
-    alignItems: 'center',
+    paddingHorizontal: 16,
   },
   headerTitle: {
     fontSize: 18,
@@ -439,12 +437,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#BBF7D0',
     marginTop: 2,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   content: {
     flex: 1,

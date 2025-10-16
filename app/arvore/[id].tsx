@@ -231,8 +231,8 @@ export default function DetalheArvoreScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#059669" barStyle="light-content" />
-      
+      <StatusBar backgroundColor="#16a34a" barStyle="light-content" />
+     
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -292,12 +292,12 @@ export default function DetalheArvoreScreen() {
                   <Text style={styles.infoLabel}>Lote:</Text>
                   <Text style={styles.infoValue}>{arvoreData.loteNome}</Text>
                 </View>
-                <View style={[styles.infoRow, styles.infoRowBorder]}>
+                <View style={[styles.infoRow]}>
                   <Text style={styles.infoLabel}>Espécie:</Text>
                   <Text style={styles.infoValue}>{arvoreData.tipo}</Text>
                 </View>
                 {arvoreData.dataPlantio && (
-                  <View style={[styles.infoRow, styles.infoRowBorder]}>
+                  <View style={[styles.infoRow]}>
                     <Text style={styles.infoLabel}>Data Plantio:</Text>
                     <Text style={styles.infoValue}>
                       {new Date(arvoreData.dataPlantio.seconds * 1000).toLocaleDateString('pt-BR')}
@@ -324,7 +324,7 @@ export default function DetalheArvoreScreen() {
                     <Text style={styles.infoLabel}>Latitude:</Text>
                     <Text style={styles.infoValue}>{arvoreData.latitude}</Text>
                   </View>
-                  <View style={[styles.infoRow, styles.infoRowBorder]}>
+                  <View style={[styles.infoRow]}>
                     <Text style={styles.infoLabel}>Longitude:</Text>
                     <Text style={styles.infoValue}>{arvoreData.longitude}</Text>
                   </View>
@@ -465,7 +465,7 @@ export default function DetalheArvoreScreen() {
                 ) : (
                   <>
                     <Ionicons name="share-outline" size={20} color="#059669" />
-                    <Text style={styles.qrShareButtonText}>Compartilhar Imagem</Text>
+                    <Text style={styles.qrShareButtonText}>Compartilhar</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -486,7 +486,7 @@ export default function DetalheArvoreScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#fdfdfd',
   },
   loadingContainer: {
     flex: 1,
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   header: {
-    backgroundColor: '#059669',
+    backgroundColor: '#16a34a',
     paddingHorizontal: 16,
     paddingVertical: 24,
     flexDirection: 'row',
@@ -549,14 +549,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   qrButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#059669',
+    color:'#1F2937',
+    backgroundColor: '#16a34a',
     paddingVertical: 12,
     borderRadius: 8,
     gap: 8,
@@ -601,27 +600,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#1F2937',
+    marginTop: 12,
     marginBottom: 12,
   },
   card: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    padding: 0,
+
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 12,
-  },
-  infoRowBorder: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#F3F4F6',
   },
   infoLabel: {
     fontSize: 14,
@@ -650,11 +641,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+   
   },
   statValue: {
     fontSize: 24,
@@ -679,13 +666,11 @@ const styles = StyleSheet.create({
   coletaCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    paddingTop: 20,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderColor: '#F3F4F6',
   },
   coletaHeader: {
     flexDirection: 'row',
@@ -701,7 +686,7 @@ const styles = StyleSheet.create({
   coletaQuantidade: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#059669',
+     color:'#1F2937',
   },
   coletaColetor: {
     fontSize: 14,
@@ -743,8 +728,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   qrModalTitle: {
     fontSize: 18,
@@ -785,7 +768,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 1,
   },
   qrCodeFooter: {
     alignItems: 'center',

@@ -1,7 +1,4 @@
 // screens/DetalheLoteScreen.tsx
-import CadastrarArvoreModal from '@/components/nova_arvore';
-import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import {
   SafeAreaView,
@@ -12,8 +9,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
 
 // Componentes
+import CadastrarArvoreModal from '@/components/nova_arvore';
 import ArvoresTab from '@/components/detalhe-lote/ArvoresTab';
 import ColaboradoresModal from '@/components/detalhe-lote/ColaboradoresModal';
 import HistoricoTab from '@/components/detalhe-lote/HistoricoTab';
@@ -25,11 +25,12 @@ import VisaoGeralTab from '@/components/detalhe-lote/VisaoGeralTab';
 // Hook customizado
 import { useLoteData } from '@/hooks/useLoteData';
 
-// Types
+// Tipos
 import { ArvoreFormData, TabType } from '@/types/lote.types';
 
 export default function DetalheLoteScreen() {
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
+
   const [activeTab, setActiveTab] = useState<TabType>('visao-geral');
   const [modalVisible, setModalVisible] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
@@ -50,12 +51,12 @@ export default function DetalheLoteScreen() {
     handleColaboradorToggle,
   } = useLoteData(id);
 
-  const handleBack = () => {
-    router.back();
-  };
+  const handleBack = () => router.back();
 
-  const handleNovaArvore = async (arvoreData: ArvoreFormData) => {
+  // ✅ Corrigido para garantir tipagem e fechamento do modal
+  const handleNovaArvore = (arvoreData: ArvoreFormData) => {
     console.log('Nova árvore cadastrada:', arvoreData.idArvore);
+    // Aqui você pode chamar a função de envio para o backend se houver
     setModalVisible(false);
   };
 
@@ -69,8 +70,9 @@ export default function DetalheLoteScreen() {
     return colaborador?.nome || 'Colaborador';
   };
 
-  const colaboradoresNomes = (loteData?.colaboradoresResponsaveis || [])
-    .map(id => getColaboradorNome(id));
+  const colaboradoresNomes = (loteData?.colaboradoresResponsaveis || []).map(id =>
+    getColaboradorNome(id)
+  );
 
   const renderTabContent = () => {
     if (!loteData) return null;
@@ -97,6 +99,7 @@ export default function DetalheLoteScreen() {
   if (loading || userLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
+        <StatusBar barStyle="dark-content" />
         <Text style={styles.loadingText}>Carregando dados do lote...</Text>
       </SafeAreaView>
     );
@@ -115,7 +118,8 @@ export default function DetalheLoteScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      
+      <StatusBar barStyle="dark-content" />
+
       <LoteHeader
         loteData={loteData}
         isAdmin={isAdmin}
@@ -123,11 +127,11 @@ export default function DetalheLoteScreen() {
         onStatusPress={isAdmin ? () => setStatusModalVisible(true) : undefined}
       />
 
-      {/* Botão Cadastrar Nova Árvore - Só para Admin */}
+      {/* Botão "Cadastrar Nova Árvore" (somente Admin) */}
       {isAdmin && (
         <View style={styles.cadastrarContainer}>
-          <TouchableOpacity 
-            style={styles.cadastrarButton} 
+          <TouchableOpacity
+            style={styles.cadastrarButton}
             onPress={() => setModalVisible(true)}
           >
             <Ionicons name="add-outline" size={20} color="white" />
@@ -136,6 +140,7 @@ export default function DetalheLoteScreen() {
         </View>
       )}
 
+      {/* Tabs */}
       <TabNavigator
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -143,18 +148,19 @@ export default function DetalheLoteScreen() {
         historicoCount={historicoData.length}
       />
 
+      {/* Conteúdo */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {renderTabContent()}
         <View style={styles.bottomSpacing} />
       </ScrollView>
 
-      {/* Modals */}
+      {/* Modais */}
       {isAdmin && (
         <>
           <CadastrarArvoreModal
             visible={modalVisible}
             onClose={() => setModalVisible(false)}
-            onSubmit={handleNovaArvore}
+            onSubmit={(data: ArvoreFormData) => handleNovaArvore(data)}
             loteId={loteData.id}
           />
 
@@ -163,7 +169,7 @@ export default function DetalheLoteScreen() {
             currentStatus={loteData.status}
             isUpdating={updatingStatus}
             onClose={() => setStatusModalVisible(false)}
-            onStatusChange={(status) => {
+            onStatusChange={status => {
               handleStatusChange(status);
               setStatusModalVisible(false);
             }}
@@ -183,6 +189,7 @@ export default function DetalheLoteScreen() {
   );
 }
 
+// 🎨 Estilos
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -193,6 +200,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F9FAFB',
+    paddingHorizontal: 20,
   },
   loadingText: {
     fontSize: 16,

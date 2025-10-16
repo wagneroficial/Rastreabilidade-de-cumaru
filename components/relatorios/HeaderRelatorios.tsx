@@ -16,7 +16,7 @@ const HeaderRelatorios: React.FC = () => {
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Relatórios & Analytics</Text>
+        <Text style={styles.headerTitle}>Relatórios</Text>
       </View>
     </View>
   );

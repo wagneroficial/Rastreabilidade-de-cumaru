@@ -50,7 +50,6 @@ export interface ArvoreItem {
 export interface ArvoreFormData {
   idArvore: string;
   estadoSaude: string;
-  especie: string;
   dataPlantio: string;
   latitude: string;
   longitude: string;

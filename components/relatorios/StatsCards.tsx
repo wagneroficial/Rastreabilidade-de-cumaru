@@ -65,11 +65,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    elevation: 1,
   },
   statContent: {
     flexDirection: 'row',
@@ -84,10 +80,10 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1f2937',
-    marginTop: 2,
+    marginTop: 4,
   },
   statChange: {
     alignItems: 'flex-end',

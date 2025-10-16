@@ -190,15 +190,15 @@ export const useRelatoriosData = () => {
           subtitle: melhorLote,
           value: `${maiorProducao.toFixed(1)} kg`,
           color: '#16a34a',
-          backgroundColor: '#f0fdf4',
+          backgroundColor: '',
         },
         {
           icon: 'calendar',
           title: 'Período Analisado',
           subtitle: periods.find((p) => p.key === selectedPeriod)?.label || 'Mensal',
           value: `${totalProducao.toFixed(1)} kg`,
-          color: '#2563eb',
-          backgroundColor: '#eff6ff',
+          color: '#16a34a',
+          backgroundColor: '',
         },
         {
           icon: 'leaf',
@@ -208,8 +208,8 @@ export const useRelatoriosData = () => {
             arvoresSnapshot.docs.length > 0
               ? `${(totalProducao / arvoresSnapshot.docs.length).toFixed(1)} kg`
               : '0 kg',
-          color: '#ea580c',
-          backgroundColor: '#fff7ed',
+          color: '#16a34a',
+          backgroundColor: '',
         },
       ];
 

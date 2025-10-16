@@ -61,13 +61,9 @@ const styles = StyleSheet.create({
   chartCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     marginHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+
   },
   chartTitle: {
     fontSize: 18,
