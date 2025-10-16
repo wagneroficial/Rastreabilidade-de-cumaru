@@ -1,5 +1,5 @@
 // hooks/useHomeData.ts
-import { auth, db } from '@/app/services/firebaseConfig';
+import { auth, db } from '@/app/services/firebaseConfig.js';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';

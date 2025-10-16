@@ -13,7 +13,7 @@ import {
     View,
 } from 'react-native';
 
-import { auth, db } from '@/app/services/firebaseConfig';
+import { auth, db } from '@/app/services/firebaseConfig.js';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 

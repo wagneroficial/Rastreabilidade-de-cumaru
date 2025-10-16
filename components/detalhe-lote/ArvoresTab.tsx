@@ -56,7 +56,6 @@ const ArvoresTab: React.FC<ArvoresTabProps> = ({ arvores, isAdmin }) => {
           <View style={styles.arvoreHeader}>
             <View style={styles.arvoreHeaderLeft}>
               <Text style={styles.arvoreCode}>{arvore.codigo}</Text>
-              <Text style={styles.arvoreTipo}>{arvore.tipo}</Text>
             </View>
             <View style={styles.arvoreHeaderRight}>
               <View style={[
@@ -122,7 +121,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
-    elevation: 2,
+    elevation: 1,
   },
   arvoreHeader: {
     flexDirection: 'row',
@@ -143,11 +142,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
   },
-  arvoreTipo: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 2,
-  },
   qualidadeBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -163,7 +157,7 @@ const styles = StyleSheet.create({
   },
   arvoreDetails: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 62,
   },
   arvoreDetailItem: {
     flex: 1,

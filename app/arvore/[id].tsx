@@ -1,5 +1,5 @@
 // app/arvore/[id].tsx
-import { db } from '@/app/services/firebaseConfig';
+
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { captureRef } from 'react-native-view-shot';
+import { db } from '../services/firebaseConfig';
 
 interface ArvoreData {
   id: string;

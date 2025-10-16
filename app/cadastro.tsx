@@ -17,7 +17,7 @@ import {
 
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "./services/firebaseConfig";
+import { auth, db } from "./services/firebaseConfig.js";
 
 interface FormData {
   nome: string;

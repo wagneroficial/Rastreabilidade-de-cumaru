@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 
-import { auth, db } from '@/app/services/firebaseConfig';
+import { auth, db } from '@/app/services/firebaseConfig.js';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/firestore';
 
@@ -284,7 +284,7 @@ const LotesScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#059669" barStyle="light-content" />
+      <StatusBar backgroundColor="#16a34a" barStyle="light-content" />
 
       {/* Header */}
       <View style={styles.header}>
@@ -297,9 +297,7 @@ const LotesScreen: React.FC = () => {
               <Text style={styles.headerTitle}>
                 {isAdmin ? 'Todos os Lotes' : 'Meus Lotes'}
               </Text>
-              <Text style={styles.headerSubtitle}>
-                {totalLotes} lotes • {lotesAtivos} ativos • {stats.totalColhido} coletados
-              </Text>
+
             </View>
           </View>
           {isAdmin && (
@@ -473,13 +471,12 @@ const LotesScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#fdfdfd',
   },
   header: {
-    backgroundColor: '#059669',
+    backgroundColor: '#16a34a',
     paddingHorizontal: 16,
-    paddingVertical: 32,
-    paddingTop: 48,
+    paddingVertical: 20,
   },
   headerContent: {
     flexDirection: 'row',
@@ -592,7 +589,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
-    elevation: 2,
+    elevation: 1,
   },
   loteHeader: {
     flexDirection: 'row',

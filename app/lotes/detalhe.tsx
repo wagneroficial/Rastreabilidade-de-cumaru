@@ -115,7 +115,6 @@ export default function DetalheLoteScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#059669" barStyle="light-content" />
       
       <LoteHeader
         loteData={loteData}
@@ -220,7 +219,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E7EB',
   },
   cadastrarButton: {
-    backgroundColor: '#059669',
+    backgroundColor: '#16a34a',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

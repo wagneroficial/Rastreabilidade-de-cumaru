@@ -1,5 +1,5 @@
 // hooks/useLoteData.ts
-import { auth, db } from '@/app/services/firebaseConfig';
+import { auth, db } from '@/app/services/firebaseConfig.js';
 import { ArvoreItem, Colaborador, HistoricoItem, Lote } from '@/types/lote.types';
 import { onAuthStateChanged } from 'firebase/auth';
 import {

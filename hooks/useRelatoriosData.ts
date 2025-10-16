@@ -2,7 +2,7 @@ import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 
-import { db } from '@/app/services/firebaseConfig';
+import { db } from '@/app/services/firebaseConfig.js';
 import {
     ChartDataItem,
     ChartType,

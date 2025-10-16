@@ -19,11 +19,11 @@ const LoteHeader: React.FC<LoteHeaderProps> = ({
 }) => {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'ativo': return '#10B981';
-      case 'planejado': return '#F59E0B';
+      case 'ativo': return '#e3ffed47';
+      case 'planejado': return '#e3ffed47';
       case 'concluido':
-      case 'concluído': return '#6B7280';
-      default: return '#6B7280';
+      case 'concluído': return '#e3ffed47';
+      default: return '#e3ffed47';
     }
   };
 
@@ -36,11 +36,10 @@ const LoteHeader: React.FC<LoteHeaderProps> = ({
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             <Text style={styles.headerTitle}>{loteData.nome}</Text>
-            <Text style={styles.headerSubtitle}>Código: {loteData.codigo}</Text>
           </View>
         </View>
         {isAdmin && onStatusPress && (
-          <View style={[styles.statusContainer, { backgroundColor: getStatusColor(loteData.status) }]}>
+          <View style={[styles.statusContainer, { backgroundColor: '#16a34a', borderWidth: 1,borderColor: getStatusColor(loteData.status) }]}>
             <TouchableOpacity onPress={onStatusPress} style={styles.statusTouchable}>
               <Text style={styles.statusText}>{loteData.status}</Text>
               <Ionicons name="chevron-down" size={16} color="white" />
@@ -64,10 +63,9 @@ const LoteHeader: React.FC<LoteHeaderProps> = ({
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: '#059669',
+    backgroundColor: '#16a34a',
     paddingHorizontal: 16,
-    paddingBottom: 24,
-    paddingTop: 48,
+    paddingTop: 20,
   },
   headerContent: {
     flexDirection: 'row',

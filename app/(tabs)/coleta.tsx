@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 
-import { auth, db } from '@/app/services/firebaseConfig';
+import { auth, db } from '@/app/services/firebaseConfig.js';
 import ColetaForm from '@/components/coleta/ColetaForm';
 import Header from '@/components/coleta/Header';
 import QRScannerButton from '@/components/coleta/QRScannerButton';

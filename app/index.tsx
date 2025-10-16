@@ -1,4 +1,4 @@
-import { auth } from '@/app/services/firebaseConfig';
+import { auth } from '@/app/services/firebaseConfig.js';
 import Login from '@/components/Login';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
