@@ -1,94 +1,144 @@
+import { db } from '@/app/services/firebaseConfig';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-    Alert,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Linking,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import MapView, { Circle, Marker } from 'react-native-maps';
+
+const { width } = Dimensions.get('window');
 
 interface Lote {
   id: string;
+  codigo: string;
   nome: string;
   coordinates: {
     lat: number;
     lng: number;
   };
-  radius: number;
-  status: 'ativo' | 'concluido';
+  status: 'planejado' | 'andamento' | 'colheita' | 'concluido';
   area: string;
   arvores: number;
 }
 
-interface Location {
+interface CurrentLocation {
   lat: number;
   lng: number;
+  accuracy?: number;
 }
 
 const GeolocalizacaoScreen: React.FC = () => {
   const router = useRouter();
-  const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
+  const mapRef = useRef<MapView>(null);
+  const [currentLocation, setCurrentLocation] = useState<CurrentLocation | null>(null);
   const [selectedLote, setSelectedLote] = useState<string | null>(null);
   const [locationStatus, setLocationStatus] = useState<'loading' | 'success' | 'error'>('loading');
-
-  const lotes: Lote[] = [
-    { 
-      id: 'A-12', 
-      nome: 'Lote Norte A-12',
-      coordinates: { lat: -3.105000, lng: -60.00501},
-      radius: 500,
-      status: 'ativo',
-      area: '2.5 hectares',
-      arvores: 45
-    },
-    { 
-      id: 'B-07', 
-      nome: 'Lote Sul B-07',
-      coordinates: { lat: -3.1098, lng: -60.0126 },
-      radius: 300,
-      status: 'ativo',
-      area: '1.8 hectares',
-      arvores: 32
-    },
-    { 
-      id: 'C-05', 
-      nome: 'Lote Oeste C-05',
-      coordinates: { lat: -3.0958, lng: -60.0186 },
-      radius: 600,
-      status: 'concluido',
-      area: '3.2 hectares',
-      arvores: 67
-    },
-    { 
-      id: 'D-15', 
-      nome: 'Lote Leste D-15',
-      coordinates: { lat: -3.1058, lng: -59.9986 },
-      radius: 400,
-      status: 'ativo',
-      area: '2.1 hectares',
-      arvores: 38
-    }
-  ];
+  const [lotes, setLotes] = useState<Lote[]>([]);
+  const [loadingLotes, setLoadingLotes] = useState(true);
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
-    // Simular obtenção de localização
-    // Em um app real, você usaria expo-location
-    setTimeout(() => {
-      const simulatedLocation = {
-        lat: -3.1050,
-        lng: -60.0050
-      };
-      setCurrentLocation(simulatedLocation);
-      setLocationStatus('success');
-    }, 2000);
+    getCurrentLocation();
+    fetchLotes();
   }, []);
 
+  useEffect(() => {
+    // Centralizar mapa quando a localização for obtida
+    if (mapReady && currentLocation && mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: currentLocation.lat,
+        longitude: currentLocation.lng,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      }, 1000);
+    }
+  }, [currentLocation, mapReady]);
+
+  const getCurrentLocation = async () => {
+    try {
+      setLocationStatus('loading');
+
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocationStatus('error');
+        Alert.alert(
+          'Permissão Negada',
+          'É necessário permitir o acesso à localização para usar esta funcionalidade.'
+        );
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      setCurrentLocation({
+        lat: location.coords.latitude,
+        lng: location.coords.longitude,
+        accuracy: location.coords.accuracy || undefined,
+      });
+      setLocationStatus('success');
+    } catch (error) {
+      console.error('Erro ao obter localização:', error);
+      setLocationStatus('error');
+      Alert.alert(
+        'Erro de Localização',
+        'Não foi possível obter sua localização. Verifique se o GPS está ativado.'
+      );
+    }
+  };
+
+  const fetchLotes = async () => {
+    try {
+      setLoadingLotes(true);
+      const lotesSnapshot = await getDocs(collection(db, 'lotes'));
+      
+      const lotesData: Lote[] = [];
+      lotesSnapshot.forEach((doc) => {
+        const data = doc.data();
+        
+        if (data.latitude && data.longitude) {
+          const lat = parseFloat(data.latitude);
+          const lng = parseFloat(data.longitude);
+          
+          if (!isNaN(lat) && !isNaN(lng)) {
+            lotesData.push({
+              id: doc.id,
+              codigo: data.codigo || doc.id,
+              nome: data.nome || `Lote ${data.codigo}`,
+              coordinates: { lat, lng },
+              status: data.status || 'planejado',
+              area: data.area || 'Não informado',
+              arvores: data.arvores || 0,
+            });
+          }
+        }
+      });
+
+      setLotes(lotesData);
+    } catch (error) {
+      console.error('Erro ao buscar lotes:', error);
+      Alert.alert('Erro', 'Não foi possível carregar os lotes.');
+    } finally {
+      setLoadingLotes(false);
+    }
+  };
+
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    const R = 6371000; // Earth radius in meters
+    const R = 6371000; // Raio da Terra em metros
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -104,16 +154,15 @@ const GeolocalizacaoScreen: React.FC = () => {
       currentLocation.lat, currentLocation.lng,
       lote.coordinates.lat, lote.coordinates.lng
     );
-    return distance <= lote.radius;
+    return distance <= 20;
   };
 
   const getDistanceToLote = (lote: Lote) => {
     if (!currentLocation) return null;
-    const distance = calculateDistance(
+    return calculateDistance(
       currentLocation.lat, currentLocation.lng,
       lote.coordinates.lat, lote.coordinates.lng
     );
-    return distance;
   };
 
   const formatDistance = (distance: number) => {
@@ -125,50 +174,114 @@ const GeolocalizacaoScreen: React.FC = () => {
   };
 
   const handleLotePress = (lote: Lote) => {
+    setSelectedLote(lote.id);
+    
+    // Centralizar mapa no lote selecionado
+    if (mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: lote.coordinates.lat,
+        longitude: lote.coordinates.lng,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 500);
+    }
+  };
+
+  const handleMarkerPress = (lote: Lote) => {
     setSelectedLote(selectedLote === lote.id ? null : lote.id);
   };
 
-  const handleNavigateToLote = (lote: Lote) => {
-    Alert.alert(
-      'Navegar para Lote',
-      `Abrir navegação para ${lote.nome}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Navegar', onPress: () => {
-          // Aqui você abriria o app de navegação
-          Alert.alert('Navegação', `Navegando para ${lote.nome}`);
-        }}
-      ]
-    );
+  const handleNavigateToLote = async (lote: Lote) => {
+    const lat = lote.coordinates.lat;
+    const lng = lote.coordinates.lng;
+    
+    const url = Platform.select({
+      ios: `maps:0,0?q=${lat},${lng}`,
+      android: `geo:0,0?q=${lat},${lng}(${lote.nome})`,
+    });
+
+    if (url) {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Erro', 'Não foi possível abrir o aplicativo de mapas.');
+      }
+    }
+  };
+
+  const centerOnMyLocation = () => {
+    if (currentLocation && mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: currentLocation.lat,
+        longitude: currentLocation.lng,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      }, 500);
+    }
+  };
+
+  const fitAllMarkers = () => {
+    if (mapRef.current && lotes.length > 0) {
+      const coordinates = lotes.map(lote => ({
+        latitude: lote.coordinates.lat,
+        longitude: lote.coordinates.lng,
+      }));
+      
+      if (currentLocation) {
+        coordinates.push({
+          latitude: currentLocation.lat,
+          longitude: currentLocation.lng,
+        });
+      }
+
+      mapRef.current.fitToCoordinates(coordinates, {
+        edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+        animated: true,
+      });
+    }
   };
 
   const handleBack = () => {
     router.back();
   };
 
-  const getLocationStatusIcon = () => {
-    switch (locationStatus) {
-      case 'success': return 'location';
-      case 'error': return 'warning';
-      default: return 'hourglass';
+  const getMarkerColor = (status: string) => {
+    switch (status) {
+      case 'planejado': return '#f59e0b';
+      case 'ativo': return '#16a34a';
+      case 'inativo': return '#f00b0bff';
+      default: return '#6b7280';
     }
   };
 
-  const getLocationStatusColor = () => {
-    switch (locationStatus) {
-      case 'success': return '#16a34a';
-      case 'error': return '#dc2626';
-      default: return '#d97706';
+  const getStatusLabel = (status: string) => {
+    const labels: { [key: string]: string } = {
+      'planejado': 'Planejado',
+      'ativo': 'ativo',
+      'inativo': 'inativo',
+    };
+    return labels[status] || status;
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'planejado': return { bg: '#f3f4f6', text: '#f59e0b' };
+      case 'ativo': return { bg: '#fef3c7', text: '#16a34a' };
+      case 'inativo': return { bg: '#dcfce7', text: '#f00b0bff' };
+      default: return { bg: '#f3f4f6', text: '#6b7280' };
     }
   };
 
-  const getLocationStatusBg = () => {
-    switch (locationStatus) {
-      case 'success': return '#f0fdf4';
-      case 'error': return '#fef2f2';
-      default: return '#fffbeb';
-    }
-  };
+  const sortedLotes = [...lotes].sort((a, b) => {
+    const distA = getDistanceToLote(a);
+    const distB = getDistanceToLote(b);
+    if (distA === null) return 1;
+    if (distB === null) return -1;
+    return distA - distB;
+  });
+
+  const selectedLoteData = lotes.find(l => l.id === selectedLote);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -179,193 +292,236 @@ const GeolocalizacaoScreen: React.FC = () => {
             <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Geolocalização</Text>
+          <TouchableOpacity onPress={getCurrentLocation} style={styles.refreshButton}>
+            <Ionicons name="refresh" size={20} color="white" />
+          </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Location Status */}
-        <View style={styles.section}>
-          <View style={[styles.statusCard, { backgroundColor: getLocationStatusBg() }]}>
-            <View style={styles.statusContent}>
-              <Ionicons 
-                name={getLocationStatusIcon() as any} 
-                size={24} 
-                color={getLocationStatusColor()} 
-              />
-              <View style={styles.statusInfo}>
-                <Text style={[styles.statusTitle, { color: getLocationStatusColor() }]}>
-                  {locationStatus === 'success' ? 'Localização Obtida' :
-                   locationStatus === 'error' ? 'Erro na Localização' :
-                   'Obtendo Localização...'}
-                </Text>
-                <Text style={[styles.statusSubtitle, { color: getLocationStatusColor() }]}>
-                  {locationStatus === 'success' ? 'GPS ativo e funcionando' :
-                   locationStatus === 'error' ? 'Ative o GPS e tente novamente' :
-                   'Aguarde enquanto obtemos sua posição'}
-                </Text>
-              </View>
-            </View>
+      {/* Mapa */}
+      <View style={styles.mapSection}>
+        {loadingLotes || locationStatus === 'loading' ? (
+          <View style={styles.mapLoadingContainer}>
+            <ActivityIndicator size="large" color="#16a34a" />
+            <Text style={styles.mapLoadingText}>Carregando mapa...</Text>
           </View>
-        </View>
-
-        {/* Mapa com Lotes */}
-        <View style={styles.section}>
-          <View style={styles.mapCard}>
-            <Text style={styles.mapTitle}>Mapa dos Lotes</Text>
-            <View style={styles.mapContainer}>
-              <View style={styles.mapPlaceholder}>
-                <Ionicons name="map" size={48} color="#6b7280" />
-                <Text style={styles.mapPlaceholderText}>
-                  Mapa interativo com todos os lotes
-                </Text>
-                <Text style={styles.mapPlaceholderSubtext}>
-                  Toque nos lotes abaixo para ver detalhes
-                </Text>
-              </View>
-            </View>
+        ) : currentLocation ? (
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            mapType="standard"
+            initialRegion={{
+              latitude: currentLocation.lat,
+              longitude: currentLocation.lng,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            }}
+            showsUserLocation
+            showsMyLocationButton={false}
+            showsCompass
+            showsBuildings
+            onMapReady={() => setMapReady(true)}
+          >
+            {/* Marcadores dos Lotes */}
+            {lotes.map((lote) => (
+              <React.Fragment key={lote.id}>
+                <Marker
+                  coordinate={{
+                    latitude: lote.coordinates.lat,
+                    longitude: lote.coordinates.lng,
+                  }}
+                  title={lote.nome}
+                  description={`${lote.area} • ${lote.arvores} árvores`}
+                  pinColor={getMarkerColor(lote.status)}
+                  onPress={() => handleMarkerPress(lote)}
+                />
+                {/* Círculo de 20m ao redor do lote */}
+                <Circle
+                  center={{
+                    latitude: lote.coordinates.lat,
+                    longitude: lote.coordinates.lng,
+                  }}
+                  radius={20}
+                  strokeColor="#16a34a80"
+                  fillColor="#16a34a20"
+                  strokeWidth={2}
+                />
+              </React.Fragment>
+            ))}
+          </MapView>
+        ) : (
+          <View style={styles.mapErrorContainer}>
+            <Ionicons name="location-outline" size={48} color="#dc2626" />
+            <Text style={styles.mapErrorText}>Erro ao obter localização</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={getCurrentLocation}>
+              <Text style={styles.retryButtonText}>Tentar Novamente</Text>
+            </TouchableOpacity>
           </View>
-        </View>
+        )}
 
-        {/* Lista de Lotes */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Lotes Cadastrados</Text>
-          <View style={styles.lotesList}>
-            {lotes.map((lote) => {
-              const distance = getDistanceToLote(lote);
-              const isInside = isInsideLote(lote);
-              const isSelected = selectedLote === lote.id;
-
-              return (
-                <TouchableOpacity
-                  key={lote.id}
-                  style={[
-                    styles.loteCard,
-                    isSelected && styles.loteCardSelected,
-                    isInside && styles.loteCardInside
-                  ]}
-                  onPress={() => handleLotePress(lote)}
-                >
-                  <View style={styles.loteHeader}>
-                    <View style={styles.loteInfo}>
-                      <Text style={styles.loteNome}>{lote.nome}</Text>
-                      <Text style={styles.loteId}>ID: {lote.id}</Text>
-                    </View>
-                    <View style={styles.loteStatus}>
-                      <View style={[
-                        styles.statusBadge,
-                        lote.status === 'ativo' ? styles.statusBadgeActive : styles.statusBadgeComplete
-                      ]}>
-                        <Text style={[
-                          styles.statusBadgeText,
-                          lote.status === 'ativo' ? styles.statusBadgeTextActive : styles.statusBadgeTextComplete
-                        ]}>
-                          {lote.status === 'ativo' ? 'Ativo' : 'Concluído'}
-                        </Text>
-                      </View>
-                      {isInside && (
-                        <View style={styles.insideBadge}>
-                          <Ionicons name="location" size={12} color="#16a34a" />
-                          <Text style={styles.insideBadgeText}>Você está aqui</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-
-                  {distance && (
-                    <View style={styles.distanceContainer}>
-                      <Ionicons name="navigate" size={16} color="#6b7280" />
-                      <Text style={styles.distanceText}>
-                        {formatDistance(distance)} de distância
-                      </Text>
-                    </View>
-                  )}
-
-                  {isSelected && (
-                    <View style={styles.loteDetails}>
-                      <View style={styles.detailsGrid}>
-                        <View style={styles.detailItem}>
-                          <Text style={styles.detailLabel}>Área</Text>
-                          <Text style={styles.detailValue}>{lote.area}</Text>
-                        </View>
-                        <View style={styles.detailItem}>
-                          <Text style={styles.detailLabel}>Árvores</Text>
-                          <Text style={styles.detailValue}>{lote.arvores}</Text>
-                        </View>
-                      </View>
-
-                      <View style={styles.coordinatesContainer}>
-                        <Text style={styles.coordinatesTitle}>Coordenadas</Text>
-                        <View style={styles.coordinatesGrid}>
-                          <View style={styles.coordinateItem}>
-                            <Text style={styles.coordinateLabel}>Latitude:</Text>
-                            <Text style={styles.coordinateValue}>
-                              {lote.coordinates.lat.toFixed(6)}
-                            </Text>
-                          </View>
-                          <View style={styles.coordinateItem}>
-                            <Text style={styles.coordinateLabel}>Longitude:</Text>
-                            <Text style={styles.coordinateValue}>
-                              {lote.coordinates.lng.toFixed(6)}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-
-                      <View style={styles.loteActions}>
-                        <TouchableOpacity 
-                          style={styles.actionButton}
-                          onPress={() => handleNavigateToLote(lote)}
-                        >
-                          <Ionicons name="navigate" size={16} color="#16a34a" />
-                          <Text style={styles.actionButtonText}>Navegar</Text>
-                        </TouchableOpacity>
-                        
-                        {isInside && (
-                          <TouchableOpacity 
-                            style={styles.actionButtonPrimary}
-                            onPress={() => router.push('/coleta')}
-                          >
-                            <Ionicons name="qr-code" size={16} color="white" />
-                            <Text style={styles.actionButtonPrimaryText}>Coletar</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Coordenadas Atuais */}
+        {/* Botões flutuantes no mapa */}
         {currentLocation && (
-          <View style={styles.section}>
-            <View style={styles.currentLocationCard}>
-              <Text style={styles.currentLocationTitle}>Sua Localização Atual</Text>
-              <View style={styles.currentLocationGrid}>
-                <View style={styles.currentLocationItem}>
-                  <Text style={styles.currentLocationLabel}>Latitude:</Text>
-                  <Text style={styles.currentLocationValue}>
-                    {currentLocation.lat.toFixed(6)}
-                  </Text>
-                </View>
-                <View style={styles.currentLocationItem}>
-                  <Text style={styles.currentLocationLabel}>Longitude:</Text>
-                  <Text style={styles.currentLocationValue}>
-                    {currentLocation.lng.toFixed(6)}
-                  </Text>
-                </View>
-                <View style={styles.currentLocationItem}>
-                  <Text style={styles.currentLocationLabel}>Precisão:</Text>
-                  <Text style={[styles.currentLocationValue, { color: '#16a34a' }]}>
-                    Alta (GPS)
-                  </Text>
-                </View>
+          <View style={styles.mapControls}>
+            <TouchableOpacity style={styles.mapControlButton} onPress={centerOnMyLocation}>
+              <Ionicons name="locate" size={24} color="#16a34a" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.mapControlButton} onPress={fitAllMarkers}>
+              <Ionicons name="expand" size={24} color="#16a34a" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Info card do lote selecionado */}
+        {selectedLoteData && (
+          <View style={styles.selectedLoteCard}>
+            <View style={styles.selectedLoteHeader}>
+              <View style={styles.selectedLoteInfo}>
+                <Text style={styles.selectedLoteNome}>{selectedLoteData.nome}</Text>
+                <Text style={styles.selectedLoteId}>ID: {selectedLoteData.codigo}</Text>
               </View>
+              <TouchableOpacity onPress={() => setSelectedLote(null)}>
+                <Ionicons name="close-circle" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.selectedLoteDetails}>
+              <Text style={styles.selectedLoteDetail}>
+                <Ionicons name="resize" size={14} color="#6b7280" /> {selectedLoteData.area}
+              </Text>
+              <Text style={styles.selectedLoteDetail}>
+                <Ionicons name="leaf" size={14} color="#6b7280" /> {selectedLoteData.arvores} árvores
+              </Text>
+              {getDistanceToLote(selectedLoteData) && (
+                <Text style={styles.selectedLoteDetail}>
+                  <Ionicons name="navigate" size={14} color="#6b7280" />{' '}
+                  {formatDistance(getDistanceToLote(selectedLoteData)!)}
+                </Text>
+              )}
+            </View>
+            <View style={styles.selectedLoteActions}>
+              <TouchableOpacity
+                style={styles.selectedLoteActionButton}
+                onPress={() => handleNavigateToLote(selectedLoteData)}
+              >
+                <Ionicons name="navigate" size={16} color="#16a34a" />
+                <Text style={styles.selectedLoteActionText}>Navegar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.selectedLoteActionButton}
+                onPress={() => router.push(`/lote/${selectedLoteData.id}` as any)}
+              >
+                <Ionicons name="information-circle" size={16} color="#16a34a" />
+                <Text style={styles.selectedLoteActionText}>Detalhes</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
+      </View>
+
+      {/* Lista de Lotes */}
+      <ScrollView style={styles.lotesList} showsVerticalScrollIndicator={false}>
+        <View style={styles.lotesListHeader}>
+          <Text style={styles.lotesListTitle}>Lotes Próximos</Text>
+          <Text style={styles.lotesListCount}>{lotes.length} lote(s)</Text>
+        </View>
+
+        {lotes.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="map-outline" size={48} color="#9ca3af" />
+            <Text style={styles.emptyTitle}>Nenhum lote com localização</Text>
+            <Text style={styles.emptyText}>
+              Cadastre lotes com coordenadas GPS para visualizá-los aqui.
+            </Text>
+          </View>
+        ) : (
+          sortedLotes.map((lote) => {
+            const distance = getDistanceToLote(lote);
+            const isInside = isInsideLote(lote);
+            const isSelected = selectedLote === lote.id;
+            const statusColors = getStatusColor(lote.status);
+
+            return (
+              <TouchableOpacity
+                key={lote.id}
+                style={[
+                  styles.loteCard,
+                  isSelected && styles.loteCardSelected,
+                  isInside && styles.loteCardInside
+                ]}
+                onPress={() => handleLotePress(lote)}
+              >
+                <View style={styles.loteHeader}>
+                  <View style={styles.loteInfo}>
+                    <Text style={styles.loteNome}>{lote.nome}</Text>
+                    <Text style={styles.loteId}>ID: {lote.codigo}</Text>
+                  </View>
+                  <View style={styles.loteStatusContainer}>
+                    <View style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}>
+                      <Text style={[styles.statusBadgeText, { color: statusColors.text }]}>
+                        {getStatusLabel(lote.status)}
+                      </Text>
+                    </View>
+                    {isInside && (
+                      <View style={styles.insideBadge}>
+                        <Ionicons name="location" size={12} color="#16a34a" />
+                        <Text style={styles.insideBadgeText}>Você está aqui</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                {distance !== null && (
+                  <View style={styles.distanceContainer}>
+                    <Ionicons name="navigate" size={16} color="#6b7280" />
+                    <Text style={styles.distanceText}>{formatDistance(distance)} de distância</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })
+        )}
+
+        {/* Coordenadas Atuais */}
+        {currentLocation && (
+          <View style={styles.currentLocationCard}>
+            <View style={styles.currentLocationHeader}>
+              <Ionicons name="location" size={20} color="#16a34a" />
+              <Text style={styles.currentLocationTitle}>Sua Localização Atual</Text>
+            </View>
+            
+            <View style={styles.currentLocationGrid}>
+              <View style={styles.currentLocationItem}>
+                <Text style={styles.currentLocationLabel}>Latitude:</Text>
+                <Text style={styles.currentLocationValue}>
+                  {currentLocation.lat.toFixed(6)}
+                </Text>
+              </View>
+              <View style={styles.currentLocationItem}>
+                <Text style={styles.currentLocationLabel}>Longitude:</Text>
+                <Text style={styles.currentLocationValue}>
+                  {currentLocation.lng.toFixed(6)}
+                </Text>
+              </View>
+              {currentLocation.accuracy && (
+                <View style={styles.currentLocationItem}>
+                  <Text style={styles.currentLocationLabel}>Precisão GPS:</Text>
+                  <Text style={[styles.currentLocationValue, { color: '#16a34a' }]}>
+                    ±{Math.round(currentLocation.accuracy)}m
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Aviso sobre imprecisão */}
+            <View style={styles.precisionWarning}>
+              <Ionicons name="information-circle-outline" size={16} color="#f59e0b" />
+              <Text style={styles.precisionWarningText}>
+                A detecção "Você está aqui" considera uma margem de segurança de 20 metros para compensar possíveis imprecisões do GPS.
+              </Text>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.bottomSpacer} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -377,14 +533,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9fafb',
   },
   header: {
-    backgroundColor: '#16a34a', // Verde em vez de azul
+    backgroundColor: '#16a34a',
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'space-between',
   },
   backButton: {
     width: 32,
@@ -396,88 +552,183 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: 'white',
-  },
-  scrollView: {
     flex: 1,
+    marginLeft: 12,
   },
-  section: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 12,
-  },
-  statusCard: {
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  statusContent: {
-    flexDirection: 'row',
+  refreshButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
     alignItems: 'center',
+  },
+  mapSection: {
+    height: 300,
+    position: 'relative',
+  },
+  map: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  mapLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+  },
+  mapLoadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  mapErrorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fef2f2',
     gap: 12,
   },
-  statusInfo: {
-    flex: 1,
-  },
-  statusTitle: {
+  mapErrorText: {
     fontSize: 16,
-    fontWeight: '600',
+    color: '#dc2626',
+    fontWeight: '500',
   },
-  statusSubtitle: {
+  retryButton: {
+    backgroundColor: '#dc2626',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  retryButtonText: {
+    color: 'white',
     fontSize: 14,
-    marginTop: 2,
+    fontWeight: '500',
   },
-  mapCard: {
+  mapControls: {
+    position: 'absolute',
+    right: 16,
+    top: 16,
+    gap: 8,
+  },
+  mapControlButton: {
+    width: 48,
+    height: 48,
+    backgroundColor: 'white',
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  selectedLoteCard: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  mapTitle: {
+  selectedLoteHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  selectedLoteInfo: {
+    flex: 1,
+  },
+  selectedLoteNome: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  selectedLoteId: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  selectedLoteDetails: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 12,
+  },
+  selectedLoteDetail: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  selectedLoteActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  selectedLoteActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 8,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  selectedLoteActionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#16a34a',
+  },
+  lotesList: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  lotesListHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  lotesListTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1f2937',
-    marginBottom: 12,
   },
-  mapContainer: {
-    height: 200,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  mapPlaceholder: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  mapPlaceholderText: {
-    fontSize: 16,
-    fontWeight: '500',
+  lotesListCount: {
+    fontSize: 14,
     color: '#6b7280',
-    textAlign: 'center',
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  mapPlaceholderSubtext: {
+  emptyContainer: {
+    paddingVertical: 48,
+    alignItems: 'center',
+    gap: 12,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  emptyText: {
     fontSize: 14,
     color: '#9ca3af',
     textAlign: 'center',
-  },
-  lotesList: {
-    gap: 12,
+    paddingHorizontal: 32,
   },
   loteCard: {
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -510,7 +761,7 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 2,
   },
-  loteStatus: {
+  loteStatusContainer: {
     alignItems: 'flex-end',
     gap: 4,
   },
@@ -519,21 +770,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
   },
-  statusBadgeActive: {
-    backgroundColor: '#dcfce7',
-  },
-  statusBadgeComplete: {
-    backgroundColor: '#dbeafe',
-  },
   statusBadgeText: {
     fontSize: 12,
     fontWeight: '500',
-  },
-  statusBadgeTextActive: {
-    color: '#166534',
-  },
-  statusBadgeTextComplete: {
-    color: '#1e40af',
   },
   insideBadge: {
     flexDirection: 'row',
@@ -559,113 +798,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
   },
-  loteDetails: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
-    gap: 16,
-  },
-  detailsGrid: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  detailItem: {
-    flex: 1,
-  },
-  detailLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  detailValue: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1f2937',
-    marginTop: 2,
-  },
-  coordinatesContainer: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    padding: 12,
-  },
-  coordinatesTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1f2937',
-    marginBottom: 8,
-  },
-  coordinatesGrid: {
-    gap: 4,
-  },
-  coordinateItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  coordinateLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  coordinateValue: {
-    fontSize: 14,
-    fontFamily: 'monospace',
-    color: '#1f2937',
-  },
-  loteActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 8,
-    backgroundColor: '#f0fdf4',
-    borderRadius: 8,
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#16a34a',
-  },
-  actionButtonPrimary: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 8,
-    backgroundColor: '#16a34a',
-    borderRadius: 8,
-  },
-  actionButtonPrimaryText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: 'white',
-  },
   currentLocationCard: {
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
+    marginTop: 16,
+    marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
   },
+  currentLocationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
   currentLocationTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#1f2937',
-    marginBottom: 12,
   },
   currentLocationGrid: {
     gap: 8,
+    marginBottom: 12,
   },
   currentLocationItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingVertical: 4,
   },
   currentLocationLabel: {
     fontSize: 14,
@@ -675,6 +838,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'monospace',
     color: '#1f2937',
+    fontWeight: '500',
+  },
+  precisionWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#fffbeb',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#fef3c7',
+  },
+  precisionWarningText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#92400e',
+    lineHeight: 16,
+  },
+  bottomSpacer: {
+    height: 32,
   },
 });
 
