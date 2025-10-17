@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#1f2937',
     textAlign: 'center',
     marginTop: 4,
   },

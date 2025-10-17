@@ -72,14 +72,14 @@ const RecentReportsList: React.FC<RecentReportsListProps> = ({
                       style={styles.actionButtonSecondary}
                       onPress={() => onDownload(report)}
                     >
-                      <Ionicons name="download-outline" size={16} color="#6b7280" />
+                      <Ionicons name="download-outline" size={16} color='#1f2937' />
                       <Text style={styles.actionButtonSecondaryText}>Download</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.actionButtonIcon}
                       onPress={() => onShare(report)}
                     >
-                      <Ionicons name="share-outline" size={16} color="#6b7280" />
+                      <Ionicons name="share-outline" size={16} color='#1f2937'/>
                     </TouchableOpacity>
                   </>
                 ) : (
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   actionButtonSecondaryText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6b7280',
+    color: '#1f2937',
   },
   actionButtonIcon: {
     paddingHorizontal: 12,

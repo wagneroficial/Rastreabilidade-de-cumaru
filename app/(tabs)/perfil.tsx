@@ -99,7 +99,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   ];
 
   const stats: StatItem[] = [
-    { label: 'Lotes Cadastrados', value: '12' },
+    { label: 'Total Lotes', value: '12' },
     { label: 'Total Colhido', value: '1.2t' },
     { label: 'Dias Ativo', value: '45' }
   ];
@@ -218,11 +218,11 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
                 <Text style={styles.profileInfoLabel}>E-mail</Text>
                 <Text style={styles.profileInfoValue}>{userData.email}</Text>
               </View>
-              <View style={[styles.profileInfoItem, styles.profileInfoItemBorder]}>
+              <View style={[styles.profileInfoItem]}>
                 <Text style={styles.profileInfoLabel}>Telefone</Text>
                 <Text style={styles.profileInfoValue}>{userData.telefone}</Text>
               </View>
-              <View style={[styles.profileInfoItem, styles.profileInfoItemBorder]}>
+              <View style={[styles.profileInfoItem]}>
                 <Text style={styles.profileInfoLabel}>Tipo de Usuário</Text>
                 <Text style={styles.profileInfoValue}>
                   {userData.tipo === 'admin' ? 'Administrador' : 'Colaborador'}
@@ -289,7 +289,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#fdfdfd',
   },
   centerContent: {
     justifyContent: 'center',
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#16a34a',
-    paddingHorizontal: 16,
+    paddingHorizontal: 4,
     paddingVertical: 32,
     paddingTop: 48,
   },
@@ -332,6 +332,7 @@ const styles = StyleSheet.create({
   },
   userTypeContainer: {
     marginTop: 8,
+    marginBottom: 20,
   },
   userType: {
     fontSize: 12,
@@ -363,22 +364,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    elevation: 1,
   },
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: '#16a34a',
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#1f2937',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 6,
   },
   profileInfoContainer: {
     paddingHorizontal: 16,
@@ -388,11 +385,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   profileInfoTitle: {
     fontSize: 18,
@@ -409,11 +401,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
   },
-  profileInfoItemBorder: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#f3f4f6',
-  },
+
   profileInfoLabel: {
     fontSize: 14,
     color: '#6b7280',
@@ -434,11 +422,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+   borderBottomWidth: 1,
+   borderBottomColor: '#f3f4f6',
   },
   menuItem: {
     flexDirection: 'row',
@@ -470,11 +455,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   appIconContainer: {
     width: 48,

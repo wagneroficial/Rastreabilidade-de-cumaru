@@ -52,8 +52,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ isAdmin, onNotificationsPress }
           <Text style={styles.headerTitle}>Olá, {displayName}</Text>
           <Text style={styles.headerSubtitle}>
             {isAdmin
-              ? 'Resumo da sua produção de hoje'
-              : 'Resumo da sua produção de hoje'}
+              ? 'Como vai sua colheita hoje?'
+              : 'Como vai sua colheita hoje?'}
           </Text>
         </View>
 
@@ -81,12 +81,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: 'white',
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#bbf7d0',
     marginTop: 2,
   },
