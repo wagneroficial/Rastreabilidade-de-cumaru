@@ -380,6 +380,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#16a34a', // Verde em vez de azul
     paddingHorizontal: 16,
     paddingVertical: 16,
+    marginBottom: 20,
   },
   headerContent: {
     flexDirection: 'row',
@@ -436,11 +437,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    elevation: 1,
   },
   mapTitle: {
     fontSize: 18,
@@ -478,11 +475,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    elevation: 1,
     borderWidth: 2,
     borderColor: 'transparent',
   },
@@ -648,11 +641,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+
+    elevation: 1,
   },
   currentLocationTitle: {
     fontSize: 18,

@@ -75,7 +75,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: '#16a34a',
-        tabBarInactiveTintColor: '#9ca3af',
+        tabBarInactiveTintColor: '#797d85',
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
@@ -103,7 +103,7 @@ export default function TabLayout() {
         name="lotes"
         options={{
           title: 'Lotes',
-          tabBarIcon: ({ color }) => <Ionicons name="map-outline" size={20} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="logo-buffer" size={20} color={color} />,
         }}
       />
       
@@ -111,7 +111,7 @@ export default function TabLayout() {
         name="coleta"
         options={{
           title: 'Coleta',
-          tabBarIcon: ({ color }) => <Ionicons name="qr-code-outline" size={20} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="leaf" size={20} color={color} />,
         }}
       />
       
@@ -119,7 +119,7 @@ export default function TabLayout() {
         name="relatorios"
         options={{
           title: 'Relatorios',
-          tabBarIcon: ({ color }) => <Ionicons name="bar-chart-outline" size={20} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="bar-chart" size={20} color={color} />,
         }}
       />
       
@@ -127,7 +127,7 @@ export default function TabLayout() {
         name="perfil"
         options={{
           title: 'Perfil',
-          tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={20} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="person" size={20} color={color} />,
         }}
       />
     </Tabs>

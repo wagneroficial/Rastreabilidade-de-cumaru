@@ -54,7 +54,7 @@ const HomeScreen: React.FC = () => {
 
   const quickActions = [
     { title: 'Nova Coleta', icon: 'qr-code-outline' as const, route: 'coleta', color: '#10b981' },
-    { title: 'Ver Lotes', icon: 'map-outline' as const, route: 'lotes', color: '#3b82f6' },
+    { title: 'Ver Lotes', icon: 'map-outline' as const, route: '/components/ui/novo_lote', color: '#3b82f6' },
     { title: 'Relatórios', icon: 'bar-chart-outline' as const, route: 'relatorios', color: '#8b5cf6' },
     { title: 'Localização', icon: 'location-outline' as const, route: 'geolocalizacao', color: '#f97316' }
   ];

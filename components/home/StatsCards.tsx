@@ -16,6 +16,7 @@ interface StatsCardsProps {
 const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
   return (
     <View style={styles.container}>
+      <Text style={styles.sectionTitle}>Resumo da Produção</Text>
       <View style={styles.grid}>
         {stats.map((stat, index) => (
           <View key={index} style={styles.card}>
@@ -38,6 +39,12 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
+  },
+    sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 16,
   },
   grid: {
     flexDirection: 'row',

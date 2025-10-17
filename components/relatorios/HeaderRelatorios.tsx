@@ -27,7 +27,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#16a34a',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    paddingTop: 48,
   },
   headerContent: {
     flexDirection: 'row',
