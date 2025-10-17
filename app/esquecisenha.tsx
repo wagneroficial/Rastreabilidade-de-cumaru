@@ -31,30 +31,37 @@ export default function EsqueciSenha() {
         return "";
     };
 
-    const handleResetPassword = async () => {
-        const validationError = validateEmail(email);
-        if (validationError) {
-            setError(validationError);
-            return;
-        }
+const handleResetPassword = async () => {
+  const validationError = validateEmail(email);
+  if (validationError) {
+    setError(validationError);
+    return;
+  }
 
-        setIsLoading(true);
-        try {
-            await sendPasswordResetEmail(auth, email);
-            Alert.alert(
-                "E-mail enviado!",
-                "Um link de redefinição de senha foi enviado para seu e-mail.",
-                [{ text: "OK", onPress: () => router.back() }]
-            );
-        } catch (err: any) {
-            let msg = "Erro ao enviar e-mail.";
-            if (err.code === "auth/user-not-found") msg = "Nenhum usuário encontrado com esse e-mail.";
-            else if (err.code === "auth/invalid-email") msg = "E-mail inválido.";
-            Alert.alert("Erro", msg);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+  setIsLoading(true);
+  try {
+    // Tenta enviar e-mail de redefinição
+    await sendPasswordResetEmail(auth, email);
+    
+    Alert.alert(
+      "E-mail enviado!",
+      "Se esse e-mail estiver cadastrado, um link de redefinição de senha foi enviado.",
+      [{ text: "OK", onPress: () => router.back() }]
+    );
+  } catch (err: any) {
+    let msg = "Erro ao enviar e-mail.";
+    
+    // Mensagens específicas de Firebase
+    if (err.code === "auth/invalid-email") msg = "E-mail inválido.";
+    else if (err.code === "auth/too-many-requests")
+      msg = "Muitas tentativas. Tente novamente mais tarde.";
+
+    Alert.alert("Erro", msg);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
     return (
         <SafeAreaView style={styles.container}>
