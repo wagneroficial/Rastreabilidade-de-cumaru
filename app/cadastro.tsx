@@ -6,15 +6,14 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  SafeAreaView,
 } from "react-native";
-
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "./services/firebaseConfig.js";
@@ -30,6 +29,7 @@ interface FormData {
 
 export default function Cadastro() {
   const router = useRouter();
+
   const [formData, setFormData] = useState<FormData>({
     nome: "",
     email: "",
@@ -38,29 +38,23 @@ export default function Cadastro() {
     senha: "",
     confirmarSenha: "",
   });
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
 
+  const [errors, setErrors] = useState<Partial<FormData>>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // -------------------- HANDLERS -------------------- //
   const handleInputChange = (name: keyof FormData, value: string) => {
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    setFormData({ ...formData, [name]: value });
+    setErrors({ ...errors, [name]: "" });
   };
 
   const formatPhoneNumber = (text: string) => {
-    // Remove tudo que não é número
-    const numbers = text.replace(/\D/g, '');
-    
-    // Aplica a máscara (11) 99999-9999
-    if (numbers.length <= 2) {
-      return `(${numbers}`;
-    } else if (numbers.length <= 7) {
-      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
-    } else {
-      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
-    }
+    const numbers = text.replace(/\D/g, "");
+    if (numbers.length <= 2) return `(${numbers}`;
+    if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
   };
 
   const handlePhoneChange = (text: string) => {
@@ -68,261 +62,201 @@ export default function Cadastro() {
     handleInputChange("telefone", formatted);
   };
 
-  const validateForm = (): boolean => {
-    if (!formData.nome.trim()) {
-      Alert.alert("Erro", "Por favor, digite seu nome completo");
-      return false;
+  // -------------------- VALIDAÇÕES -------------------- //
+  const validateField = (name: keyof FormData, value: string) => {
+    let message = "";
+
+    switch (name) {
+      case "nome":
+        if (!value.trim()) message = "Por favor, informe seu nome completo.";
+        else if (value.trim().split(" ").length < 2)
+          message = "Digite nome e sobrenome.";
+        break;
+      case "email":
+        if (!value.trim()) message = "O e-mail é obrigatório.";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+          message = "Digite um e-mail válido.";
+        break;
+      case "telefone":
+        const phoneNumbers = value.replace(/\D/g, "");
+        if (!value.trim()) message = "Informe um número de telefone.";
+        else if (phoneNumbers.length < 10)
+          message = "Número incompleto.";
+        break;
+      case "propriedade":
+        if (!value.trim()) message = "Digite o nome da propriedade.";
+        break;
+      case "senha":
+        if (!value) message = "Crie uma senha.";
+        else if (value.length < 6) message = "Senha deve ter mínimo 6 caracteres.";
+        else if (!/[A-Z]/.test(value)) message = "Inclua pelo menos uma letra maiúscula.";
+        else if (!/[0-9]/.test(value)) message = "Inclua pelo menos um número.";
+        break;
+      case "confirmarSenha":
+        if (!value) message = "Confirme sua senha.";
+        else if (value !== formData.senha) message = "Senhas não coincidem.";
+        break;
     }
-    
-    if (formData.nome.trim().split(' ').length < 2) {
-      Alert.alert("Erro", "Por favor, digite seu nome completo (nome e sobrenome)");
-      return false;
-    }
-    
-    if (!formData.email.trim()) {
-      Alert.alert("Erro", "Por favor, digite seu e-mail");
-      return false;
-    }
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      Alert.alert("Erro", "Por favor, digite um e-mail válido");
-      return false;
-    }
-    
-    if (!formData.telefone.trim()) {
-      Alert.alert("Erro", "Por favor, digite seu telefone");
-      return false;
-    }
-    
-    // Verifica se o telefone tem pelo menos 10 dígitos
-    const phoneNumbers = formData.telefone.replace(/\D/g, '');
-    if (phoneNumbers.length < 10) {
-      Alert.alert("Erro", "Por favor, digite um telefone válido");
-      return false;
-    }
-    
-    if (!formData.propriedade.trim()) {
-      Alert.alert("Erro", "Por favor, digite o nome da propriedade");
-      return false;
-    }
-    
-    if (formData.senha.length < 6) {
-      Alert.alert("Erro", "A senha deve ter no mínimo 6 caracteres");
-      return false;
-    }
-    
-    if (formData.senha !== formData.confirmarSenha) {
-      Alert.alert("Erro", "As senhas não coincidem");
-      return false;
-    }
-    
-    return true;
+
+    setErrors((prev) => ({ ...prev, [name]: message }));
   };
 
+  const validateForm = () => {
+    let valid = true;
+    (Object.keys(formData) as (keyof FormData)[]).forEach((key) => {
+      validateField(key, formData[key]);
+      if (!formData[key]) valid = false;
+    });
+    return valid && Object.values(errors).every((msg) => !msg);
+  };
+
+  // -------------------- SUBMIT -------------------- //
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
-
     try {
-      // Cria usuário no Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         formData.email,
         formData.senha
       );
-
       const uid = userCredential.user.uid;
 
-      // Salva dados extras no Firestore (coleção 'usuarios')
       await setDoc(doc(db, "usuarios", uid), {
         nome: formData.nome,
         email: formData.email,
         telefone: formData.telefone,
         propriedade: formData.propriedade,
-        tipo: 'colaborador', // Por padrão, sempre colaborador
+        tipo: "colaborador",
         criadoEm: new Date(),
-        status: 'pendente', // Para aprovação do admin
+        status: "pendente",
       });
 
-      Alert.alert("Sucesso!", "Conta criada com sucesso! Aguarde aprovação do administrador.", [
-        {
-          text: "OK",
-          onPress: () => router.replace("/"),
-        },
-      ]);
+      Alert.alert(
+        "Solicitação enviada!",
+        "Sua conta foi criada com sucesso! Aguarde aprovação do administrador.",
+        [{ text: "OK", onPress: () => router.replace("/") }]
+      );
     } catch (error: any) {
-      console.error("Erro no cadastro:", error);
-      let mensagemErro = "Erro ao criar conta.";
-
-      if (error.code === "auth/email-already-in-use") {
-        mensagemErro = "Este e-mail já está em uso.";
-      } else if (error.code === "auth/invalid-email") {
-        mensagemErro = "E-mail inválido.";
-      } else if (error.code === "auth/weak-password") {
-        mensagemErro = "Senha muito fraca. Mínimo 6 caracteres.";
-      }
-
-      Alert.alert("Erro", mensagemErro);
+      let msg = "Erro ao criar conta.";
+      if (error.code === "auth/email-already-in-use") msg = "Este e-mail já está em uso.";
+      else if (error.code === "auth/invalid-email") msg = "E-mail inválido.";
+      else if (error.code === "auth/weak-password") msg = "Senha muito fraca.";
+      Alert.alert("Erro", msg);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const navigateToLogin = () => {
-    router.back();
-  };
+  const navigateToLogin = () => router.back();
+
+  // -------------------- RENDER -------------------- //
+  const renderTextInput = (
+    key: keyof FormData,
+    label: string,
+    icon: keyof typeof Ionicons.glyphMap,
+    placeholder: string,
+    keyboardType?: any,
+    onChangeText?: (text: string) => void
+  ) => (
+    <View style={styles.inputGroup} key={key}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={[styles.inputContainer, errors[key] && { borderColor: "#dc2626" }]}>
+        <Ionicons name={icon} size={20} color="#1F2937" style={styles.inputIcon} />
+        <TextInput
+          style={styles.textInput}
+          placeholder={placeholder}
+          value={formData[key]}
+          onChangeText={(v) => (onChangeText ? onChangeText(v) : handleInputChange(key, v))}
+          onBlur={() => validateField(key, formData[key])}
+          keyboardType={keyboardType || "default"}
+          autoCapitalize="words"
+        />
+      </View>
+      {errors[key] && (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={16} color="#dc2626" style={styles.errorIcon} />
+          <Text style={styles.errorText}>{errors[key]}</Text>
+        </View>
+      )}
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        style={styles.keyboardContainer} 
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        {/* Header Fixo */}
-        <View style={styles.header}>
-          <View style={styles.headerTop}>
-            <TouchableOpacity onPress={navigateToLogin} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color="white" />
-            </TouchableOpacity>
-            <View style={styles.headerInfo}>
-              <Text style={styles.headerTitle}>Criar Conta</Text>
-              <Text style={styles.headerSubtitle}>Cadastre-se no CumaruApp</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Área Scrollável */}
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={true}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.formContainer}>
+            {/* Header */}
+            <View style={styles.header}>
+              <TouchableOpacity onPress={navigateToLogin} style={styles.backButton}>
+                <Ionicons name="arrow-back" size={24} color="#1F2937" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Welcome */}
             <View style={styles.welcomeSection}>
-              <Text style={styles.welcomeTitle}>Bem-vindo!</Text>
+              <View style={styles.appIconContainer}>
+                <Ionicons name="leaf" size={24} color="#16a34a" />
+              </View>
+              <Text style={styles.welcomeTitle}>Solicite seu acesso</Text>
               <Text style={styles.welcomeSubtitle}>
-                Para usar o CumaruApp, você precisa de aprovação do administrador.
-                Preencha os dados abaixo para solicitar acesso.
+                Preencha os dados abaixo para solicitar acesso. Aguarde aprovação do administrador.
               </Text>
             </View>
 
-            {/* Nome */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nome Completo</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="person-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Digite seu nome completo"
-                  value={formData.nome}
-                  onChangeText={(value) => handleInputChange("nome", value)}
-                  autoCapitalize="words"
-                  autoCorrect={false}
-                />
-              </View>
-            </View>
+            {/* Campos */}
+            {renderTextInput("nome", "Nome Completo", "person-outline", "Seu nome completo")}
+            {renderTextInput("email", "E-mail", "mail-outline", "seu@email.com", "email-address")}
+            {renderTextInput("telefone", "Telefone", "call-outline", "(11) 99999-9999", "phone-pad", handlePhoneChange)}
+            {renderTextInput("propriedade", "Nome da Propriedade", "home-outline", "Ex: Fazenda São João")}
 
-            {/* Email */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>E-mail</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="seu@email.com"
-                  value={formData.email}
-                  onChangeText={(value) => handleInputChange("email", value)}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-            </View>
-
-            {/* Telefone */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Telefone</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="call-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="(11) 99999-9999"
-                  value={formData.telefone}
-                  onChangeText={handlePhoneChange}
-                  keyboardType="phone-pad"
-                  autoCorrect={false}
-                  maxLength={15}
-                />
-              </View>
-            </View>
-
-            {/* Propriedade */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nome da Propriedade</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="home-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Ex: Fazenda São João"
-                  value={formData.propriedade}
-                  onChangeText={(value) => handleInputChange("propriedade", value)}
-                  autoCapitalize="words"
-                  autoCorrect={false}
-                />
-              </View>
-            </View>
-
-            {/* Senha */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Senha</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Digite sua senha (mín. 6 caracteres)"
-                  value={formData.senha}
-                  onChangeText={(value) => handleInputChange("senha", value)}
-                  secureTextEntry={!showPassword}
-                />
-                <TouchableOpacity 
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeButton}
-                >
-                  <Ionicons 
-                    name={showPassword ? "eye-outline" : "eye-off-outline"} 
-                    size={20} 
-                    color="#9CA3AF" 
+            {/* Senhas */}
+            <View style={styles.row}>
+              <View style={[styles.inputGroup, styles.inputHalf]}>
+                <Text style={styles.label}>Senha</Text>
+                <View style={[styles.inputContainer, errors.senha && { borderColor: "#dc2626" }]}>
+                  <Ionicons name="lock-closed-outline" size={20} color="#1F2937" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Mín. 6 caracteres"
+                    value={formData.senha}
+                    onChangeText={(v) => handleInputChange("senha", v)}
+                    onBlur={() => validateField("senha", formData.senha)}
+                    secureTextEntry={!showPassword}
                   />
-                </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+                    <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color="#1F2937" />
+                  </TouchableOpacity>
+                </View>
+                {errors.senha && <Text style={styles.errorText}>{errors.senha}</Text>}
               </View>
-            </View>
 
-            {/* Confirmar Senha */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Confirmar Senha</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Confirme sua senha"
-                  value={formData.confirmarSenha}
-                  onChangeText={(value) => handleInputChange("confirmarSenha", value)}
-                  secureTextEntry={!showConfirmPassword}
-                />
-                <TouchableOpacity 
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={styles.eyeButton}
-                >
-                  <Ionicons 
-                    name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} 
-                    size={20} 
-                    color="#9CA3AF" 
+              <View style={[styles.inputGroup, styles.inputHalf]}>
+                <Text style={styles.label}>Confirmar Senha</Text>
+                <View style={[styles.inputContainer, errors.confirmarSenha && { borderColor: "#dc2626" }]}>
+                  <Ionicons name="lock-closed-outline" size={20} color="#1F2937" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Confirmar senha"
+                    value={formData.confirmarSenha}
+                    onChangeText={(v) => handleInputChange("confirmarSenha", v)}
+                    onBlur={() => validateField("confirmarSenha", formData.confirmarSenha)}
+                    secureTextEntry={!showConfirmPassword}
                   />
-                </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeButton}>
+                    <Ionicons name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} size={20} color="#1F2937" />
+                  </TouchableOpacity>
+                </View>
+                {errors.confirmarSenha && <Text style={styles.errorText}>{errors.confirmarSenha}</Text>}
               </View>
             </View>
 
@@ -338,11 +272,11 @@ export default function Cadastro() {
                   <Text style={styles.submitButtonText}>Criando conta...</Text>
                 </View>
               ) : (
-                <Text style={styles.submitButtonText}>Criar Conta</Text>
+                <Text style={styles.submitButtonText}>Solicitar Acesso</Text>
               )}
             </TouchableOpacity>
 
-            {/* Link Login */}
+            {/* Login */}
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Já tem uma conta? </Text>
               <TouchableOpacity onPress={navigateToLogin}>
@@ -357,140 +291,147 @@ export default function Cadastro() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#F9FDF7" 
+  container: {
+    flex: 1, backgroundColor: "#fefefe"
   },
   keyboardContainer: {
-    flex: 1,
+    flex: 1
   },
   header: {
-    backgroundColor: "#16A34A",
-    paddingTop: 20,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
-  },
-  headerTop: { 
     flexDirection: "row", 
-    alignItems: "center", 
-    gap: 16 
+    paddingTop: 20, 
+    paddingHorizontal: 16
   },
-  backButton: { 
+  backButton: {
     width: 32, 
     height: 32, 
-    alignItems: "center", 
-    justifyContent: "center" 
-  },
-  headerInfo: { 
-    flex: 1 
-  },
-  headerTitle: { 
-    fontSize: 20, 
-    fontWeight: "bold", 
-    color: "white" 
-  },
-  headerSubtitle: { 
-    fontSize: 14, 
-    color: "#BBF7D0", 
-    marginTop: 2 
+    justifyContent: "center", 
+    alignItems: "center"
   },
   scrollView: {
-    flex: 1,
+    flex: 1
   },
   scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 100, 
+    flexGrow: 1, 
+    paddingBottom: 100
   },
   formContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-    maxWidth: 400,
-    alignSelf: "center",
-    width: "100%",
+    paddingHorizontal: 16, 
+    maxWidth: 400, 
+    alignSelf: "center", 
+    width: "100%"
   },
-  welcomeSection: { 
+  welcomeSection: {
     alignItems: "center", 
-    marginBottom: 32 
+    marginBottom: 32
   },
-  welcomeTitle: { 
-    fontSize: 24, 
-    fontWeight: "bold", 
+  appIconContainer: {
+    width: 48, 
+    height: 48, 
+    backgroundColor: "#f0fdf4", 
+    borderRadius: 24, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    marginBottom: 12
+  },
+  welcomeTitle: {
+    fontSize: 26, 
+    fontWeight: "600", 
     color: "#1F2937", 
-    marginBottom: 8 
+    marginBottom: 8
   },
-  welcomeSubtitle: { 
-    fontSize: 16, 
-    color: "#6B7280", 
-    textAlign: "center" 
+  welcomeSubtitle: {
+    fontSize: 14, 
+    color: "#1F2937", textAlign: "center"
   },
-  inputGroup: { 
-    marginBottom: 20 
+  inputGroup: {
+    marginBottom: 20
   },
-  label: { 
+  row: {
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    gap: 12
+  },
+  inputHalf: {
+    flex: 1
+  },
+  label: {
     fontSize: 14, 
     fontWeight: "500", 
     color: "#374151", 
-    marginBottom: 8 
+    marginBottom: 8
   },
   inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 12,
-    backgroundColor: "white",
-    minHeight: 48,
-  },
-  inputIcon: { 
-    paddingLeft: 12, 
-    paddingRight: 8 
-  },
-  textInput: { 
-    flex: 1, 
-    paddingVertical: 12, 
-    paddingRight: 8,
-    fontSize: 14, 
-    color: "#1F2937" 
-  },
-  eyeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-  },
-  submitButton: {
-    backgroundColor: "#16A34A",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 24,
-    marginTop: 8,
-  },
-  submitButtonDisabled: { 
-    opacity: 0.5 
-  },
-  submitButtonText: { 
-    color: "white", 
-    fontSize: 16, 
-    fontWeight: "600" 
-  },
-  loadingContainer: { 
     flexDirection: "row", 
     alignItems: "center", 
-    gap: 8 
+    borderWidth: 1, 
+    borderColor: "#D1D5DB", 
+    borderRadius: 12, 
+    backgroundColor: "white", 
+    minHeight: 48
   },
-  loginContainer: { 
+  inputIcon: {
+    paddingLeft: 12, 
+    paddingRight: 8
+  },
+  textInput: {
+    flex: 1, 
+    paddingVertical: 12, 
+    paddingRight: 8, 
+    fontSize: 14, 
+    color: "#1F2937"
+  },
+  eyeButton: {
+    paddingHorizontal: 12, 
+    paddingVertical: 12
+  },
+  submitButton: {
+    backgroundColor: "#16A34A", 
+    paddingVertical: 16, 
+    borderRadius: 12, 
+    alignItems: "center", 
+    justifyContent: "center", 
+    marginBottom: 24, 
+    marginTop: 8
+  },
+  submitButtonDisabled: {
+    opacity: 0.5
+  },
+  submitButtonText: {
+    color: "white", 
+    fontSize: 16, 
+    fontWeight: "600"
+  },
+  loadingContainer: {
+    flexDirection: "row", 
+    alignItems: "center", 
+    gap: 8
+  },
+  loginContainer: {
     flexDirection: "row", 
     justifyContent: "center", 
-    alignItems: "center",
-    paddingBottom: 20,
+    alignItems: "center", 
+    paddingBottom: 20
   },
-  loginText: { 
+  loginText: {
     fontSize: 16, 
-    color: "#6B7280" 
+    color: "#6B7280"
   },
-  loginLink: { 
+  loginLink: {
     fontSize: 16, 
     color: "#16A34A", 
-    fontWeight: "600" 
+    fontWeight: "600"
+  },
+  errorContainer: {
+    flexDirection: "row", 
+    alignItems: "center", 
+    marginTop: 4
+  },
+  errorIcon: {
+    marginRight: 4
+  },
+  errorText: {
+    color: "#dc2626", 
+    fontSize: 12
   },
 });

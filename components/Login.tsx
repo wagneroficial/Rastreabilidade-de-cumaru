@@ -2,15 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 import { auth, db } from '@/app/services/firebaseConfig.js';
@@ -48,7 +48,7 @@ export default function Login() {
       const user = userCredential.user;
 
       const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
-      
+
       if (!userDoc.exists()) {
         await signOut(auth);
         Alert.alert(
@@ -96,7 +96,7 @@ export default function Login() {
 
     } catch (error: any) {
       let message = 'Erro ao fazer login.';
-      
+
       if (error.code === 'auth/user-not-found') {
         message = 'Usuário não encontrado. Verifique seu e-mail ou cadastre-se.';
       } else if (error.code === 'auth/wrong-password') {
@@ -110,7 +110,7 @@ export default function Login() {
       } else if (error.code === 'auth/invalid-credential') {
         message = 'Credenciais inválidas. Verifique seu e-mail e senha.';
       }
-      
+
       Alert.alert('Erro', message);
     } finally {
       setIsLoading(false);
@@ -118,7 +118,7 @@ export default function Login() {
   };
 
   const navigateToForgotPassword = () => {
-    router.push('/');
+    router.push('/esquecisenha');
   };
 
   const navigateToRegister = () => {
@@ -128,16 +128,11 @@ export default function Login() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Ionicons name="leaf-outline" size={32} color="white" />
-          </View>
-          <Text style={styles.appName}>CumaruApp</Text>
-          <Text style={styles.appSubtitle}>Gestão de Colheitas</Text>
-        </View>
-
         <View style={styles.formContainer}>
           <View style={styles.welcomeSection}>
+            <View style={styles.appIconContainer}>
+              <Ionicons name="leaf" size={24} color="#16a34a" />
+            </View>
             <Text style={styles.welcomeTitle}>Bem-vindo!</Text>
             <Text style={styles.welcomeSubtitle}>Entre na sua conta para continuar</Text>
           </View>
@@ -145,10 +140,10 @@ export default function Login() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>E-mail</Text>
             <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <Ionicons name="mail-outline" size={20} color='#1F2937' style={styles.inputIcon} />
               <TextInput
                 style={styles.textInput}
-                placeholder="seu@email.com"
+                placeholder="seu.email@email.com"
                 value={formData.email}
                 onChangeText={(value) => handleInputChange('email', value)}
                 keyboardType="email-address"
@@ -161,7 +156,7 @@ export default function Login() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Senha</Text>
             <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <Ionicons name="lock-closed-outline" size={20} color='#1F2937' style={styles.inputIcon} />
               <TextInput
                 style={[styles.textInput, styles.passwordInput]}
                 placeholder="Digite sua senha"
@@ -175,22 +170,15 @@ export default function Login() {
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
-                  color="#9CA3AF"
+                  color='#1F2937'
                 />
               </TouchableOpacity>
             </View>
           </View>
 
           <View style={styles.optionsRow}>
-            <TouchableOpacity style={styles.rememberContainer} onPress={() => setRememberMe(!rememberMe)}>
-              <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-                {rememberMe && <Ionicons name="checkmark" size={14} color="white" />}
-              </View>
-              <Text style={styles.rememberText}>Lembrar-me</Text>
-            </TouchableOpacity>
-
             <TouchableOpacity onPress={navigateToForgotPassword}>
-              <Text style={styles.forgotPasswordText}>Esqueci a senha</Text>
+              <Text style={styles.forgotPasswordText}>Esqueci minha senha</Text>
             </TouchableOpacity>
           </View>
 
@@ -222,38 +210,12 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FDF7' },
+  container: { flex: 1, backgroundColor: '#fefefe' },
   scrollContent: { flexGrow: 1 },
-  header: {
-    backgroundColor: '#16A34A',
-    paddingTop: 20,
-    paddingBottom: 32,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-  },
-  logoContainer: {
-    width: 64,
-    height: 64,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  appName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  appSubtitle: {
-    fontSize: 14,
-    color: '#BBF7D0',
-    marginTop: 4,
-  },
   formContainer: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingVertical: 32,
+    paddingVertical: 120,
     maxWidth: 400,
     alignSelf: 'center',
     width: '100%',
@@ -262,15 +224,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
+  appIconContainer: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   welcomeTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 26,
+    fontWeight: '600',
     color: '#1F2937',
     marginBottom: 8,
   },
   welcomeSubtitle: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: 14,
+    color: '#1F2937',
   },
   inputGroup: {
     marginBottom: 24,
@@ -278,7 +249,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: '#1F2937',
     marginBottom: 8,
   },
   inputContainer: {
@@ -310,9 +281,8 @@ const styles = StyleSheet.create({
   },
   optionsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
+    justifyContent: 'flex-end',
+    marginBottom: 32,
   },
   rememberContainer: {
     flexDirection: 'row',
@@ -322,7 +292,7 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: '#1F2937',
     borderRadius: 3,
     marginRight: 8,
     alignItems: 'center',
@@ -332,13 +302,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#16A34A',
     borderColor: '#16A34A',
   },
-  rememberText: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
   forgotPasswordText: {
     fontSize: 14,
-    color: '#16A34A',
+    color: '#1F2937',
     fontWeight: '500',
   },
   loginButton: {

@@ -85,7 +85,14 @@ export default function RootLayout() {
             headerShown: false,
             presentation: 'card'
           }} 
-/>
+        />
+                <Stack.Screen 
+          name="esquecisenha"
+          options={{ 
+            headerShown: false,
+            presentation: 'card'
+          }} 
+        />
       </Stack>
     </BiometricProvider>
   );
