@@ -23,7 +23,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
           <View key={index} style={styles.card}>
             <View style={styles.content}>
               <View style={styles.iconContainer}>
-                <Ionicons name={stat.icon} size={20} color="#2E8B57" />
+                <Ionicons name={stat.icon} size={20} color="#16a34a" />
               </View>
               <View style={styles.textContainer}>
                 <Text style={styles.value}>{stat.value}</Text>

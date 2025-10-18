@@ -129,7 +129,7 @@ const UsuariosScreen: React.FC = () => {
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar por nome, email ou propriedade..."
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor='#6b7280'
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -280,7 +280,7 @@ const UsuariosScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#fefefe',
   },
   header: {
     backgroundColor: '#16a34a',
@@ -315,16 +315,16 @@ const styles = StyleSheet.create({
   searchContainer: {
     padding: 16,
     backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#f9f9f9',
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 48,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     gap: 8,
   },
   searchInput: {
@@ -332,55 +332,61 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1f2937',
   },
-  tabsContainer: {
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  tabsContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  tab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f9fafb',
-    gap: 8,
-  },
-  tabActive: {
-    backgroundColor: '#dcfce7',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6b7280',
-  },
-  tabTextActive: {
-    color: '#166534',
-  },
-  tabBadge: {
-    backgroundColor: 'white',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    minWidth: 24,
-    alignItems: 'center',
-  },
-  tabBadgeActive: {
-    backgroundColor: '#16a34a',
-  },
-  tabBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6b7280',
-  },
-  tabBadgeTextActive: {
-    color: 'white',
-  },
+ tabsContainer: {
+  backgroundColor: 'white',
+  height: 56,
+  marginBottom: 8,
+},
+tabsContent: {
+  paddingHorizontal: 12,
+  alignItems: 'center',
+
+},
+tab: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingHorizontal: 14,
+  paddingVertical: 8,
+  marginHorizontal: 4,
+  borderRadius: 20,
+  backgroundColor: '#f3f4f6',
+  minWidth: 110,
+  height: 38,
+},
+tabActive: {
+  backgroundColor: '#dcfce7',
+  borderColor: '#dcfce7',
+  borderWidth: 1,
+},
+tabText: {
+  fontSize: 14,
+  fontWeight: '500',
+  color: '#6b7280',
+},
+tabTextActive: {
+  color: '#166534',
+},
+tabBadge: {
+  backgroundColor: '#e5e7eb',
+  paddingHorizontal: 6,
+  paddingVertical: 2,
+  borderRadius: 10,
+  marginLeft: 6,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+tabBadgeActive: {
+  backgroundColor: '#16a34a',
+},
+tabBadgeText: {
+  fontSize: 12,
+  fontWeight: '600',
+  color: '#374151',
+},
+tabBadgeTextActive: {
+  color: 'white',
+},
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -411,7 +417,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   listContainer: {
-    flex: 1,
+   
   },
   listContent: {
     padding: 16,
