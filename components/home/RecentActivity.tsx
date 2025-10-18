@@ -17,7 +17,7 @@ interface RecentActivityProps {
 const RecentActivity: React.FC<RecentActivityProps> = ({ activities, isAdmin }) => {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Atividade Recente</Text>
+      <Text style={styles.sectionTitle}>Últimas Atividades</Text>
       <View style={styles.container}>
         {activities.length > 0 ? (
           activities.map((activity, index) => (
@@ -48,13 +48,13 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities, isAdmin }) 
 const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 16,
-    marginTop: 24,
+    marginTop: 12,
   },
   sectionTitle: {
     fontSize: 18,
+    paddingBottom: 16,
     fontWeight: '600',
     color: '#1f2937',
-    marginBottom: 16,
   },
   container: {
     gap: 12,
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: 'white',
     borderRadius: 12,
-    paddingTop: 16,
+    paddingTop: 8,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#efefef',

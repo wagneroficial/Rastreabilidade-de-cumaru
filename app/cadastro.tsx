@@ -21,7 +21,6 @@ import { auth, db } from "./services/firebaseConfig.js";
 interface FormData {
   nome: string;
   email: string;
-  telefone: string;
   propriedade: string;
   senha: string;
   confirmarSenha: string;
@@ -33,7 +32,6 @@ export default function Cadastro() {
   const [formData, setFormData] = useState<FormData>({
     nome: "",
     email: "",
-    telefone: "",
     propriedade: "",
     senha: "",
     confirmarSenha: "",
@@ -50,18 +48,6 @@ export default function Cadastro() {
     setErrors({ ...errors, [name]: "" });
   };
 
-  const formatPhoneNumber = (text: string) => {
-    const numbers = text.replace(/\D/g, "");
-    if (numbers.length <= 2) return `(${numbers}`;
-    if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
-    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
-  };
-
-  const handlePhoneChange = (text: string) => {
-    const formatted = formatPhoneNumber(text);
-    handleInputChange("telefone", formatted);
-  };
-
   // -------------------- VALIDAÇÕES -------------------- //
   const validateField = (name: keyof FormData, value: string) => {
     let message = "";
@@ -76,12 +62,6 @@ export default function Cadastro() {
         if (!value.trim()) message = "O e-mail é obrigatório.";
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
           message = "Digite um e-mail válido.";
-        break;
-      case "telefone":
-        const phoneNumbers = value.replace(/\D/g, "");
-        if (!value.trim()) message = "Informe um número de telefone.";
-        else if (phoneNumbers.length < 10)
-          message = "Número incompleto.";
         break;
       case "propriedade":
         if (!value.trim()) message = "Digite o nome da propriedade.";
@@ -126,7 +106,6 @@ export default function Cadastro() {
       await setDoc(doc(db, "usuarios", uid), {
         nome: formData.nome,
         email: formData.email,
-        telefone: formData.telefone,
         propriedade: formData.propriedade,
         tipo: "colaborador",
         criadoEm: new Date(),
@@ -214,14 +193,13 @@ export default function Cadastro() {
             </View>
 
             {/* Campos */}
-            {renderTextInput("nome", "Nome Completo", "person-outline", "Seu nome completo")}
-            {renderTextInput("email", "E-mail", "mail-outline", "seu@email.com", "email-address")}
-            {renderTextInput("telefone", "Telefone", "call-outline", "(11) 99999-9999", "phone-pad", handlePhoneChange)}
+            {renderTextInput("nome", "Nome Completo", "person-outline", "John Smith")}
+            {renderTextInput("email", "E-mail", "mail-outline", "johnsmith@email.com", "email-address")}
             {renderTextInput("propriedade", "Nome da Propriedade", "home-outline", "Ex: Fazenda São João")}
 
             {/* Senhas */}
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, styles.inputHalf]}>
+            <View>
+              <View style={[styles.inputGroup]}>
                 <Text style={styles.label}>Senha</Text>
                 <View style={[styles.inputContainer, errors.senha && { borderColor: "#dc2626" }]}>
                   <Ionicons name="lock-closed-outline" size={20} color="#1F2937" style={styles.inputIcon} />
@@ -240,7 +218,7 @@ export default function Cadastro() {
                 {errors.senha && <Text style={styles.errorText}>{errors.senha}</Text>}
               </View>
 
-              <View style={[styles.inputGroup, styles.inputHalf]}>
+              <View style={[styles.inputGroup]}>
                 <Text style={styles.label}>Confirmar Senha</Text>
                 <View style={[styles.inputContainer, errors.confirmarSenha && { borderColor: "#dc2626" }]}>
                   <Ionicons name="lock-closed-outline" size={20} color="#1F2937" style={styles.inputIcon} />
@@ -346,14 +324,6 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: 20
-  },
-  row: {
-    flexDirection: "row", 
-    justifyContent: "space-between", 
-    gap: 12
-  },
-  inputHalf: {
-    flex: 1
   },
   label: {
     fontSize: 14, 

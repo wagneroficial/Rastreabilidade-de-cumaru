@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1 },
   formContainer: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 120,
     maxWidth: 400,
     alignSelf: 'center',
