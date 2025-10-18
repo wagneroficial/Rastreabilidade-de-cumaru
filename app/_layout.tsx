@@ -86,8 +86,15 @@ export default function RootLayout() {
             presentation: 'card'
           }} 
         />
-                <Stack.Screen 
+        <Stack.Screen 
           name="esquecisenha"
+          options={{ 
+            headerShown: false,
+            presentation: 'card'
+          }} 
+        />
+        <Stack.Screen 
+          name="relatorio"
           options={{ 
             headerShown: false,
             presentation: 'card'

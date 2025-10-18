@@ -114,14 +114,14 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="leaf" size={20} color={color} />,
         }}
       />
-      
-      <Tabs.Screen
-        name="relatorios"
+       <Tabs.Screen
+        name="usuarios"
         options={{
-          title: 'Relatorios',
-          tabBarIcon: ({ color }) => <Ionicons name="bar-chart" size={20} color={color} />,
+          title: 'suarios',
+          tabBarIcon: ({ color }) => <Ionicons name="person" size={20} color={color} />,
         }}
       />
+     
       
       <Tabs.Screen
         name="perfil"
@@ -130,13 +130,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="person" size={20} color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="usuarios"
-        options={{
-          title: 'Usuarios',
-          tabBarIcon: ({ color }) => <Ionicons name="person" size={20} color={color} />,
-        }}
-      />
+     
     </Tabs>
   );
 }

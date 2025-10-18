@@ -5,6 +5,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface QuickAction {
   title: string;
+  subtitle: string;
   icon: keyof typeof Ionicons.glyphMap;
   route: string;
   color: string;
@@ -30,6 +31,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions, onActionPress }) =
               <Ionicons name={action.icon} size={24} color="white" />
             </View>
             <Text style={styles.title}>{action.title}</Text>
+            <Text style={styles.subtitle}>{action.subtitle}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -40,7 +42,6 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions, onActionPress }) =
 const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 16,
-    marginTop: 24,
   },
   sectionTitle: {
     fontSize: 18,
@@ -58,13 +59,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     width: '48%',
-    alignItems: 'center',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 1,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor:'#2e8b561c',
   },
   icon: {
     width: 48,
@@ -72,13 +69,18 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   title: {
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+    subtitle: {
+    fontSize: 12,
     fontWeight: '500',
     color: '#1f2937',
-    textAlign: 'center',
   },
 });
 

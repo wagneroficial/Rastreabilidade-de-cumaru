@@ -90,7 +90,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   }, [loading, isAuthenticated]);
 
   const menuItems: MenuItem[] = [
-    { title: 'Relatórios', icon: 'document-text-outline', route: '/(tabs)/relatorios'},
+    { title: 'Relatórios', icon: 'document-text-outline', route: '/relatorios'},
     { title: 'Notificações', icon: 'notifications-outline', route: '/notificacoes' },
     { title: 'Quem Somos', icon: 'information-circle-outline', route: '/quem-somos' },
     { title: 'Segurança', icon: 'shield-checkmark-outline', route: '/seguranca' },
