@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Linking,
   Platform,
   SafeAreaView,
@@ -34,122 +35,164 @@ const GeolocalizacaoScreen: React.FC = () => {
   const [selectedLote, setSelectedLote] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
-  // Hooks customizados
+  // Hooks customizados com tratamento de erro
   const { currentLocation, locationStatus, getCurrentLocation, calculateDistance } = useGeolocation();
   const { lotes, loading: loadingLotes } = useLotesGeolocation();
 
   // Centralizar mapa quando localização for obtida
   useEffect(() => {
-    if (mapReady && currentLocation && mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: currentLocation.lat,
-        longitude: currentLocation.lng,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      }, 1000);
+    try {
+      if (mapReady && currentLocation && mapRef.current) {
+        mapRef.current.animateToRegion({
+          latitude: currentLocation.lat,
+          longitude: currentLocation.lng,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Erro ao centralizar mapa:', error);
     }
   }, [currentLocation, mapReady]);
 
   // Calcular distância até o lote
   const getDistanceToLote = (lote: typeof lotes[0]) => {
-    if (!currentLocation) return null;
-    return calculateDistance(
-      currentLocation.lat,
-      currentLocation.lng,
-      lote.coordinates.lat,
-      lote.coordinates.lng
-    );
+    try {
+      if (!currentLocation) return null;
+      return calculateDistance(
+        currentLocation.lat,
+        currentLocation.lng,
+        lote.coordinates.lat,
+        lote.coordinates.lng
+      );
+    } catch (error) {
+      console.error('Erro ao calcular distância:', error);
+      return null;
+    }
   };
 
   // Verificar se está dentro do raio do lote (20m)
   const isInsideLote = (lote: typeof lotes[0]) => {
-    if (!currentLocation) return false;
-    return isWithinRadius(
-      currentLocation.lat,
-      currentLocation.lng,
-      lote.coordinates.lat,
-      lote.coordinates.lng,
-      20
-    );
+    try {
+      if (!currentLocation) return false;
+      return isWithinRadius(
+        currentLocation.lat,
+        currentLocation.lng,
+        lote.coordinates.lat,
+        lote.coordinates.lng,
+        20
+      );
+    } catch (error) {
+      console.error('Erro ao verificar proximidade:', error);
+      return false;
+    }
   };
 
   // Handler para selecionar lote da lista
   const handleLotePress = (lote: typeof lotes[0]) => {
-    setSelectedLote(lote.id);
-    
-    if (mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: lote.coordinates.lat,
-        longitude: lote.coordinates.lng,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      }, 500);
+    try {
+      setSelectedLote(lote.id);
+      
+      if (mapRef.current) {
+        mapRef.current.animateToRegion({
+          latitude: lote.coordinates.lat,
+          longitude: lote.coordinates.lng,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Erro ao selecionar lote:', error);
     }
   };
 
   // Handler para clicar no marcador do mapa
   const handleMarkerPress = (lote: typeof lotes[0]) => {
-    setSelectedLote(selectedLote === lote.id ? null : lote.id);
+    try {
+      setSelectedLote(selectedLote === lote.id ? null : lote.id);
+    } catch (error) {
+      console.error('Erro ao pressionar marcador:', error);
+    }
   };
 
   // Abrir navegação externa (Google Maps/Apple Maps)
   const handleNavigateToLote = async (lote: typeof lotes[0]) => {
-    const { lat, lng } = lote.coordinates;
-    
-    const url = Platform.select({
-      ios: `maps:0,0?q=${lat},${lng}`,
-      android: `geo:0,0?q=${lat},${lng}(${lote.nome})`,
-    });
+    try {
+      const { lat, lng } = lote.coordinates;
+      
+      const url = Platform.select({
+        ios: `maps:0,0?q=${lat},${lng}`,
+        android: `geo:0,0?q=${lat},${lng}(${lote.nome})`,
+      });
 
-    if (url) {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
+      if (url) {
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          await Linking.openURL(url);
+        } else {
+          Alert.alert('Erro', 'Não foi possível abrir o mapa.');
+        }
       }
+    } catch (error) {
+      console.error('Erro ao abrir navegação:', error);
+      Alert.alert('Erro', 'Não foi possível abrir o mapa.');
     }
   };
 
   // Centralizar mapa na localização do usuário
   const centerOnMyLocation = () => {
-    if (currentLocation && mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: currentLocation.lat,
-        longitude: currentLocation.lng,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      }, 500);
+    try {
+      if (currentLocation && mapRef.current) {
+        mapRef.current.animateToRegion({
+          latitude: currentLocation.lat,
+          longitude: currentLocation.lng,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Erro ao centralizar no usuário:', error);
     }
   };
 
   // Ajustar mapa para mostrar todos os marcadores
   const fitAllMarkers = () => {
-    if (mapRef.current && lotes.length > 0) {
-      const coordinates = lotes.map(lote => ({
-        latitude: lote.coordinates.lat,
-        longitude: lote.coordinates.lng,
-      }));
-      
-      if (currentLocation) {
-        coordinates.push({
-          latitude: currentLocation.lat,
-          longitude: currentLocation.lng,
+    try {
+      if (mapRef.current && lotes.length > 0) {
+        const coordinates = lotes.map(lote => ({
+          latitude: lote.coordinates.lat,
+          longitude: lote.coordinates.lng,
+        }));
+        
+        if (currentLocation) {
+          coordinates.push({
+            latitude: currentLocation.lat,
+            longitude: currentLocation.lng,
+          });
+        }
+
+        mapRef.current.fitToCoordinates(coordinates, {
+          edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+          animated: true,
         });
       }
-
-      mapRef.current.fitToCoordinates(coordinates, {
-        edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
-        animated: true,
-      });
+    } catch (error) {
+      console.error('Erro ao ajustar marcadores:', error);
     }
   };
 
   // Ordenar lotes por distância (mais perto primeiro)
   const sortedLotes = [...lotes].sort((a, b) => {
-    const distA = getDistanceToLote(a);
-    const distB = getDistanceToLote(b);
-    if (distA === null) return 1;
-    if (distB === null) return -1;
-    return distA - distB;
+    try {
+      const distA = getDistanceToLote(a);
+      const distB = getDistanceToLote(b);
+      if (distA === null) return 1;
+      if (distB === null) return -1;
+      return distA - distB;
+    } catch (error) {
+      console.error('Erro ao ordenar lotes:', error);
+      return 0;
+    }
   });
 
   const selectedLoteData = lotes.find(l => l.id === selectedLote);

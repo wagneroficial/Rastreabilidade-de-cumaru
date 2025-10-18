@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Este app precisa da sua localização para mostrar lotes próximos e permitir navegação.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Este app precisa da sua localização para mostrar lotes próximos."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +23,10 @@
       "edgeToEdgeEnabled": true,
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.FOREGROUND_SERVICE"
       ],
       "package": "com.wagnersam.rastrearCumaru"
     },
@@ -43,6 +50,14 @@
         "expo-camera",
         {
           "cameraPermission": "Permitir que $(PRODUCT_NAME) acesse sua câmera para escanear QR codes das árvores."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permite que o app acesse sua localização para mostrar lotes próximos e permitir navegação.",
+          "locationWhenInUsePermission": "Permite que o app acesse sua localização para mostrar lotes próximos.",
+          "locationAlwaysPermission": "Permite que o app acesse sua localização para mostrar lotes próximos."
         }
       ]
     ],

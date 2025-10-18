@@ -130,6 +130,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="person" size={20} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="usuarios"
+        options={{
+          title: 'Usuarios',
+          tabBarIcon: ({ color }) => <Ionicons name="person" size={20} color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

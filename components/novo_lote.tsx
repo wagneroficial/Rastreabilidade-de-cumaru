@@ -125,14 +125,11 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
       });
 
       const { latitude, longitude } = location.coords;
-      
-
 
       const locationData: LocationData = {
         latitude,
         longitude,
         accuracy: location.coords.accuracy || undefined,
- 
       };
 
       setCurrentLocation(locationData);
@@ -204,7 +201,6 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
     });
 
     if (url) {
-      // Em um app real, você usaria Linking.openURL(url)
       Alert.alert(
         'Abrir no Mapa',
         `Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}\n\nEm um app real, isso abriria o aplicativo de mapas do dispositivo.`,
@@ -374,7 +370,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
   };
 
   const nextStep = () => {
-    if (currentStep < 3) {
+    if (currentStep < 2) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -392,13 +388,11 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
 
   const isStep1Valid = formData.nome.trim() !== '' && formData.area.trim() !== '';
   const isStep2Valid = true; // Localização é opcional
-  const isStep3Valid = formData.dataInicio !== null && formData.dataFim !== null;
 
   const canProceed = () => {
     switch (currentStep) {
       case 1: return isStep1Valid;
       case 2: return isStep2Valid;
-      case 3: return isStep3Valid;
       default: return false;
     }
   };
@@ -436,8 +430,6 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
             </View>
           </View>
         </View>
-
-
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Step 1: Informações Básicas */}
@@ -485,6 +477,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
                 />
                 <Text style={styles.charCount}>{formData.descricao.length}/500 caracteres</Text>
               </View>
+
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Número de Árvores (estimado)</Text>
                 <TextInput
@@ -533,6 +526,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
                   </Text>
                 )}
               </View>
+
               {/* Resumo */}
               <View style={styles.summaryCard}>
                 <Text style={styles.summaryTitle}>Resumo do Lote</Text>
@@ -559,15 +553,6 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
                     </Text>
                   </View>
                   <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Período:</Text>
-                    <Text style={styles.summaryValue}>
-                      {formData.dataInicio && formData.dataFim 
-                        ? `${formatDate(formData.dataInicio)} - ${formatDate(formData.dataFim)}`
-                        : 'Não informado'
-                      }
-                    </Text>
-                  </View>
-                  <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Responsáveis:</Text>
                     <Text style={styles.summaryValue}>
                       {formData.colaboradoresResponsaveis.length > 0 
@@ -577,7 +562,8 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
                     </Text>
                   </View>
                 </View>
-              </View>2          </View>
+              </View>
+            </View>
           )}
 
           {/* Step 2: Localização com GPS funcional */}
@@ -729,7 +715,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
               </TouchableOpacity>
             )}
             
-            {currentStep < 2? (
+            {currentStep < 2 ? (
               <TouchableOpacity
                 onPress={nextStep}
                 disabled={!canProceed()}
@@ -1040,7 +1026,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: '500',
   },
-  // Estilos específicos para geolocalização
   locationSection: {
     backgroundColor: '#f8fafc',
     borderRadius: 12,
