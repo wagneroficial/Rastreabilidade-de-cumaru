@@ -5,6 +5,7 @@ export interface Lote {
   codigo: string;
   nome: string;
   area: string;
+  tipoSolo?: string;
   arvores: number;
   colhidoTotal: string;
   status: string;
