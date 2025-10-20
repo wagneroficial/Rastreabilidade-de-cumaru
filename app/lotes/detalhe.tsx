@@ -1,4 +1,6 @@
 // screens/DetalheLoteScreen.tsx
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import {
   SafeAreaView,
@@ -9,11 +11,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
 
 // Componentes
-import CadastrarArvoreModal from '@/components/nova_arvore';
 import ArvoresTab from '@/components/detalhe-lote/ArvoresTab';
 import ColaboradoresModal from '@/components/detalhe-lote/ColaboradoresModal';
 import HistoricoTab from '@/components/detalhe-lote/HistoricoTab';
@@ -21,12 +20,16 @@ import LoteHeader from '@/components/detalhe-lote/LoteHeader';
 import StatusModal from '@/components/detalhe-lote/StatusModal';
 import TabNavigator from '@/components/detalhe-lote/TabNavigator';
 import VisaoGeralTab from '@/components/detalhe-lote/VisaoGeralTab';
+import CadastrarArvoreModal from '@/components/nova_arvore';
+
+// 🆕 Import do seu modal de novo/editar lote
+import NovoLoteModal from '@/components/novo_lote';
 
 // Hook customizado
 import { useLoteData } from '@/hooks/useLoteData';
 
 // Tipos
-import { ArvoreFormData, TabType } from '@/types/lote.types';
+import { ArvoreFormData, Lote, TabType } from '@/types/lote.types';
 
 export default function DetalheLoteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -35,6 +38,10 @@ export default function DetalheLoteScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [colaboradoresModalVisible, setColaboradoresModalVisible] = useState(false);
+
+  // 🆕 controle do modal de edição
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [loteParaEditar, setLoteParaEditar] = useState<Lote | null>(null);
 
   const {
     loteData,
@@ -53,10 +60,8 @@ export default function DetalheLoteScreen() {
 
   const handleBack = () => router.back();
 
-  // ✅ Corrigido para garantir tipagem e fechamento do modal
   const handleNovaArvore = (arvoreData: ArvoreFormData) => {
     console.log('Nova árvore cadastrada:', arvoreData.idArvore);
-    // Aqui você pode chamar a função de envio para o backend se houver
     setModalVisible(false);
   };
 
@@ -74,6 +79,18 @@ export default function DetalheLoteScreen() {
     getColaboradorNome(id)
   );
 
+  // 🆕 Abre o modal de edição
+  const handleEditLote = (lote: Lote) => {
+    setLoteParaEditar(lote);
+    setEditModalVisible(true);
+  };
+
+  // 🆕 Fecha e recarrega dados após edição
+  const handleEditSuccess = () => {
+    setEditModalVisible(false);
+  };
+
+  // 🧹 Conteúdo das abas
   const renderTabContent = () => {
     if (!loteData) return null;
 
@@ -84,13 +101,18 @@ export default function DetalheLoteScreen() {
             loteData={loteData}
             isAdmin={isAdmin}
             colaboradoresNomes={colaboradoresNomes}
+            historico={historicoData}
             onManageColaboradores={isAdmin ? handleOpenColaboradoresModal : undefined}
+            onEditLote={handleEditLote} // ✅ agora o botão Editar chama o modal
           />
         );
+
       case 'arvores':
         return <ArvoresTab arvores={arvores} isAdmin={isAdmin} />;
+
       case 'historico':
         return <HistoricoTab historico={historicoData} />;
+
       default:
         return null;
     }
@@ -157,6 +179,7 @@ export default function DetalheLoteScreen() {
       {/* Modais */}
       {isAdmin && (
         <>
+          {/* Modal de nova árvore */}
           <CadastrarArvoreModal
             visible={modalVisible}
             onClose={() => setModalVisible(false)}
@@ -164,6 +187,7 @@ export default function DetalheLoteScreen() {
             loteId={loteData.id}
           />
 
+          {/* Modal de status */}
           <StatusModal
             visible={statusModalVisible}
             currentStatus={loteData.status}
@@ -175,6 +199,7 @@ export default function DetalheLoteScreen() {
             }}
           />
 
+          {/* Modal de colaboradores */}
           <ColaboradoresModal
             visible={colaboradoresModalVisible}
             colaboradores={colaboradores}
@@ -182,6 +207,14 @@ export default function DetalheLoteScreen() {
             isLoading={loadingColaboradores}
             onClose={() => setColaboradoresModalVisible(false)}
             onToggle={handleColaboradorToggle}
+          />
+
+          {/* 🆕 Modal de edição do lote */}
+          <NovoLoteModal
+            visible={editModalVisible}
+            onClose={() => setEditModalVisible(false)}
+            onSuccess={handleEditSuccess}
+            loteParaEditar={loteParaEditar}
           />
         </>
       )}

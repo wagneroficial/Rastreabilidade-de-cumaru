@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { addDoc, collection } from 'firebase/firestore';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Modal,
   SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -15,7 +15,6 @@ import {
   View,
 } from 'react-native';
 import { db } from '../app/services/firebaseConfig.js';
-import { Background } from '@react-navigation/elements';
 
 interface CadastrarArvoreModalProps {
   visible: boolean;
@@ -31,6 +30,12 @@ interface ArvoreFormData {
   latitude: string;
   longitude: string;
   notasAdicionais: string;
+}
+
+interface LocationData {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
 }
 
 const estadosSaude = [
@@ -57,7 +62,101 @@ export default function CadastrarArvoreModal({
     notasAdicionais: '',
   });
 
+  // Estados para geolocalização
+  const [loadingLocation, setLoadingLocation] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
+  const [locationPermission, setLocationPermission] = useState<Location.PermissionStatus | null>(null);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Verificar permissões ao abrir o modal
+  useEffect(() => {
+    if (visible) {
+      checkLocationPermission();
+    }
+  }, [visible]);
+
+  const checkLocationPermission = async () => {
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      setLocationPermission(status);
+      
+      if (status !== Location.PermissionStatus.GRANTED) {
+        const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
+        setLocationPermission(newStatus);
+      }
+    } catch (error) {
+      console.error('Erro ao verificar permissões de localização:', error);
+    }
+  };
+
+  const handleUseCurrentLocation = async () => {
+    setLoadingLocation(true);
+    try {
+      // Verificar permissões
+      if (locationPermission !== Location.PermissionStatus.GRANTED) {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== Location.PermissionStatus.GRANTED) {
+          Alert.alert(
+            'Permissão Negada',
+            'É necessário permitir o acesso à localização para usar esta funcionalidade.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+        setLocationPermission(status);
+      }
+
+      // Obter localização atual
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+        timeInterval: 5000,
+        distanceInterval: 1,
+      });
+
+      const { latitude, longitude } = location.coords;
+
+      const locationData: LocationData = {
+        latitude,
+        longitude,
+        accuracy: location.coords.accuracy || undefined,
+      };
+
+      setCurrentLocation(locationData);
+      
+      // Atualizar os campos do formulário
+      updateFormData('latitude', latitude.toFixed(6));
+      updateFormData('longitude', longitude.toFixed(6));
+
+      Alert.alert(
+        'Localização Obtida',
+        `Coordenadas: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+        [{ text: 'OK' }]
+      );
+
+    } catch (error) {
+      console.error('Erro ao obter localização:', error);
+      Alert.alert(
+        'Erro de Localização',
+        'Não foi possível obter sua localização. Verifique se o GPS está ativado e tente novamente.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setLoadingLocation(false);
+    }
+  };
+
+  const validateCoordinates = (lat: string, lng: string): boolean => {
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+    
+    return !isNaN(latitude) && 
+           !isNaN(longitude) && 
+           latitude >= -90 && 
+           latitude <= 90 && 
+           longitude >= -180 && 
+           longitude <= 180;
+  };
 
   const validateCurrentStep = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -77,7 +176,10 @@ export default function CadastrarArvoreModal({
     if (currentStep === 2) {
       if (!formData.latitude.trim()) {
         newErrors.latitude = 'Latitude é obrigatória';
+      } else if (!validateCoordinates(formData.latitude, formData.longitude)) {
+        newErrors.latitude = 'Coordenadas inválidas';
       }
+      
       if (!formData.longitude.trim()) {
         newErrors.longitude = 'Longitude é obrigatória';
       }
@@ -152,6 +254,7 @@ export default function CadastrarArvoreModal({
     });
     setErrors({});
     setShowEstadoModal(false);
+    setCurrentLocation(null);
     onClose();
   };
 
@@ -160,11 +263,6 @@ export default function CadastrarArvoreModal({
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
-  };
-
-  const handleUseCurrentLocation = () => {
-    updateFormData('latitude', '-3.123456');
-    updateFormData('longitude', '-60.123456');
   };
 
   const getEstadoLabel = (value: string) => {
@@ -240,11 +338,63 @@ export default function CadastrarArvoreModal({
         </View>
       </View>
 
-      <Text style={styles.stepSubtitle}> Adicione a Localização da Árvore</Text>
+      <Text style={styles.stepSubtitle}>Adicione a Localização da Árvore</Text>
 
       <View style={styles.form}>
+        {/* Seção de localização atual */}
+        <View style={styles.locationSection}>
+          <View style={styles.locationHeader}>
+            <View style={styles.locationHeaderLeft}>
+              <Ionicons name="location" size={20} color="#16a34a" />
+              <Text style={styles.locationTitle}>Localização GPS</Text>
+            </View>
+            {locationPermission === Location.PermissionStatus.GRANTED && (
+              <View style={styles.permissionBadge}>
+                <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
+                <Text style={styles.permissionText}>Permitido</Text>
+              </View>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.locationButton, loadingLocation && styles.disabledButton]}
+            onPress={handleUseCurrentLocation}
+            disabled={loadingLocation}
+          >
+            {loadingLocation ? (
+              <>
+                <ActivityIndicator size="small" color="white" />
+                <Text style={styles.locationButtonText}>Obtendo localização...</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="navigate" size={20} color="white" />
+                <Text style={styles.locationButtonText}>Usar Localização Atual</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {currentLocation && (
+            <View style={styles.currentLocationInfo}>
+              <View style={styles.locationInfoHeader}>
+                <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
+                <Text style={styles.locationInfoTitle}>Localização Obtida</Text>
+              </View>
+              <Text style={styles.coordinatesText}>
+                {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}
+              </Text>
+              {currentLocation.accuracy && (
+                <Text style={styles.accuracyText}>
+                  Precisão: ±{Math.round(currentLocation.accuracy)}m
+                </Text>
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* Entrada manual de coordenadas */}
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Localização GPS*</Text>
+          <Text style={styles.inputLabel}>Coordenadas Manuais (opcional)*</Text>
           <View style={styles.coordinatesRow}>
             <View style={styles.coordinateItem}>
               <Text style={styles.coordinateLabel}>Latitude</Text>
@@ -270,14 +420,49 @@ export default function CadastrarArvoreModal({
             </View>
           </View>
           {(errors.latitude || errors.longitude) && (
-            <Text style={styles.errorText}>Coordenadas são obrigatórias</Text>
+            <Text style={styles.errorText}>
+              {errors.latitude || errors.longitude || 'Coordenadas são obrigatórias'}
+            </Text>
           )}
-          
-          <TouchableOpacity style={styles.locationButton} onPress={handleUseCurrentLocation}>
-            <Ionicons name="navigate" size={16} color="white" />
-            <Text style={styles.locationButtonText}>Obter GPS</Text>
-          </TouchableOpacity>
+
+          {/* Validação visual */}
+          {formData.latitude && formData.longitude && (
+            <View style={styles.coordinatesValidation}>
+              {validateCoordinates(formData.latitude, formData.longitude) ? (
+                <View style={styles.validationSuccess}>
+                  <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
+                  <Text style={styles.validationText}>
+                    Coordenadas válidas
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.validationError}>
+                  <Ionicons name="alert-circle" size={16} color="#dc2626" />
+                  <Text style={styles.validationTextError}>Coordenadas inválidas</Text>
+                </View>
+              )}
+            </View>
+          )}
         </View>
+
+        {/* Aviso sobre permissões */}
+        {locationPermission !== Location.PermissionStatus.GRANTED && (
+          <View style={styles.permissionWarning}>
+            <Ionicons name="information-circle" size={20} color="#f59e0b" />
+            <View style={styles.permissionWarningContent}>
+              <Text style={styles.permissionWarningTitle}>Permissão de Localização</Text>
+              <Text style={styles.permissionWarningText}>
+                Para usar a localização automática, é necessário permitir o acesso à localização do dispositivo.
+              </Text>
+              <TouchableOpacity 
+                style={styles.permissionButton}
+                onPress={checkLocationPermission}
+              >
+                <Text style={styles.permissionButtonText}>Solicitar Permissão</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Notas adicionais</Text>
@@ -319,7 +504,6 @@ export default function CadastrarArvoreModal({
       onRequestClose={handleClose}
     >
       <SafeAreaView style={styles.container}>
-        
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="white" />
@@ -404,7 +588,6 @@ export default function CadastrarArvoreModal({
   );
 }
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -463,7 +646,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 32,
     textAlign: 'center',
-    fontWeight: 600,
+    fontWeight: '600',
   },
   form: {
     width: '100%',
@@ -514,6 +697,71 @@ const styles = StyleSheet.create({
     right: 12,
     top: 12,
   },
+  locationSection: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  locationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  locationHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  locationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  permissionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  permissionText: {
+    fontSize: 12,
+    color: '#166534',
+    fontWeight: '500',
+  },
+  currentLocationInfo: {
+    backgroundColor: '#dcfce7',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+  },
+  locationInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  locationInfoTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#166534',
+  },
+  coordinatesText: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    color: '#15803d',
+    marginBottom: 4,
+  },
+  accuracyText: {
+    fontSize: 11,
+    color: '#16a34a',
+  },
   coordinatesRow: {
     flexDirection: 'row',
     gap: 12,
@@ -530,6 +778,73 @@ const styles = StyleSheet.create({
   coordinateInput: {
     fontSize: 14,
   },
+  coordinatesValidation: {
+    marginTop: 8,
+  },
+  validationSuccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  validationError: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#fecaca',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  validationText: {
+    fontSize: 12,
+    color: '#166534',
+    fontWeight: '500',
+  },
+  validationTextError: {
+    fontSize: 12,
+    color: '#dc2626',
+    fontWeight: '500',
+  },
+  permissionWarning: {
+    backgroundColor: '#fef3c7',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#fbbf24',
+  },
+  permissionWarningContent: {
+    flex: 1,
+  },
+  permissionWarningTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400e',
+    marginBottom: 4,
+  },
+  permissionWarningText: {
+    fontSize: 12,
+    color: '#a16207',
+    marginBottom: 8,
+  },
+  permissionButton: {
+    backgroundColor: '#f59e0b',
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+  },
+  permissionButtonText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: 'white',
+  },
   locationButton: {
     backgroundColor: '#16a34a',
     flexDirection: 'row',
@@ -538,7 +853,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     gap: 8,
-    marginTop: 8,
   },
   locationButtonText: {
     color: 'white',
@@ -601,7 +915,6 @@ const styles = StyleSheet.create({
   disabledButton: {
     backgroundColor: '#9CA3AF',
   },
-  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

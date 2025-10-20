@@ -1,7 +1,8 @@
+import { Lote } from '@/types/lote.types';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
-import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -20,7 +21,8 @@ import { db } from '../app/services/firebaseConfig.js';
 interface NovoLoteModalProps {
   visible: boolean;
   onClose: () => void;
-  onSuccess: (loteData: any) => void;
+  onSuccess: (loteData?: any) => void;
+  loteParaEditar?: Lote | null;
 }
 
 interface FormData {
@@ -51,7 +53,14 @@ interface LocationData {
   address?: string;
 }
 
-const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSuccess }) => {
+const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ 
+  visible, 
+  onClose, 
+  onSuccess,
+  loteParaEditar = null
+}) => {
+  const isEditMode = !!loteParaEditar;
+
   const [formData, setFormData] = useState<FormData>({
     nome: '',
     area: '',
@@ -73,12 +82,27 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
   const [loadingColaboradores, setLoadingColaboradores] = useState(false);
   
-  // Estados para geolocalização
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [locationPermission, setLocationPermission] = useState<Location.PermissionStatus | null>(null);
 
-  // Verificar permissões de localização ao abrir o modal
+  useEffect(() => {
+    if (visible && isEditMode && loteParaEditar) {
+      setFormData({
+        nome: loteParaEditar.nome || '',
+        area: loteParaEditar.area || '',
+        descricao: loteParaEditar.observacoes || '',
+        latitude: loteParaEditar.latitude || '',
+        longitude: loteParaEditar.longitude || '',
+        dataInicio: loteParaEditar.dataInicio ? new Date(loteParaEditar.dataInicio) : null,
+        dataFim: loteParaEditar.dataFim ? new Date(loteParaEditar.dataFim) : null,
+        tipoSolo: loteParaEditar.tipoSolo || '',
+        numeroArvores: loteParaEditar.arvores?.toString() || '',
+        colaboradoresResponsaveis: loteParaEditar.colaboradoresResponsaveis || []
+      });
+    }
+  }, [visible, isEditMode, loteParaEditar]);
+
   useEffect(() => {
     if (visible) {
       checkLocationPermission();
@@ -103,7 +127,6 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
   const getCurrentLocation = async () => {
     setLoadingLocation(true);
     try {
-      // Verificar se as permissões estão concedidas
       if (locationPermission !== Location.PermissionStatus.GRANTED) {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== Location.PermissionStatus.GRANTED) {
@@ -117,7 +140,6 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
         setLocationPermission(status);
       }
 
-      // Obter localização atual
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
         timeInterval: 5000,
@@ -134,7 +156,6 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
 
       setCurrentLocation(locationData);
       
-      // Atualizar os campos do formulário
       handleInputChange('latitude', latitude.toFixed(6));
       handleInputChange('longitude', longitude.toFixed(6));
 
@@ -194,7 +215,6 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
     const lat = parseFloat(formData.latitude);
     const lng = parseFloat(formData.longitude);
     
-    // URL para abrir no Google Maps
     const url = Platform.select({
       ios: `maps:${lat},${lng}`,
       android: `geo:${lat},${lng}?q=${lat},${lng}`,
@@ -209,7 +229,6 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
     }
   };
 
-  // Buscar colaboradores do Firestore
   const fetchColaboradores = async () => {
     setLoadingColaboradores(true);
     try {
@@ -302,28 +321,30 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
   };
 
   const handleSubmit = async () => {
+    if (!formData.nome.trim()) {
+      Alert.alert('Erro', 'O nome do lote é obrigatório');
+      return;
+    }
+
+    if (!formData.area.trim()) {
+      Alert.alert('Erro', 'A área do lote é obrigatória');
+      return;
+    }
+
+    if ((formData.latitude || formData.longitude) && 
+        !validateCoordinates(formData.latitude, formData.longitude)) {
+      Alert.alert('Erro', 'Coordenadas inválidas. Verifique os valores inseridos.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // Validar coordenadas se fornecidas
-      if ((formData.latitude || formData.longitude) && 
-          !validateCoordinates(formData.latitude, formData.longitude)) {
-        Alert.alert('Erro', 'Coordenadas inválidas. Verifique os valores inseridos.');
-        return;
-      }
-
-      const newLote = {
-        codigo: `L-${Date.now().toString().slice(-3)}`,
+      const loteData = {
         nome: formData.nome,
         area: formData.area,
         arvores: parseInt(formData.numeroArvores) || 0,
-        colhidoTotal: '0 kg',
-        status: 'planejado' as const,
-        dataInicio: formData.dataInicio ? formData.dataInicio.toISOString().split('T')[0] : '',
-        dataFim: formData.dataFim ? formData.dataFim.toISOString().split('T')[0] : '',
-        ultimaColeta: 'Não iniciado',
         observacoes: formData.descricao,
-        // Campos de geolocalização
         latitude: formData.latitude || '',
         longitude: formData.longitude || '',
         localizacao: currentLocation?.address || 
@@ -331,18 +352,43 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
                      formatCoordinates(formData.latitude, formData.longitude) : ''),
         tipoSolo: formData.tipoSolo,
         colaboradoresResponsaveis: formData.colaboradoresResponsaveis,
-        createdAt: new Date().toISOString(),
       };
 
-      await addDoc(collection(db, 'lotes'), newLote);
+      if (isEditMode && loteParaEditar) {
+        await updateDoc(doc(db, 'lotes', loteParaEditar.id), {
+          ...loteData,
+          updatedAt: new Date().toISOString(),
+        });
 
-      onSuccess(newLote);
-      resetForm();
-      onClose();
+        Alert.alert('Sucesso!', 'Lote atualizado com sucesso!', [
+          { text: 'OK', onPress: () => {
+            onSuccess();
+            handleClose();
+          }}
+        ]);
+      } else {
+        const newLote = {
+          ...loteData,
+          codigo: `L-${Date.now().toString().slice(-3)}`,
+          colhidoTotal: '0 kg',
+          status: 'planejado' as const,
+          dataInicio: formData.dataInicio ? formData.dataInicio.toISOString().split('T')[0] : '',
+          dataFim: formData.dataFim ? formData.dataFim.toISOString().split('T')[0] : '',
+          ultimaColeta: 'Não iniciado',
+          createdAt: new Date().toISOString(),
+        };
 
-      Alert.alert('Sucesso!', 'Lote criado com sucesso!', [{ text: 'OK' }]);
+        await addDoc(collection(db, 'lotes'), newLote);
+
+        Alert.alert('Sucesso!', 'Lote criado com sucesso!', [
+          { text: 'OK', onPress: () => {
+            onSuccess(newLote);
+            handleClose();
+          }}
+        ]);
+      }
     } catch (error) {
-      Alert.alert('Erro', 'Falha ao criar o lote. Tente novamente.');
+      Alert.alert('Erro', `Falha ao ${isEditMode ? 'atualizar' : 'criar'} o lote. Tente novamente.`);
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -387,7 +433,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
   };
 
   const isStep1Valid = formData.nome.trim() !== '' && formData.area.trim() !== '';
-  const isStep2Valid = true; // Localização é opcional
+  const isStep2Valid = true;
 
   const canProceed = () => {
     switch (currentStep) {
@@ -425,15 +471,19 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
               <Ionicons name="arrow-back" size={24} color="white" />
             </TouchableOpacity>
             <View style={styles.headerInfo}>
-              <Text style={styles.headerTitle}>Cadastrar Novo Lote</Text>
-              <Text style={styles.headerSubtitle}>Etapa {currentStep} de 2</Text>
+              <Text style={styles.headerTitle}>
+                {isEditMode ? 'Editar Lote' : 'Cadastrar Novo Lote'}
+              </Text>
+              <Text style={styles.headerSubtitle}>
+                {isEditMode ? loteParaEditar?.codigo : `Etapa ${currentStep} de 2`}
+              </Text>
             </View>
           </View>
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Step 1: Informações Básicas */}
-          {currentStep === 1 && (
+          {(currentStep === 1 || isEditMode) && (
             <View style={styles.stepContainer}>
               <View style={styles.stepHeader}>
                 <Text style={styles.stepTitle}>Informações Básicas</Text>
@@ -527,47 +577,48 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
                 )}
               </View>
 
-              {/* Resumo */}
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryTitle}>Resumo do Lote</Text>
-                <View style={styles.summaryContent}>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Nome:</Text>
-                    <Text style={styles.summaryValue}>{formData.nome || 'Não informado'}</Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Área:</Text>
-                    <Text style={styles.summaryValue}>{formData.area ? `${formData.area} ha` : 'Não informado'}</Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Árvores:</Text>
-                    <Text style={styles.summaryValue}>{formData.numeroArvores || 'Não informado'}</Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Localização:</Text>
-                    <Text style={styles.summaryValue}>
-                      {formData.latitude && formData.longitude 
-                        ? formatCoordinates(formData.latitude, formData.longitude)
-                        : 'Não informado'
-                      }
-                    </Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Responsáveis:</Text>
-                    <Text style={styles.summaryValue}>
-                      {formData.colaboradoresResponsaveis.length > 0 
-                        ? `${formData.colaboradoresResponsaveis.length} colaborador(es)`
-                        : 'Nenhum'
-                      }
-                    </Text>
+              {!isEditMode && (
+                <View style={styles.summaryCard}>
+                  <Text style={styles.summaryTitle}>Resumo do Lote</Text>
+                  <View style={styles.summaryContent}>
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Nome:</Text>
+                      <Text style={styles.summaryValue}>{formData.nome || 'Não informado'}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Área:</Text>
+                      <Text style={styles.summaryValue}>{formData.area ? `${formData.area} ha` : 'Não informado'}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Árvores:</Text>
+                      <Text style={styles.summaryValue}>{formData.numeroArvores || 'Não informado'}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Localização:</Text>
+                      <Text style={styles.summaryValue}>
+                        {formData.latitude && formData.longitude 
+                          ? formatCoordinates(formData.latitude, formData.longitude)
+                          : 'Não informado'
+                        }
+                      </Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Responsáveis:</Text>
+                      <Text style={styles.summaryValue}>
+                        {formData.colaboradoresResponsaveis.length > 0 
+                          ? `${formData.colaboradoresResponsaveis.length} colaborador(es)`
+                          : 'Nenhum'
+                        }
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
+              )}
             </View>
           )}
 
           {/* Step 2: Localização com GPS funcional */}
-          {currentStep === 2 && (
+          {(currentStep === 2 || isEditMode) && (
             <View style={styles.stepContainer}>
               <View style={styles.stepHeader}>
                 <Text style={styles.stepTitle}>Localização</Text>
@@ -708,14 +759,14 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
         {/* Navigation Buttons */}
         <View style={styles.navigationContainer}>
           <View style={styles.navigationButtons}>
-            {currentStep > 1 && (
+            {currentStep > 1 && !isEditMode && (
               <TouchableOpacity onPress={prevStep} style={styles.backButton}>
                 <Ionicons name="arrow-back" size={16} color="#374151" />
                 <Text style={styles.backButtonText}>Voltar</Text>
               </TouchableOpacity>
             )}
             
-            {currentStep < 2 ? (
+            {currentStep < 2 && !isEditMode ? (
               <TouchableOpacity
                 onPress={nextStep}
                 disabled={!canProceed()}
@@ -735,12 +786,16 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ visible, onClose, onSucce
                 {isLoading ? (
                   <>
                     <ActivityIndicator size="small" color="white" />
-                    <Text style={styles.submitButtonText}>Criando...</Text>
+                    <Text style={styles.submitButtonText}>
+                      {isEditMode ? 'Salvando...' : 'Criando...'}
+                    </Text>
                   </>
                 ) : (
                   <>
-                    <Ionicons name="save" size={16} color="white" />
-                    <Text style={styles.submitButtonText}>Criar Lote</Text>
+                   <Ionicons name="save" size={16} color="white" />
+                    <Text style={styles.submitButtonText}>
+                      {isEditMode ? 'Salvar Alterações' : 'Criar Lote'}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -933,43 +988,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginTop: 2,
   },
-  progressContainer: {
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  progressBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressStep: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#e5e7eb',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  progressStepActive: {
-    backgroundColor: '#16a34a',
-  },
-  progressStepText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6b7280',
-  },
-  progressStepTextActive: {
-    color: 'white',
-  },
-  progressLine: {
-    flex: 1,
-    height: 4,
-    backgroundColor: '#e5e7eb',
-    marginHorizontal: 8,
-  },
-  progressLineActive: {
-    backgroundColor: '#16a34a',
-  },
   content: {
     flex: 1,
   },
@@ -1100,11 +1118,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'monospace',
     color: '#15803d',
-    marginBottom: 4,
-  },
-  addressText: {
-    fontSize: 12,
-    color: '#166534',
     marginBottom: 4,
   },
   accuracyText: {
@@ -1318,25 +1331,6 @@ const styles = StyleSheet.create({
     color: '#1f2937',
   },
   selectButtonPlaceholder: {
-    color: '#9ca3af',
-  },
-  dateButton: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  dateButtonText: {
-    fontSize: 16,
-    color: '#1f2937',
-    flex: 1,
-  },
-  dateButtonPlaceholder: {
     color: '#9ca3af',
   },
   modalOverlay: {
