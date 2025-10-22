@@ -2,8 +2,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -157,7 +157,7 @@ export default function DetalheLoteScreen() {
             onPress={() => setModalVisible(true)}
           >
             <Ionicons name="add-outline" size={20} color="white" />
-            <Text style={styles.cadastrarButtonText}>Cadastrar Nova Árvore</Text>
+            <Text style={styles.cadastrarButtonText}>Nova Árvore</Text>
           </TouchableOpacity>
         </View>
       )}

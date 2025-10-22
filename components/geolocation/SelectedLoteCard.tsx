@@ -48,18 +48,18 @@ export const SelectedLoteCard: React.FC<SelectedLoteCardProps> = ({
       </View>
       <View style={styles.selectedLoteActions}>
         <TouchableOpacity
-          style={styles.selectedLoteActionButton}
+          style={styles.navigateButton}
           onPress={onNavigate}
         >
-          <Ionicons name="navigate" size={16} color="#16a34a" />
-          <Text style={styles.selectedLoteActionText}>Navegar</Text>
+          <Ionicons name="navigate" size={16} color="#fff" />
+          <Text style={styles.navigateText}>Navegar</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.selectedLoteActionButton}
+          style={styles.detailsButton}
           onPress={onDetails}
         >
-          <Ionicons name="information-circle" size={16} color="#16a34a" />
-          <Text style={styles.selectedLoteActionText}>Detalhes</Text>
+          <Ionicons name="information-circle" size={16} color='#16a34a' />
+          <Text style={styles.detailsText}>Detalhes</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -113,19 +113,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  selectedLoteActionButton: {
+  navigateButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
     paddingVertical: 8,
-    backgroundColor: '#f0fdf4',
+    backgroundColor: '#16a34a',
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#bbf7d0',
   },
-  selectedLoteActionText: {
+   navigateText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'white',
+  },
+    detailsButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 8,
+    backgroundColor: '#e8fbef',
+    borderWidth: 1,
+    borderColor: '#16a34a',
+    borderRadius: 8,
+  },
+    detailsText: {
     fontSize: 14,
     fontWeight: '500',
     color: '#16a34a',

@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { db } from '../app/services/firebaseConfig.js';
 
+
 interface NovoLoteModalProps {
   visible: boolean;
   onClose: () => void;
@@ -458,7 +459,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
 
   return (
     <Modal
-      visible={visible}
+      visible={visible}  
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
@@ -472,7 +473,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
             </TouchableOpacity>
             <View style={styles.headerInfo}>
               <Text style={styles.headerTitle}>
-                {isEditMode ? 'Editar Lote' : 'Cadastrar Novo Lote'}
+                {isEditMode ? 'Editar Lote' : 'Novo Lote'}
               </Text>
               <Text style={styles.headerSubtitle}>
                 {isEditMode ? loteParaEditar?.codigo : `Etapa ${currentStep} de 2`}
@@ -487,7 +488,6 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
             <View style={styles.stepContainer}>
               <View style={styles.stepHeader}>
                 <Text style={styles.stepTitle}>Informações Básicas</Text>
-                <Text style={styles.stepSubtitle}>Defina o nome e características do lote</Text>
               </View>
 
               <View style={styles.inputGroup}>
@@ -622,7 +622,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
             <View style={styles.stepContainer}>
               <View style={styles.stepHeader}>
                 <Text style={styles.stepTitle}>Localização</Text>
-                <Text style={styles.stepSubtitle}>Defina a localização GPS do lote</Text>
+                <Text style={styles.stepSubtitle}>Defina a localização do lote</Text>
               </View>
 
               {/* Seção de localização atual */}
@@ -792,9 +792,9 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
                   </>
                 ) : (
                   <>
-                   <Ionicons name="save" size={16} color="white" />
+                  
                     <Text style={styles.submitButtonText}>
-                      {isEditMode ? 'Salvar Alterações' : 'Criar Lote'}
+                      {isEditMode ? 'Salvar Alterações' : 'Cadastrar Lote'}
                     </Text>
                   </>
                 )}
@@ -959,13 +959,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#16a34a',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingLeft: 16,
+    paddingVertical: 20,
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
     gap: 12,
   },
   closeButton: {
@@ -992,21 +991,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   stepContainer: {
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 32,
   },
   stepHeader: {
     alignItems: 'center',
     marginBottom: 24,
   },
   stepTitle: {
-    fontSize: 18,
+    fontSize: 22,
+    marginBottom: 4,
     fontWeight: '600',
     color: '#1f2937',
-    marginBottom: 8,
   },
   stepSubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#1f2937',
     textAlign: 'center',
   },
   inputGroup: {
@@ -1016,7 +1016,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#374151',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   input: {
     backgroundColor: 'white',

@@ -2,11 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { addDoc, collection } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Alert,
   Modal,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 20,
   },
   backButton: {
     width: 40,
@@ -625,8 +625,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   stepContent: {
-    padding: 24,
-    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 32,
   },
   iconContainer: {
     marginBottom: 24,

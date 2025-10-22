@@ -1,4 +1,3 @@
-// components/coleta/Header.tsx
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -14,7 +13,7 @@ const Header: React.FC<HeaderProps> = ({ onBack }) => {
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nova Coleta</Text>
+        <Text style={styles.title}>Nova Coleta</Text>
       </View>
     </View>
   );
@@ -23,8 +22,8 @@ const Header: React.FC<HeaderProps> = ({ onBack }) => {
 const styles = StyleSheet.create({
   header: {
     backgroundColor: '#16a34a',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingLeft: 16,
+    paddingVertical: 20,
   },
   headerContent: {
     flexDirection: 'row',
@@ -37,7 +36,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerTitle: {
+  title: {
     fontSize: 20,
     fontWeight: 'bold',
     color: 'white',

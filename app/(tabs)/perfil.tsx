@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Alert,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -307,6 +307,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingVertical: 32,
     paddingTop: 48,
+    marginTop: 0,
   },
   headerContent: {
     alignItems: 'center',

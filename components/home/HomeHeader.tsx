@@ -72,8 +72,9 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#16a34a',
     paddingHorizontal: 16,
-    paddingVertical: 24,
+    paddingVertical: 20,
     marginBottom: 20,
+    marginTop: 0,
   },
   headerContent: {
     flexDirection: 'row',
@@ -81,7 +82,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: 'white',
   },

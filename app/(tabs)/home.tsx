@@ -1,6 +1,7 @@
 // screens/HomeScreen.tsx
 import React, { useState } from 'react';
-import { SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import HomeHeader from '@/components/home/HomeHeader';
@@ -8,12 +9,14 @@ import QuickActions from '@/components/home/QuickActions';
 import RecentActivity from '@/components/home/RecentActivity';
 import StatsCards from '@/components/home/StatsCards';
 import { useHomeData } from '@/hooks/useHomeData';
-import NovoLoteModal from '@/components/novo_lote'; // IMPORTAR O MODAL
+
 import ProductionCard from '@/components/home/ProductionCard';
 
 const HomeScreen: React.FC = () => {
   const router = useRouter();
-  const [novoLoteVisible, setNovoLoteVisible] = useState(false);
+const handleQuickAction = (route: string) => {
+  router.push(route); // usa a rota exatamente como passou no quickActions
+};
 
   const {
     kgHoje,
@@ -30,20 +33,22 @@ const HomeScreen: React.FC = () => {
     { label: 'Lotes Ativos', value: lotesAtivos.toString(), icon: 'checkmark-circle-outline' as const },
     { label: 'Melhor Lote', value: kgHoje.toFixed(1), icon: "logo-buffer" as const },
   ];
-
-  const quickActions = [
-    { title: 'Relatórios', subtitle: 'Análise de produção', icon: 'bar-chart-outline' as const, route: 'relatorios', color: '#8b5cf6' },
-    { title: 'Localização', subtitle: 'GPS das árvores', icon: 'location-outline' as const, route: 'geolocalizacao', color: '#f97316' }
-  ];
-
-  const handleQuickAction = (route: string) => {
-    if (route === '') {
-      // Abrir modal do novo lote
-      setNovoLoteVisible(true);
-    } else {
-      router.push(`/${route}` as any);
-    }
-  };
+const quickActions = [
+  {
+    title: 'Relatórios',
+    subtitle: 'Análise de produção',
+    icon: 'bar-chart-outline' as const,
+    route: '/relatorios', // rota completa
+    color: '#8b5cf6',
+  },
+  {
+    title: 'Localização',
+    subtitle: 'GPS das árvores',
+    icon: 'location-outline' as const,
+    route: '/geolocalizacao', // rota completa
+    color: '#f97316',
+  },
+];
 
   const handleNotifications = () => {
     router.push('/notificacoes');
@@ -60,7 +65,6 @@ const HomeScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#16a34a" barStyle="light-content" />
-
       <HomeHeader isAdmin={isAdmin} onNotificationsPress={handleNotifications} />
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -70,26 +74,29 @@ const HomeScreen: React.FC = () => {
         <RecentActivity activities={atividadeRecente} isAdmin={isAdmin} />
         <View style={styles.bottomSpacing} />
       </ScrollView>
-
-      {/* Modal do Novo Lote */}
-      <NovoLoteModal
-        visible={novoLoteVisible}
-        onClose={() => setNovoLoteVisible(false)}
-        onSuccess={(novoLote) => {
-          console.log('Novo lote criado:', novoLote);
-          // Aqui você pode recarregar os dados do useHomeData ou atualizar o estado local
-        }}
-      />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
-  centerContent: { justifyContent: 'center', alignItems: 'center' },
-  loadingText: { color: '#6b7280' },
-  scrollView: { flex: 1 },
-  bottomSpacing: { height: 20 },
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff'
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  loadingText: {
+    color: '#4f7bd3'
+
+  },
+  scrollView: {
+    flex: 1
+  },
+  bottomSpacing: {
+    height: 20
+  },
 });
 
 export default HomeScreen;

@@ -65,13 +65,13 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#16a34a',
     paddingHorizontal: 16,
-    paddingTop: 20,
+    paddingVertical: 20,
+    
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 24,
   },
   headerLeft: {
     flexDirection: 'row',

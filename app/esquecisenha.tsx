@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
     ActivityIndicator,
     Alert,
@@ -12,7 +13,6 @@ import {
     TextInput,
     TouchableOpacity,
     View,
-    SafeAreaView,
 } from "react-native";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "./services/firebaseConfig.js";

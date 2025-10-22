@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
     Alert,
     Linking,
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
@@ -241,12 +241,15 @@ const QuemSomosScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#fdfdfd',
   },
   header: {
     backgroundColor: '#16a34a',
     paddingHorizontal: 16,
+    paddingVertical: 20,
     paddingBottom: 32,
+    marginBottom: 32,
+    marginTop: 0,
   },
   headerTop: {
     flexDirection: 'row',

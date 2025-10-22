@@ -6,99 +6,106 @@ export default function RootLayout() {
     <BiometricProvider>
       <Stack screenOptions={{ headerShown: false }}>
         {/* Tela inicial do app - será exibida primeiro */}
-        <Stack.Screen 
+        <Stack.Screen
           name="index"
-          options={{ 
+          options={{
             headerShown: false,
             presentation: 'card'
-          }} 
+          }}
         />
-        
+
         {/* Tabs - será navegado após o index inicial */}
-        <Stack.Screen 
-          name="(tabs)" 
-          options={{ 
-            headerShown: false 
-          }} 
+        <Stack.Screen
+          name="(tabs)"
+          options={{
+            headerShown: false
+          }}
         />
-        
+
         {/* Outras telas */}
-        <Stack.Screen 
-          name="notificacoes" 
-          options={{ 
-            headerShown: false,
-            presentation: 'card' 
-          }} 
-        />
-        <Stack.Screen 
-          name="elatorios" 
-          options={{ 
+        <Stack.Screen
+          name="notificacoes"
+          options={{
             headerShown: false,
             presentation: 'card'
-          }} 
+          }}
         />
-        <Stack.Screen 
-          name="geolocalizacao" 
-          options={{ 
+        <Stack.Screen
+          name="elatorios"
+          options={{
             headerShown: false,
             presentation: 'card'
-          }} 
+          }}
         />
-        <Stack.Screen 
-          name="quem-somos" 
-          options={{ 
+        <Stack.Screen
+          name="geolocalizacao"
+          options={{
             headerShown: false,
             presentation: 'card'
-          }} 
+          }}
         />
-        <Stack.Screen 
-          name="seguranca" 
-          options={{ 
+        <Stack.Screen
+          name="quem-somos"
+          options={{
             headerShown: false,
             presentation: 'card'
-          }} 
+          }}
         />
-        <Stack.Screen 
+        <Stack.Screen
+          name="seguranca"
+          options={{
+            headerShown: false,
+            presentation: 'card'
+          }}
+        />
+        <Stack.Screen
           name="alterar-senha"
-          options={{ 
+          options={{
             headerShown: false,
             presentation: 'card'
-          }} 
+          }}
         />
-        <Stack.Screen 
+        <Stack.Screen
           name="lotes/detalhe"
-          options={{ 
+          options={{
             headerShown: false,
             presentation: 'card'
-          }} 
+          }}
         />
-        <Stack.Screen 
+        <Stack.Screen
           name="cadastro"
-          options={{ 
+          options={{
             headerShown: false,
             presentation: 'card'
-          }} 
+          }}
         />
-        <Stack.Screen 
+        <Stack.Screen
           name="arvore/[id]"
-          options={{ 
+          options={{
             headerShown: false,
             presentation: 'card'
-          }} 
+          }}
         />
-        <Stack.Screen 
+        <Stack.Screen
           name="esquecisenha"
-          options={{ 
+          options={{
             headerShown: false,
             presentation: 'card'
-          }} 
+          }}
         />
-        <Stack.Screen 
+        <Stack.Screen
           name="relatorio"
-          options={{ 
+          options={{
             headerShown: false,
             presentation: 'card'
-          }} 
+          }}
+        />
+        <Stack.Screen
+          name="@components/novo_lote"
+          options={{
+            headerShown: false,
+            presentation: 'card'
+          }}
         />
       </Stack>
     </BiometricProvider>
