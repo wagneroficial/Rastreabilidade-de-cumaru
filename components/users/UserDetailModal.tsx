@@ -72,7 +72,6 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           {/* Informações Pessoais */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="person" size={20} color="#16a34a" />
               <Text style={styles.sectionTitle}>Informações Pessoais</Text>
             </View>
 
@@ -114,7 +113,6 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           {/* Lotes Atribuídos */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="map" size={20} color="#16a34a" />
               <Text style={styles.sectionTitle}>Lotes Atribuídos</Text>
               <TouchableOpacity onPress={onManageLotes} style={styles.manageButton}>
                 <Ionicons name="settings" size={16} color="#16a34a" />
@@ -144,7 +142,6 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           {/* Histórico */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="time" size={20} color="#16a34a" />
               <Text style={styles.sectionTitle}>Histórico</Text>
             </View>
 
@@ -229,7 +226,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#fefefe',
   },
   header: {
     backgroundColor: '#16a34a',
@@ -271,6 +268,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    padding: 20,
   },
   section: {
     padding: 16,
@@ -298,14 +296,7 @@ const styles = StyleSheet.create({
     color: '#16a34a',
   },
   infoCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+
   },
   infoItem: {
     marginBottom: 16,

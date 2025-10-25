@@ -74,7 +74,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#16a34a',
+        tabBarActiveTintColor: "#16a34a",
         tabBarInactiveTintColor: '#797d85',
         headerShown: false,
         tabBarButton: HapticTab,
@@ -118,7 +118,7 @@ export default function TabLayout() {
         name="usuarios"
         options={{
           title: 'suarios',
-          tabBarIcon: ({ color }) => <Ionicons name="person" size={20} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="person-add" size={20} color={color} />,
         }}
       />
      
