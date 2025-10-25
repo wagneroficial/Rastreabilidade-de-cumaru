@@ -489,7 +489,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Step 1: Informações Básicas */}
           {(currentStep === 1 || isEditMode) && (
-            <View style={styles.stepContainer}>~
+            <View style={styles.stepContainer}>
               <View style={styles.iconContainer}>
                 <View style={styles.iconCircle}>
                   <Ionicons name="logo-buffer" size={24} color='#16a34a' />

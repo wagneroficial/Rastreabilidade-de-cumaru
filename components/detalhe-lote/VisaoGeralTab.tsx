@@ -87,15 +87,14 @@ const VisaoGeralTab: React.FC<VisaoGeralTabProps> = ({
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Informações Gerais</Text>
-
           {/* Botões editar e excluir (somente admin) */}
           {isAdmin && (
             <View style={styles.actionButtons}>
               <TouchableOpacity
                 onPress={() => onEditLote?.(loteData)}
-                style={[styles.iconButton, { backgroundColor: '#E0F2FE' }]}
+                style={[styles.iconButton, { backgroundColor: '#fff' }]}
               >
-                <Ionicons name="create-outline" size={18} color="#0284C7" />
+                <Ionicons name="create-outline" size={20} color="#059669" />
               </TouchableOpacity>
 
 
@@ -155,7 +154,10 @@ const VisaoGeralTab: React.FC<VisaoGeralTabProps> = ({
           <Text style={styles.sectionTitle}>Responsáveis</Text>
           {isAdmin && onManageColaboradores && (
             <TouchableOpacity onPress={onManageColaboradores}>
-              <Ionicons name="add-circle-outline" size={28} color='#16a34a' />
+              <View style={styles.buttonAdd}>
+                <Ionicons name="add-circle-outline" size={28} color='#16a34a' />
+                <Text >Adicionar</Text>
+              </View>
             </TouchableOpacity>
           )}
         </View>
@@ -266,6 +268,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
     flex: 1,
+  },
+  buttonAdd: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   actionButtons: {
     flexDirection: 'row',

@@ -146,8 +146,12 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               <Text style={styles.sectionTitle}>
                 Lotes Atribuídos ({lotes.length})
               </Text>
-              <TouchableOpacity onPress={onManageLotes} style={styles.manageButton}>
-                <Ionicons name="add-circle-outline" size={28} color='#16a34a' />
+              <TouchableOpacity onPress={onManageLotes}>
+                <View style={styles.buttonAdd}>
+                  <Ionicons name="add-circle-outline" size={28} color='#16a34a' />
+                  <Text >Adicionar</Text>
+                </View>
+
               </TouchableOpacity>
             </View>
 
@@ -176,7 +180,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
             ) : (
               <TouchableOpacity style={styles.emptyCard}>
                 <Text style={styles.text}>Nenhum Lote Encontrado.{'\n'}
-    Clique no ícone acima para adicionar.</Text>
+                  Clique no ícone acima para adicionar.</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -303,12 +307,12 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fefefe'
+    backgroundColor: '#fefefe',
   },
 
   header: {
     backgroundColor: '#16a34a',
-    paddingVertical: 16
+    paddingVertical: 16,
   },
 
   headerContent: {
@@ -350,37 +354,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500'
   },
-
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+      paddingBottom: 120, 
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1f2937',
     flex: 1,
-    marginBottom: 14,
-    marginTop: 32,
+    marginTop: 20,
+        marginBottom: 12,
   },
-
-  manageButton: {
+  buttonAdd: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4
-  },
-
-  manageButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#16a34a'
+    gap: 4,
   },
 
   infoCard: {
@@ -391,17 +386,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 20,
   },
 
   infoText: {
     fontSize: 14,
     color: '#1f2937',
-    flexShrink: 1
   },
 
   infoItem: {
-    marginBottom: 16
+    marginBottom: 16,
+
   },
 
   emptyCard: {
@@ -423,7 +418,7 @@ const styles = StyleSheet.create({
   infoValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8
+    gap: 8,
   },
 
   infoValue: {
@@ -483,29 +478,27 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: 'white',
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb'
+    borderTopColor: '#e5e7eb',
   },
 
   actionsRow: {
-
     gap: 12
   },
 
   actionBtn: {
-    flexDirection: 'row', // importante: linha
-    alignItems: 'center', // centraliza verticalmente
-    justifyContent: 'center', // centraliza horizontalmente
-    paddingVertical: 12, // ajuste para não ficar gigante
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
-    // remove gap
   },
 
   actionBtnText: {
     fontSize: 14,
     fontWeight: '600',
     color: 'white',
-    marginLeft: 8, // substitui o gap entre ícone e texto
+    marginLeft: 8,
   },
 
   approveBtn: {

@@ -103,7 +103,7 @@ export default function DetalheLoteScreen() {
             colaboradoresNomes={colaboradoresNomes}
             historico={historicoData}
             onManageColaboradores={isAdmin ? handleOpenColaboradoresModal : undefined}
-            onEditLote={handleEditLote} // ✅ agora o botão Editar chama o modal
+            onEditLote={handleEditLote}
           />
         );
 
