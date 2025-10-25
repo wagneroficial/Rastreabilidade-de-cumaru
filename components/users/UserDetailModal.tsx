@@ -1,4 +1,3 @@
-// components/users/UserDetailModal.tsx
 import React, { useState, useEffect } from 'react';
 import { User } from '@/hooks/useUsers';
 import { formatDate, getStatusColor, getStatusLabel } from '@/utils/userHelpers';
@@ -40,6 +39,8 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   onRemoveLote,
 }) => {
   const [lotes, setLotes] = useState<string[]>([]);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [selectedLote, setSelectedLote] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.lotesAtribuidos) {
@@ -48,10 +49,17 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   }, [user]);
 
   const handleRemoveLote = (loteId: string) => {
-    // Remove do estado local
-    setLotes((prev) => prev.filter((id) => id !== loteId));
-    // Chama callback opcional (ex: para atualizar no Firestore)
-    onRemoveLote?.(loteId);
+    setConfirmModalVisible(true);
+    setSelectedLote(loteId);
+  };
+
+  const confirmRemoveLote = () => {
+    if (selectedLote) {
+      setLotes((prev) => prev.filter((id) => id !== selectedLote));
+      onRemoveLote?.(selectedLote);
+      setSelectedLote(null);
+    }
+    setConfirmModalVisible(false);
   };
 
   if (!user) return null;
@@ -133,14 +141,13 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           </View>
 
           {/* Lotes Atribuídos */}
-          {/* Lotes Atribuídos */}
           <View>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>
                 Lotes Atribuídos ({lotes.length})
               </Text>
               <TouchableOpacity onPress={onManageLotes} style={styles.manageButton}>
-                <Text style={styles.manageButtonText}>Atribuir Lote</Text>
+                <Ionicons name="add-circle-outline" size={28} color='#16a34a' />
               </TouchableOpacity>
             </View>
 
@@ -167,9 +174,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 </View>
               ))
             ) : (
-              // Botão Atribuir Lote visível apenas quando não há lotes
               <TouchableOpacity style={styles.emptyCard}>
-                <Text style={styles.text}>Nenhum Lote Encontrado</Text>
+                <Text style={styles.text}>Nenhum Lote Encontrado.{'\n'}
+    Clique no ícone acima para adicionar.</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -255,6 +262,40 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           )}
         </View>
       </View>
+
+      {/* Modal de Confirmação */}
+      <Modal
+        visible={confirmModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmModalVisible(false)}
+      >
+        <View style={styles.confirmOverlay}>
+          <View style={styles.confirmBox}>
+            <Ionicons name="alert-circle-outline" size={48} color="#dc2626" />
+            <Text style={styles.confirmTitle}>Remover lote</Text>
+            <Text style={styles.confirmMessage}>
+              Deseja remover este lote deste colaborador?
+            </Text>
+            <View style={styles.confirmActions}>
+              <TouchableOpacity
+                style={[styles.confirmBtn, styles.cancelBtn]}
+                onPress={() => setConfirmModalVisible(false)}
+              >
+                <Text style={styles.confirmBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmBtn, styles.deleteBtn]}
+                onPress={confirmRemoveLote}
+              >
+                <Text style={[styles.confirmBtnText, { color: 'white' }]}>
+                  Remover
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 };
@@ -326,7 +367,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1f2937',
     flex: 1,
-    marginBottom: 16,
+    marginBottom: 14,
     marginTop: 32,
   },
 
@@ -343,10 +384,7 @@ const styles = StyleSheet.create({
   },
 
   infoCard: {
-    backgroundColor: '#f9fafb',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8
+    paddingVertical: 10,
   },
 
   infoRow: {
@@ -379,7 +417,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#6b7280',
-    marginBottom: 6
+    marginBottom: 8,
   },
 
   infoValueRow: {
@@ -396,8 +434,9 @@ const styles = StyleSheet.create({
   loteItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#f9fafb',
+    paddingHorizontal: 4,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
     borderRadius: 8,
     marginBottom: 8
   },
@@ -434,7 +473,7 @@ const styles = StyleSheet.create({
   },
 
   text: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#1f2937',
     textAlign: 'center',
     paddingVertical: 8
@@ -483,6 +522,56 @@ const styles = StyleSheet.create({
 
   reactivateBtn: {
     backgroundColor: '#16a34a'
+  },
+  confirmOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  confirmBox: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+  },
+  confirmTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginTop: 12,
+  },
+  confirmMessage: {
+    fontSize: 14,
+    color: '#4b5563',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  confirmActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  confirmBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelBtn: {
+    backgroundColor: '#f3f4f6',
+    marginRight: 8,
+  },
+  deleteBtn: {
+    backgroundColor: '#ef4444',
+    marginLeft: 8,
+  },
+  confirmBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
   },
 });
 

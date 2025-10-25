@@ -100,13 +100,10 @@ const styles = StyleSheet.create({
   historicoCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
+    padding: 20,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
   historicoHeader: {
     flexDirection: 'row',
@@ -145,16 +142,16 @@ const styles = StyleSheet.create({
   historicoHora: {
     fontSize: 11,
     color: '#9CA3AF',
-    marginTop: 1,
+    marginTop: 4,
   },
   historicoProducao: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#059669',
+    fontWeight: '600',
+    color: '#1F2937',
   },
   historicoObservacoesContainer: {
     marginTop: 8,
-    paddingTop: 8,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
   },

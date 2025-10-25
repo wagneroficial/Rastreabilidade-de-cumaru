@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import NovoLoteModal from '@/components/novo_lote';
 import NovaColetaModal from '@/components/nova_coleta';
+import NovaArvoreModal from '@/components/nova_arvore';
 
 
 
@@ -21,6 +22,7 @@ interface AddModalProps {
 const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
     const [novoLoteVisible, setNovoLoteVisible] = useState(false);
     const [novaColetaVisible, setNovaColetaVisible] = useState(false);
+    const [novaArvoreVisible, setNovaArvoreVisible] = useState(false); // Estado para o novo modal
 
     return (
         <>
@@ -46,7 +48,7 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
                             onPress={() => setNovaColetaVisible(true)}
                         >
                             <View style={[styles.iconBox, { backgroundColor: '#dcfce7' }]}>
-                                <Ionicons name="leaf" size={22} color="#16a34a" />
+                                <Ionicons name="egg" size={22} color="#16a34a" />
                             </View>
                             <View style={styles.textBox}>
                                 <Text style={styles.optionTitle}>Nova Coleta</Text>
@@ -56,14 +58,29 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
                             </View>
                             <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
                         </TouchableOpacity>
-
+                        {/* Nova Árvore */}
+                        <TouchableOpacity
+                            style={styles.option}
+                            onPress={() => setNovaArvoreVisible(true)}
+                        >
+                            <View style={[styles.iconBox, { backgroundColor: '#fef9c3' }]}>
+                                <Ionicons name="leaf" size={22} color="#ca8a04" />
+                            </View>
+                            <View style={styles.textBox}>
+                                <Text style={styles.optionTitle}>Nova Árvore</Text>
+                                <Text style={styles.optionSubtitle}>
+                                    Registre uma nova árvore plantada
+                                </Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                        </TouchableOpacity>
                         {/* Novo Lote */}
                         <TouchableOpacity
                             style={styles.option}
                             onPress={() => setNovoLoteVisible(true)}
                         >
                             <View style={[styles.iconBox, { backgroundColor: '#dbeafe' }]}>
-                                <Ionicons name="map-outline" size={22} color="#2563eb" />
+                                <Ionicons name="logo-buffer" size={22} color="#2563eb" />
                             </View>
                             <View style={styles.textBox}>
                                 <Text style={styles.optionTitle}>Novo Lote</Text>
@@ -79,24 +96,40 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
                         <Text style={styles.cancelText}>Cancelar</Text>
                     </TouchableOpacity>
                 </View>
-
             </Modal>
-            {/* Modal do Novo Lote */}
-            <NovoLoteModal
-                visible={novoLoteVisible}
-                onClose={() => setNovoLoteVisible(false)}
-                onSuccess={(novoLote) => {
-                    console.log('Novo lote criado:', novoLote);
-                }}
-            />
+
+            {/* Modal da Nova Coleta */}
             <NovaColetaModal
                 visible={novaColetaVisible}
-                onClose={() => setNovaColetaVisible(false)}
+                onClose={() => {
+                    setNovaColetaVisible(false);
+                    onClose();
+                }}
                 onSuccess={(novaColeta) => {
                     console.log('Nova coleta criada:', novaColeta);
                 }}
             />
-
+            {/* Modal da Nova Árvore */}
+            <NovaArvoreModal
+                visible={novaArvoreVisible}
+                onClose={() => {
+                    setNovaArvoreVisible(false);
+                    onClose();
+                } }
+                onSuccess={(novaArvore) => {
+                    console.log('Nova árvore registrada:', novaArvore);
+                } } loteId={''}            />
+            {/* Modal do Novo Lote */}
+            <NovoLoteModal
+                visible={novoLoteVisible}
+                onClose={() => {
+                    setNovoLoteVisible(false);
+                    onClose();
+                }}
+                onSuccess={(novoLote) => {
+                    console.log('Novo lote criado:', novoLote);
+                }}
+            />
         </>
     );
 };
@@ -150,26 +183,26 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     textBox: {
-        flex: 1
+        flex: 1,
     },
     optionTitle: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#1f2937'
+        color: '#1f2937',
     },
     optionSubtitle: {
         fontSize: 13,
-        color: '#6b7280'
+        color: '#6b7280',
     },
     cancelButton: {
         marginTop: 16,
         alignSelf: 'center',
-        paddingVertical: 12
+        paddingVertical: 12,
     },
     cancelText: {
         fontSize: 16,
         color: '#6b7280',
-        fontWeight: '500'
+        fontWeight: '500',
     },
 });
 

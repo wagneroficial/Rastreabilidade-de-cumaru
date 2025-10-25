@@ -86,7 +86,6 @@ const VisaoGeralTab: React.FC<VisaoGeralTabProps> = ({
       {/* Informações Gerais */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Ionicons name="information-circle" size={20} color="#059669" />
           <Text style={styles.sectionTitle}>Informações Gerais</Text>
 
           {/* Botões editar e excluir (somente admin) */}
@@ -106,41 +105,41 @@ const VisaoGeralTab: React.FC<VisaoGeralTabProps> = ({
 
         <View style={styles.infoList}>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Nome do Lote</Text>
+            <Text style={styles.infoLabel}>Nome do Lote:</Text>
             <Text style={styles.infoValue}>{loteData.nome || 'Não informado'}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Código do Lote</Text>
+            <Text style={styles.infoLabel}>Código do Lote:</Text>
             <Text style={styles.infoValue}>{loteData.codigo || 'Não informado'}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Área Total</Text>
+            <Text style={styles.infoLabel}>Área Total:</Text>
             <Text style={styles.infoValue}>
               {loteData.area ? `${loteData.area} ha` : 'Não informado'}
             </Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Tipo de Solo</Text>
+            <Text style={styles.infoLabel}>Tipo de Solo:</Text>
             <Text style={styles.infoValue}>{formatTipoSolo(loteData.tipoSolo)}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Quantidade de Árvores</Text>
+            <Text style={styles.infoLabel}>Quantidade de Árvores:</Text>
             <Text style={styles.infoValue}>
               {loteData.arvores ? `${loteData.arvores} árvores` : 'Não informado'}
             </Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Última Coleta</Text>
+            <Text style={styles.infoLabel}>Última Coleta:</Text>
             <Text style={styles.infoValue}>{getUltimaColeta()}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Responsáveis</Text>
+            <Text style={styles.infoLabel}>Responsáveis:</Text>
             <Text style={styles.infoValue}>
               {colaboradoresNomes.length > 0
                 ? `${colaboradoresNomes.length} colaborador(es)`
@@ -153,11 +152,10 @@ const VisaoGeralTab: React.FC<VisaoGeralTabProps> = ({
       {/* Colaboradores Responsáveis */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Ionicons name="people" size={20} color="#059669" />
-          <Text style={styles.sectionTitle}>Colaboradores Responsáveis</Text>
+          <Text style={styles.sectionTitle}>Responsáveis</Text>
           {isAdmin && onManageColaboradores && (
-            <TouchableOpacity style={styles.manageButton} onPress={onManageColaboradores}>
-              <Ionicons name="settings-outline" size={20} color="#059669" />
+            <TouchableOpacity onPress={onManageColaboradores}>
+              <Ionicons name="add-circle-outline" size={28} color='#16a34a' />
             </TouchableOpacity>
           )}
         </View>
@@ -167,7 +165,7 @@ const VisaoGeralTab: React.FC<VisaoGeralTabProps> = ({
             {colaboradoresNomes.map((nome, index) => (
               <View key={index} style={styles.colaboradorItem}>
                 <View style={styles.colaboradorAvatar}>
-                  <Ionicons name="person" size={16} color="#059669" />
+                  <Ionicons name="person" size={16} color='#16a34a' />
                 </View>
                 <Text style={styles.colaboradorNome}>{nome}</Text>
               </View>
@@ -178,7 +176,7 @@ const VisaoGeralTab: React.FC<VisaoGeralTabProps> = ({
             <Ionicons name="people-outline" size={32} color="#D1D5DB" />
             <Text style={styles.noColaboradores}>
               {isAdmin
-                ? 'Nenhum colaborador atribuído.\nClique no ícone de configurações para adicionar.'
+                ? 'Nenhum colaborador atribuído.\nClique no ícone acima para adicionar.'
                 : 'Nenhum colaborador atribuído a este lote.'}
             </Text>
           </View>
@@ -189,7 +187,6 @@ const VisaoGeralTab: React.FC<VisaoGeralTabProps> = ({
       {(loteData.latitude || loteData.longitude) && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="location" size={20} color="#059669" />
             <Text style={styles.sectionTitle}>Localização GPS</Text>
           </View>
 
@@ -222,7 +219,7 @@ const VisaoGeralTab: React.FC<VisaoGeralTabProps> = ({
             style={styles.mapLinkContainer}
             onPress={() => router.push('/geolocalizacao')}
           >
-            <Ionicons name="map-outline" size={16} color="#059669" />
+            <Ionicons name="map-outline" size={16} color="#fff" />
             <Text style={styles.mapLinkText}>Ir para o mapa</Text>
           </TouchableOpacity>
         </View>
@@ -232,7 +229,6 @@ const VisaoGeralTab: React.FC<VisaoGeralTabProps> = ({
       {loteData.observacoes && loteData.observacoes.trim() !== '' && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="document-text" size={20} color="#059669" />
             <Text style={styles.sectionTitle}>Observações</Text>
           </View>
           <Text style={styles.observacoes}>{loteData.observacoes}</Text>
@@ -256,10 +252,8 @@ const styles = StyleSheet.create({
   },
   section: {
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -291,11 +285,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 5,
   },
   infoLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#1F2937',
     flex: 1,
   },
   infoValue: {
@@ -383,10 +377,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
-    gap: 6,
+    backgroundColor: '#16a34a',
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
   },
   mapLinkText: {
-    color: '#059669',
+    color: '#fff',
     fontWeight: '600',
     fontSize: 14,
   },
@@ -396,14 +393,15 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   deleteButton: {
-    backgroundColor: '#DC2626',
-    paddingVertical: 14,
+    backgroundColor: '#dc2626',
+    paddingVertical: 12,
+    marginHorizontal: 12,
     borderRadius: 10,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
-    marginTop: 20,
+    margin: 1,
   },
   deleteButtonText: {
     color: 'white',

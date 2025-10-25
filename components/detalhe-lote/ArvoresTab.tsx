@@ -92,7 +92,8 @@ const ArvoresTab: React.FC<ArvoresTabProps> = ({ arvores, isAdmin }) => {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 24,
   },
   emptyState: {
     alignItems: 'center',
@@ -115,13 +116,10 @@ const styles = StyleSheet.create({
   arvoreCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
+    padding: 20,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
   arvoreHeader: {
     flexDirection: 'row',

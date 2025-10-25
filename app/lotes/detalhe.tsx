@@ -226,7 +226,7 @@ export default function DetalheLoteScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#fdfdfd',
   },
   loadingContainer: {
     flex: 1,

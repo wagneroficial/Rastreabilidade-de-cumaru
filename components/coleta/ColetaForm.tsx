@@ -135,7 +135,8 @@ const ColetaForm: React.FC<ColetaFormProps> = ({
 
           {/* Quantidade */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Quantidade (kg)</Text>
+            <Text style={styles.label}>                        
+              <Text style={styles.span}>* </Text>Quantidade (kg)</Text>
             <TextInput
               style={styles.input}
               value={quantidade}
@@ -251,6 +252,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#374151',
     marginBottom: 8,
+  },
+  span: {
+    color: '#EF4444',
   },
   input: {
     backgroundColor: 'white',
