@@ -2,18 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, Platform, TouchableOpacity } from 'react-native';
-
 import AddModal from '@/components/AddModal';
 import BiometricLock from '@/components/BiometricLock';
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { useBiometric } from '@/contexts/BiometricContext';
-import { useColorScheme } from '@/hooks/useColorScheme';
 
 const INACTIVITY_TIMEOUT = 5 * 60 * 1000;
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   const { biometriaAtivada, isAuthenticated, lockApp } = useBiometric();
   const appState = useRef(AppState.currentState);
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -34,7 +31,7 @@ export default function TabLayout() {
       subscription.remove();
       if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     };
-  }, [biometriaAtivada]);
+  }, [biometriaAtivada, lockApp]);
 
   useEffect(() => {
     const resetInactivityTimer = () => {
@@ -54,7 +51,7 @@ export default function TabLayout() {
     return () => {
       if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     };
-  }, [biometriaAtivada, isAuthenticated]);
+  }, [biometriaAtivada, isAuthenticated, lockApp]);
 
   if (biometriaAtivada && !isAuthenticated) {
     return <BiometricLock />;
@@ -64,7 +61,7 @@ export default function TabLayout() {
     <>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: "#16a34a",
+          tabBarActiveTintColor: '#16a34a',
           tabBarInactiveTintColor: '#797d85',
           headerShown: false,
           tabBarButton: HapticTab,
@@ -96,8 +93,14 @@ export default function TabLayout() {
           options={{
             title: 'Adicionar',
             tabBarIcon: ({ color }) => <Ionicons name="add-circle" size={20} color={color} />,
-            tabBarButton: (props) => (
-              <TouchableOpacity {...props} onPress={() => setShowAddModal(true)} />
+            tabBarButton: (props: any) => (
+              <TouchableOpacity
+                {...props}
+                activeOpacity={0.7}
+                onPress={() => setShowAddModal(true)}
+              >
+                {props.children}
+              </TouchableOpacity>
             ),
           }}
         />

@@ -71,10 +71,7 @@ const ColetaForm: React.FC<ColetaFormProps> = ({
         <Text style={styles.dividerText}>ou</Text>
         <View style={styles.dividerLine} />
       </View>
-
-
-      <Text style={styles.title}>Cadastre Manualmente</Text>
-
+      <Text style={styles.title}>Registre Manualmente</Text>
       {lotes.length === 0 ? (
         <View style={styles.noDataContainer}>
           <Ionicons name="leaf-outline" size={48} color="#9ca3af" />
@@ -183,7 +180,7 @@ const ColetaForm: React.FC<ColetaFormProps> = ({
                 <Text style={styles.submitButtonText}>Registrando...</Text>
               </>
             ) : (
-              <Text style={styles.submitButtonText}>Registrar Coleta</Text>
+              <Text style={styles.submitButtonText}>Registrar</Text>
             )}
           </TouchableOpacity>
         </>
@@ -221,11 +218,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     color: '#1f2937',
     marginBottom: 20,
-
+    textAlign: 'center',
   },
   noDataContainer: {
     alignItems: 'center',

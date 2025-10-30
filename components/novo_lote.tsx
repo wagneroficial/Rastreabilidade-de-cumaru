@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
 import { addDoc, collection, doc, getDocs, query, updateDoc, where } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -61,7 +61,6 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
   loteParaEditar = null
 }) => {
   const isEditMode = !!loteParaEditar;
-
   const [formData, setFormData] = useState<FormData>({
     nome: '',
     area: '',
@@ -76,17 +75,63 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
   });
 
   const [isLoading, setIsLoading] = useState(false);
+   const [nome, setNome] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
   const [showSoloModal, setShowSoloModal] = useState(false);
   const [showColaboradoresModal, setShowColaboradoresModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState<'inicio' | 'fim' | null>(null);
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
   const [loadingColaboradores, setLoadingColaboradores] = useState(false);
-
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [locationPermission, setLocationPermission] = useState<Location.PermissionStatus | null>(null);
 
+  // Estados de validação
+  const [nomeError, setNomeError] = useState('');
+  const [checkingNome, setCheckingNome] = useState(false);
+
+  // Função de debounce
+const debounce = (func: (...args: any[]) => void, delay: number) => {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return (...args: any[]) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
+};
+
+  // Verifica no Firestore se já existe um lote com o mesmo nome
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const verificarNomeExistente = useCallback(
+    debounce(async (valor: string) => {
+      if (!valor.trim()) {
+        setNomeError('');
+        return;
+      }
+
+      setCheckingNome(true);
+      try {
+        const querySnapshot = await getDocs(collection(db, 'lotes'));
+        const existe = querySnapshot.docs.some((doc) => doc.data().nome === valor);
+        if (existe) {
+          setNomeError('Já existe um lote com este nome');
+        } else {
+          setNomeError('');
+        }
+      } catch (error) {
+        console.error('Erro ao verificar nome do lote:', error);
+        setNomeError('Erro ao validar nome.');
+      } finally {
+        setCheckingNome(false);
+      }
+    }, 500),
+    []
+  );
+
+  // Executa validação ao digitar
+  useEffect(() => {
+    verificarNomeExistente(nome);
+  }, [nome]);
+  
   useEffect(() => {
     if (visible && isEditMode && loteParaEditar) {
       setFormData({
@@ -399,7 +444,6 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
       setIsLoading(false);
     }
   };
-
   const resetForm = () => {
     setFormData({
       nome: '',
@@ -477,7 +521,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
             </TouchableOpacity>
             <View style={styles.headerInfo}>
               <Text style={styles.headerTitle}>
-                {isEditMode ? 'Editar Lote' : 'Novo Lote'}
+                {isEditMode ? 'Editar lote' : 'Cadastrar novo Lote'}
               </Text>
               <Text style={styles.headerSubtitle}>
                 {isEditMode ? loteParaEditar?.codigo : `Etapa ${currentStep} de 2`}
@@ -490,11 +534,6 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
           {/* Step 1: Informações Básicas */}
           {(currentStep === 1 || isEditMode) && (
             <View style={styles.stepContainer}>
-              <View style={styles.iconContainer}>
-                <View style={styles.iconCircle}>
-                  <Ionicons name="logo-buffer" size={24} color='#16a34a' />
-                </View>
-              </View>
               <View style={styles.stepHeader}>
                 <Text style={styles.stepTitle}>Preencha os dados abaixo para cadastrar um novo lote</Text>
               </View>
@@ -504,14 +543,17 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
                   <Text style={styles.span}>* </Text>
                   Nome do Lote</Text>
                 <TextInput
-                  style={styles.input}
-                  value={formData.nome}
-                  onChangeText={(value) => handleInputChange('nome', value)}
-                  placeholder="Ex: Lote Norte A-15"
-                  placeholderTextColor="#9ca3af"
+              style={[
+                    styles.input,
+                    nomeError ? { borderColor: '#ff4d4d' } : {},
+                  ]}
+                  placeholder="Digite o nome do lote"
+                  value={nome}
+                  onChangeText={setNome}
                 />
+                {checkingNome && <ActivityIndicator size="small" color="#666" style={{ marginTop: 4 }} />}
+                {nomeError ? <Text style={styles.errorText}>{nomeError}</Text> : null}
               </View>
-
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>
                   <Text style={styles.span}>* </Text>
@@ -527,7 +569,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Descrição</Text>
+                <Text style={styles.inputLabel}>Descrição (opcional)</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   value={formData.descricao}
@@ -542,7 +584,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Número de Árvores (opcional)</Text>
+                <Text style={styles.inputLabel}>Estimativa de Árvores (opcional)</Text>
                 <TextInput
                   style={styles.input}
                   value={formData.numeroArvores}
@@ -633,11 +675,6 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
           {/* Step 2: Localização com GPS funcional */}
           {(currentStep === 2 || isEditMode) && (
             <View style={styles.stepContainer}>
-                           <View style={styles.iconContainer}>
-                <View style={styles.iconCircle}>
-                  <Ionicons name="logo-buffer" size={24} color='#16a34a' />
-                </View>
-              </View>
               <View style={styles.stepHeader}>
                 <Text style={styles.stepTitle}>Adicione a localização do lote</Text>
               </View>
@@ -811,7 +848,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
                   <>
 
                     <Text style={styles.submitButtonText}>
-                      {isEditMode ? 'Salvar Alterações' : 'Cadastrar Lote'}
+                      {isEditMode ? 'Salvar Alterações' : 'Cadastrar'}
                     </Text>
                   </>
                 )}
@@ -1009,22 +1046,7 @@ const styles = StyleSheet.create({
   },
   stepContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  iconContainer: {
-    marginBottom: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#F0FDF4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#D1FAE5',
+    paddingVertical: 36,
   },
   stepHeader: {
     alignItems: 'center',
@@ -1058,6 +1080,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: '#1f2937',
+  },
+    errorText: {
+    color: '#ff4d4d',
+    marginTop: 4,
+    fontSize: 13,
   },
   textArea: {
     height: 80,

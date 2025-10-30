@@ -40,7 +40,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    marginBottom: 20,
+    marginBottom: 12,
   },
     sectionTitle: {
     fontSize: 18,

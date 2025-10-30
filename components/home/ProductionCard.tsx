@@ -51,11 +51,11 @@ const ProductionCard: React.FC<ProductionCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#f8fffa', // verde bem claro, coerente com o tema
+    backgroundColor: '#f8fffa',
     borderRadius: 16,
     padding: 20,
     marginHorizontal: 16,
-    marginVertical: 12,
+    marginVertical: 24,
     borderWidth: 1,
     borderColor: '#c4e0cc',
 

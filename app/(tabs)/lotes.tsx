@@ -16,7 +16,6 @@ import { auth, db } from '@/app/services/firebaseConfig.js';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/firestore';
 
-
 interface Lote {
   id: string;
   codigo: string;
@@ -40,6 +39,7 @@ const LotesScreen: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [userLoading, setUserLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
 
   // Verificar se o usuário é admin e obter ID do usuário
   useEffect(() => {

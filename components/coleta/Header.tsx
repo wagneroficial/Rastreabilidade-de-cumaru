@@ -13,15 +13,17 @@ const Header: React.FC<HeaderProps> = ({ onBack }) => {
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.title}>Nova Coleta</Text>
+        <Text style={styles.title}>Registrar nova colheita</Text>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  header: {
+   header: {
     backgroundColor: '#16a34a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
     paddingLeft: 16,
     paddingVertical: 20,
   },
@@ -36,10 +38,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  headerInfo: {
+    flex: 1,
+  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#ffffff',
   },
 });
 

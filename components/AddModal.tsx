@@ -13,7 +13,6 @@ import NovaColetaModal from '@/components/nova_coleta';
 import NovaArvoreModal from '@/components/nova_arvore';
 
 
-
 interface AddModalProps {
     visible: boolean;
     onClose: () => void;
@@ -39,7 +38,7 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
 
                 <View style={styles.container}>
                     <View style={styles.handle} />
-                    <Text style={styles.title}>Adicionar</Text>
+                    <Text style={styles.title}>O que gostaria de fazer?</Text>
 
                     <View style={styles.optionList}>
                         {/* Nova Coleta */}
@@ -51,7 +50,7 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
                                 <Ionicons name="egg" size={22} color="#16a34a" />
                             </View>
                             <View style={styles.textBox}>
-                                <Text style={styles.optionTitle}>Nova Coleta</Text>
+                                <Text style={styles.optionTitle}>Registrar Nova Colheita</Text>
                                 <Text style={styles.optionSubtitle}>
                                     Registre uma nova colheita
                                 </Text>
@@ -67,9 +66,9 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
                                 <Ionicons name="leaf" size={22} color="#ca8a04" />
                             </View>
                             <View style={styles.textBox}>
-                                <Text style={styles.optionTitle}>Nova Árvore</Text>
+                                <Text style={styles.optionTitle}>Cadastrar nova árvore</Text>
                                 <Text style={styles.optionSubtitle}>
-                                    Registre uma nova árvore plantada
+                                    Cadastre uma nova árvore plantada
                                 </Text>
                             </View>
                             <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
@@ -83,7 +82,7 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
                                 <Ionicons name="logo-buffer" size={22} color="#2563eb" />
                             </View>
                             <View style={styles.textBox}>
-                                <Text style={styles.optionTitle}>Novo Lote</Text>
+                                <Text style={styles.optionTitle}>Cadastrar novo lote</Text>
                                 <Text style={styles.optionSubtitle}>
                                     Cadastre uma nova área de plantio
                                 </Text>

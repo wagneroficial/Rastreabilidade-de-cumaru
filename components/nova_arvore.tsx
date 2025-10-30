@@ -1,30 +1,37 @@
 import { Ionicons } from '@expo/vector-icons';
-import { addDoc, collection } from 'firebase/firestore';
-import React, { useState } from 'react';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { addDoc, collection, getDocs } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Modal,
-  SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
 } from 'react-native';
 import { db } from '../app/services/firebaseConfig.js';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface CadastrarArvoreModalProps {
   visible: boolean;
   onClose: () => void;
-  onSubmit: (arvoreData: ArvoreFormData) => void;
-  loteId: string;
+  onSuccess: (arvoreData?: any) => void;
+}
+
+interface Lote {
+  id: string;
+  nome: string;
+  codigo: string;
 }
 
 interface ArvoreFormData {
   idArvore: string;
+  loteId: string;
   estadoSaude: string;
   dataPlantio: string;
   latitude: string;
@@ -35,20 +42,21 @@ interface ArvoreFormData {
 const estadosSaude = [
   { label: 'Saudável', value: 'saudavel' },
   { label: 'Ruim', value: 'ruim' },
-  { label: 'Morta', value: 'morta' },
 ];
-
-export default function CadastrarArvoreModal({ 
-  visible, 
-  onClose, 
-  onSubmit, 
-  loteId 
-}: CadastrarArvoreModalProps) {
-  const [currentStep, setCurrentStep] = useState(1);
+const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
+  visible,
+  onClose,
+  onSuccess }) => {
+  const [currentStep, setCurrentStep] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showEstadoModal, setShowEstadoModal] = useState(false);
+  const [showLoteModal, setShowLoteModal] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [lotes, setLotes] = useState<Lote[]>([]);
+
   const [formData, setFormData] = useState<ArvoreFormData>({
     idArvore: '',
+    loteId: '',
     estadoSaude: '',
     dataPlantio: '',
     latitude: '',
@@ -57,61 +65,83 @@ export default function CadastrarArvoreModal({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Buscar lotes cadastrados
+  useEffect(() => {
+    const fetchLotes = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, 'lotes'));
+        const lotesList = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...(doc.data() as any),
+        }));
+        setLotes(lotesList);
+      } catch (error) {
+        console.error('Erro ao buscar lotes:', error);
+      }
+    };
+    fetchLotes();
+  }, []);
+
+  const updateFormData = (field: keyof ArvoreFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+  };
 
   const validateCurrentStep = (): boolean => {
     const newErrors: Record<string, string> = {};
-
     if (currentStep === 1) {
-      if (!formData.idArvore.trim()) {
-        newErrors.idArvore = 'ID da árvore é obrigatório';
-      }
-      if (!formData.estadoSaude.trim()) {
-        newErrors.estadoSaude = 'Estado de saúde é obrigatório';
-      }
-      if (!formData.dataPlantio.trim()) {
-        newErrors.dataPlantio = 'Data do plantio é obrigatória';
-      }
+      if (!formData.idArvore.trim()) newErrors.idArvore = 'ID da árvore é obrigatório';
+      if (!formData.loteId.trim()) newErrors.loteId = 'Selecione um lote';
+      if (!formData.estadoSaude.trim()) newErrors.estadoSaude = 'Estado é obrigatório';
+      if (!formData.dataPlantio.trim()) newErrors.dataPlantio = 'Data do plantio é obrigatória';
     }
-
     if (currentStep === 2) {
-      if (!formData.latitude.trim()) {
-        newErrors.latitude = 'Latitude é obrigatória';
-      }
-      if (!formData.longitude.trim()) {
-        newErrors.longitude = 'Longitude é obrigatória';
-      }
+      if (!formData.latitude.trim()) newErrors.latitude = 'Latitude é obrigatória';
+      if (!formData.longitude.trim()) newErrors.longitude = 'Longitude é obrigatória';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // NOVAS funções que faltavam: handleNext e handleBack
   const handleNext = () => {
-    if (validateCurrentStep()) {
-      if (currentStep < 2) {
-        setCurrentStep(currentStep + 1);
-      } else {
-        handleSubmit();
-      }
+    if (!validateCurrentStep()) return;
+    if (currentStep < 2) {
+      setCurrentStep(prev => prev + 1);
+    } else {
+      handleSubmit();
     }
   };
 
   const handleBack = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      setCurrentStep(prev => prev - 1);
     } else {
       handleClose();
     }
   };
+  // --- Ajuste do handleDateChange ---
+  const handleDateChange = (_: any, selectedDate?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      // Salva no formato ISO para consistência no Firebase
+      updateFormData('dataPlantio', selectedDate.toISOString());
+    }
+  };
+
+  const handleUseCurrentLocation = () => {
+    // placeholder: mantenho seu valor de exemplo — você pode integrar Location daqui se quiser
+    updateFormData('latitude', '-3.123456');
+    updateFormData('longitude', '-60.123456');
+  };
 
   const handleSubmit = async () => {
     if (!validateCurrentStep()) return;
-
     setIsLoading(true);
     try {
       const arvoreData = {
         codigo: formData.idArvore,
-        loteId: loteId,
+        loteId: formData.loteId,
         estadoSaude: formData.estadoSaude,
         dataPlantio: formData.dataPlantio,
         latitude: formData.latitude,
@@ -124,25 +154,22 @@ export default function CadastrarArvoreModal({
       };
 
       const docRef = await addDoc(collection(db, 'arvores'), arvoreData);
+      onSuccess({ id: docRef.id, ...arvoreData });
 
-      onSubmit(formData);
-
-      Alert.alert('Sucesso!', 'Árvore cadastrada com sucesso!', [
-        { text: 'OK', onPress: handleClose }
-      ]);
-
+      Alert.alert('Sucesso!', 'Árvore cadastrada com sucesso!');
+      handleClose();
     } catch (error) {
       console.error('Erro ao cadastrar árvore:', error);
-      Alert.alert('Erro', 'Falha ao cadastrar a árvore. Tente novamente.');
+      Alert.alert('Erro', 'Falha ao cadastrar a árvore.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleClose = () => {
-    setCurrentStep(1);
     setFormData({
       idArvore: '',
+      loteId: '',
       estadoSaude: '',
       dataPlantio: '',
       latitude: '',
@@ -151,96 +178,148 @@ export default function CadastrarArvoreModal({
     });
     setErrors({});
     setShowEstadoModal(false);
+    setShowLoteModal(false);
+    setCurrentStep(1);
     onClose();
   };
 
-  const updateFormData = (field: keyof ArvoreFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-  };
-
-  const handleUseCurrentLocation = () => {
-    updateFormData('latitude', '-3.123456');
-    updateFormData('longitude', '-60.123456');
-  };
-
-  const getEstadoLabel = (value: string) => {
-    const estado = estadosSaude.find(e => e.value === value);
-    return estado ? estado.label : 'Selecione um estado';
-  };
-
   const renderStep1 = () => (
-    <View style={styles.stepContent}>
-      <View style={styles.iconContainer}>
-        <View style={styles.iconCircle}>
-          <Ionicons name="leaf-outline" size={24} color="#059669" />
-        </View>
-      </View>
-
-      <Text style={styles.stepSubtitle}>Preencha os dados abaixo para vincular esta árvore à sua produção</Text>
+    <View>
+      <Text style={styles.stepSubtitle}>Preencha os dados abaixo para cadastrar uma nova árvore</Text>
 
       <View style={styles.form}>
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>ID da Árvore*</Text>
+          <Text style={styles.inputLabel}><Text style={styles.span}>* </Text>ID da Árvore</Text>
           <TextInput
             style={[styles.input, errors.idArvore && styles.inputError]}
             value={formData.idArvore}
-            onChangeText={(value) => updateFormData('idArvore', value)}
+            onChangeText={value => updateFormData('idArvore', value)}
             placeholder="e.g. CUM-A12-001"
-            placeholderTextColor="#9CA3AF"
           />
           {errors.idArvore && <Text style={styles.errorText}>{errors.idArvore}</Text>}
         </View>
 
+        {/* Lote */}
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Estado da Árvore*</Text>
+          <Text style={styles.inputLabel}>Lote</Text>
+          <TouchableOpacity
+            style={[styles.input, styles.selectInput, errors.loteId && styles.inputError]}
+            onPress={() => setShowLoteModal(true)}
+          >
+            <Text
+              style={[
+                styles.selectText,
+                !formData.loteId && styles.selectPlaceholder,
+              ]}
+            >
+              {formData.loteId
+                ? lotes.find(lote => lote.id === formData.loteId)?.codigo || 'Selecione um lote'
+                : 'Selecione um lote'}
+            </Text>
+            <Ionicons name="chevron-down" size={20} color="#6B7280" />
+          </TouchableOpacity>
+          {errors.loteId && <Text style={styles.errorText}>{errors.loteId}</Text>}
+        </View>
+
+        {/* Modal de seleção de Lote */}
+        <Modal
+          visible={showLoteModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowLoteModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Selecione o Lote</Text>
+                <TouchableOpacity onPress={() => setShowLoteModal(false)}>
+                  <Ionicons name="close" size={24} color="#6b7280" />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={styles.modalOptions}>
+                {lotes.map(lote => (
+                  <TouchableOpacity
+                    key={lote.id}
+                    style={[
+                      styles.modalOption,
+                      formData.loteId === lote.id && styles.modalOptionSelected,
+                    ]}
+                    onPress={() => {
+                      updateFormData('loteId', lote.id);
+                      setShowLoteModal(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        formData.loteId === lote.id && styles.modalOptionTextSelected,
+                      ]}
+                    >
+                      {lote.codigo}
+                    </Text>
+                    {formData.loteId === lote.id && (
+                      <Ionicons name="checkmark" size={20} color="#16a34a" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+
+        {/* Estado da Árvore */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Estado da Árvore</Text>
           <TouchableOpacity
             style={[styles.input, styles.selectInput, errors.estadoSaude && styles.inputError]}
             onPress={() => setShowEstadoModal(true)}
           >
-            <Text style={[
-              styles.selectText,
-              !formData.estadoSaude && styles.selectPlaceholder
-            ]}>
-              {getEstadoLabel(formData.estadoSaude)}
+            <Text style={[styles.selectText, !formData.estadoSaude && styles.selectPlaceholder]}>
+              {formData.estadoSaude
+                ? estadosSaude.find(e => e.value === formData.estadoSaude)?.label
+                : 'Selecione um estado'}
             </Text>
             <Ionicons name="chevron-down" size={20} color="#6B7280" />
           </TouchableOpacity>
-          {errors.estadoSaude && <Text style={styles.errorText}>{errors.estadoSaude}</Text>}
         </View>
 
+        {/* Data do plantio */}
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Data de plantio*</Text>
+          <Text style={styles.inputLabel}>Data de Cadastro</Text>
           <View style={styles.dateContainer}>
+                        <TouchableOpacity
+              
+              onPress={() => setShowDatePicker(true)}
+            >
             <TextInput
               style={[styles.input, styles.dateInput, errors.dataPlantio && styles.inputError]}
-              value={formData.dataPlantio}
-              onChangeText={(value) => updateFormData('dataPlantio', value)}
+              value={formData.dataPlantio ? new Date(formData.dataPlantio).toLocaleDateString('pt-BR') : ''}
               placeholder="DD/MM/AAAA"
-              placeholderTextColor="#9CA3AF"
+              editable={false}
             />
-            <TouchableOpacity style={styles.dateIcon}>
-              <Ionicons name="calendar-outline" size={20} color="#6B7280" />
+
+              <View style={styles.dateIcon}>
+              <Ionicons name="calendar-outline" size={20} color="#6B7280" /></View>
             </TouchableOpacity>
           </View>
           {errors.dataPlantio && <Text style={styles.errorText}>{errors.dataPlantio}</Text>}
         </View>
       </View>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={new Date()}
+          mode="date"
+          display="spinner"
+          onChange={handleDateChange}
+        />
+      )}
     </View>
   );
-
   const renderStep2 = () => (
-    <View style={styles.stepContent}>
-      <View style={styles.iconContainer}>
-        <View style={styles.iconCircle}>
-          <Ionicons name="location-outline" size={24} color="#059669" />
-        </View>
-      </View>
-
-      <Text style={styles.stepSubtitle}> Adicione a Localização da Árvore</Text>
-
+    <View>
+      <Text style={styles.stepSubtitle}>Adicione a Localização da Árvore</Text>
       <View style={styles.form}>
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Localização GPS*</Text>
@@ -250,7 +329,7 @@ export default function CadastrarArvoreModal({
               <TextInput
                 style={[styles.input, styles.coordinateInput, errors.latitude && styles.inputError]}
                 value={formData.latitude}
-                onChangeText={(value) => updateFormData('latitude', value)}
+                onChangeText={value => updateFormData('latitude', value)}
                 placeholder="-3.123456"
                 placeholderTextColor="#9CA3AF"
                 keyboardType="numeric"
@@ -261,7 +340,7 @@ export default function CadastrarArvoreModal({
               <TextInput
                 style={[styles.input, styles.coordinateInput, errors.longitude && styles.inputError]}
                 value={formData.longitude}
-                onChangeText={(value) => updateFormData('longitude', value)}
+                onChangeText={value => updateFormData('longitude', value)}
                 placeholder="-60.123456"
                 placeholderTextColor="#9CA3AF"
                 keyboardType="numeric"
@@ -271,7 +350,7 @@ export default function CadastrarArvoreModal({
           {(errors.latitude || errors.longitude) && (
             <Text style={styles.errorText}>Coordenadas são obrigatórias</Text>
           )}
-          
+
           <TouchableOpacity style={styles.locationButton} onPress={handleUseCurrentLocation}>
             <Ionicons name="navigate" size={16} color="white" />
             <Text style={styles.locationButtonText}>Obter GPS</Text>
@@ -283,7 +362,7 @@ export default function CadastrarArvoreModal({
           <TextInput
             style={[styles.input, styles.textArea]}
             value={formData.notasAdicionais}
-            onChangeText={(value) => updateFormData('notasAdicionais', value)}
+            onChangeText={value => updateFormData('notasAdicionais', value)}
             placeholder="Alguma observação adicional sobre esta árvore..."
             placeholderTextColor="#9CA3AF"
             multiline
@@ -291,7 +370,9 @@ export default function CadastrarArvoreModal({
             textAlignVertical="top"
             maxLength={300}
           />
-          <Text style={styles.characterCount}>{formData.notasAdicionais.length}/300 caracteres</Text>
+          <Text style={styles.characterCount}>
+            {formData.notasAdicionais.length}/300 caracteres
+          </Text>
         </View>
       </View>
     </View>
@@ -308,28 +389,18 @@ export default function CadastrarArvoreModal({
     }
   };
 
-  const getButtonText = () => currentStep === 1 ? 'Continuar' : 'Cadastrar';
-
+  const getButtonText = () => (currentStep === 1 ? 'Continuar' : 'Cadastrar');
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
       <SafeAreaView style={styles.container}>
-        
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <TouchableOpacity onPress={handleClose} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>Nova Árvore</Text>
+            <Text style={styles.headerTitle}>Cadastrar nova árvore</Text>
             <Text style={styles.headerSubtitle}>Etapa {currentStep} de 2</Text>
           </View>
-          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="white" />
-          </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -338,12 +409,12 @@ export default function CadastrarArvoreModal({
 
         <View style={styles.bottomButtons}>
           {currentStep > 1 && (
-            <TouchableOpacity style={styles.backButtonBottom} onPress={handleBack}>
+            <TouchableOpacity style={styles.backButtonBottom} onPress={handleClose}>
               <Text style={styles.backButtonText}>Voltar</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity 
-            style={[styles.continueButton, isLoading && styles.disabledButton]} 
+          <TouchableOpacity
+            style={[styles.continueButton, isLoading && styles.disabledButton]}
             onPress={handleNext}
             disabled={isLoading}
           >
@@ -358,12 +429,7 @@ export default function CadastrarArvoreModal({
           </TouchableOpacity>
         </View>
 
-        <Modal
-          visible={showEstadoModal}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowEstadoModal(false)}
-        >
+        <Modal visible={showEstadoModal} transparent animationType="fade" onRequestClose={() => setShowEstadoModal(false)}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
@@ -372,24 +438,25 @@ export default function CadastrarArvoreModal({
                   <Ionicons name="close" size={24} color="#6b7280" />
                 </TouchableOpacity>
               </View>
-              
               <ScrollView style={styles.modalOptions}>
-                {estadosSaude.map((estado) => (
+                {estadosSaude.map(estado => (
                   <TouchableOpacity
                     key={estado.value}
                     style={[
                       styles.modalOption,
-                      formData.estadoSaude === estado.value && styles.modalOptionSelected
+                      formData.estadoSaude === estado.value && styles.modalOptionSelected,
                     ]}
                     onPress={() => {
                       updateFormData('estadoSaude', estado.value);
                       setShowEstadoModal(false);
                     }}
                   >
-                    <Text style={[
-                      styles.modalOptionText,
-                      formData.estadoSaude === estado.value && styles.modalOptionTextSelected
-                    ]}>
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        formData.estadoSaude === estado.value && styles.modalOptionTextSelected,
+                      ]}
+                    >
                       {estado.label}
                     </Text>
                     {formData.estadoSaude === estado.value && (
@@ -405,7 +472,6 @@ export default function CadastrarArvoreModal({
     </Modal>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -428,7 +494,6 @@ const styles = StyleSheet.create({
   },
   headerInfo: {
     flex: 1,
-    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
@@ -440,31 +505,10 @@ const styles = StyleSheet.create({
     color: '#BBF7D0',
     marginTop: 2,
   },
-  closeButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   content: {
     flex: 1,
-  },
-  stepContent: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  iconContainer: {
-    marginBottom: 24,
-  },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#F0FDF4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#D1FAE5',
+    paddingHorizontal: 20,
+    paddingVertical: 36,
   },
   stepSubtitle: {
     fontSize: 18,
@@ -478,6 +522,9 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: 24,
+  },
+  span: {
+    color: '#EF4444',
   },
   inputLabel: {
     fontSize: 14,
@@ -661,3 +708,4 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+export default CadastrarArvoreModal;

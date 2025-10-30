@@ -46,7 +46,7 @@ const SummaryPreview: React.FC<SummaryPreviewProps> = ({ summaryData }) => {
 const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 28,
   },
   summaryCard: {
     backgroundColor: 'white',

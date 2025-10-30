@@ -26,7 +26,6 @@ const ArvoresTab: React.FC<ArvoresTabProps> = ({ arvores, isAdmin }) => {
   };
 
   const handleArvorePress = (arvoreId: string) => {
-    // Solução: usar 'as any' para evitar erro de tipagem do Expo Router
     router.push(`/arvore/${arvoreId}` as any);
   };
 
@@ -36,8 +35,8 @@ const ArvoresTab: React.FC<ArvoresTabProps> = ({ arvores, isAdmin }) => {
         <Ionicons name="leaf-outline" size={48} color="#9CA3AF" />
         <Text style={styles.emptyStateTitle}>Nenhuma árvore cadastrada</Text>
         <Text style={styles.emptyStateText}>
-          {isAdmin 
-            ? 'Cadastre a primeira árvore deste lote clicando no botão acima.' 
+          {isAdmin
+            ? 'Cadastre a primeira árvore deste lote clicando no botão acima.'
             : 'Ainda não há árvores cadastradas neste lote.'}
         </Text>
       </View>
@@ -46,9 +45,9 @@ const ArvoresTab: React.FC<ArvoresTabProps> = ({ arvores, isAdmin }) => {
 
   return (
     <View style={styles.container}>
-      {arvores.map((arvore) => (
-        <TouchableOpacity 
-          key={arvore.id} 
+    { [...arvores].sort((a, b) => b.id.localeCompare(a.id)).map((arvore) => (
+        <TouchableOpacity
+          key={arvore.id}
           style={styles.arvoreCard}
           onPress={() => handleArvorePress(arvore.id)}
           activeOpacity={0.7}
@@ -59,7 +58,7 @@ const ArvoresTab: React.FC<ArvoresTabProps> = ({ arvores, isAdmin }) => {
             </View>
             <View style={styles.arvoreHeaderRight}>
               <View style={[
-                styles.qualidadeBadge, 
+                styles.qualidadeBadge,
                 { backgroundColor: getQualidadeColor(arvore.estadoSaude || 'Saudável') }
               ]}>
                 <Text style={styles.qualidadeText}>
@@ -73,9 +72,9 @@ const ArvoresTab: React.FC<ArvoresTabProps> = ({ arvores, isAdmin }) => {
             <View style={styles.arvoreDetailItem}>
               <Text style={styles.arvoreDetailLabel}>Última Coleta</Text>
               <Text style={styles.arvoreDetailValue}>
-                {arvore.diasAtras === 0 ? arvore.ultimaColeta : 
-                 arvore.ultimaColeta === 'Nunca coletada' ? 'Nunca coletada' : 
-                 `${arvore.ultimaColeta} (${arvore.diasAtras} dias atrás)`
+                {arvore.diasAtras === 0 ? arvore.ultimaColeta :
+                  arvore.ultimaColeta === 'Nunca coletada' ? 'Nunca coletada' :
+                    `${arvore.ultimaColeta} (${arvore.diasAtras} dias atrás)`
                 }
               </Text>
             </View>
