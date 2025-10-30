@@ -46,8 +46,8 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
                             style={styles.option}
                             onPress={() => setNovaColetaVisible(true)}
                         >
-                            <View style={[styles.iconBox, { backgroundColor: '#dcfce7' }]}>
-                                <Ionicons name="egg" size={22} color="#16a34a" />
+                            <View style={[styles.iconBox, { backgroundColor: '#f5f5f5' }]}>
+                                <Ionicons name="add" size={32} color="#1f2937" />
                             </View>
                             <View style={styles.textBox}>
                                 <Text style={styles.optionTitle}>Registrar Nova Colheita</Text>
@@ -62,8 +62,8 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
                             style={styles.option}
                             onPress={() => setNovaArvoreVisible(true)}
                         >
-                            <View style={[styles.iconBox, { backgroundColor: '#fef9c3' }]}>
-                                <Ionicons name="leaf" size={22} color="#ca8a04" />
+                            <View style={[styles.iconBox, { backgroundColor: '#f5f5f5' }]}>
+                                <Ionicons name="leaf" size={22} color="#1f2937" />
                             </View>
                             <View style={styles.textBox}>
                                 <Text style={styles.optionTitle}>Cadastrar nova árvore</Text>
@@ -78,8 +78,8 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
                             style={styles.option}
                             onPress={() => setNovoLoteVisible(true)}
                         >
-                            <View style={[styles.iconBox, { backgroundColor: '#dbeafe' }]}>
-                                <Ionicons name="logo-buffer" size={22} color="#2563eb" />
+                            <View style={[styles.iconBox, { backgroundColor: '#f5f5f5' }]}>
+                                <Ionicons name="logo-buffer" size={22} color="#1f2937" />
                             </View>
                             <View style={styles.textBox}>
                                 <Text style={styles.optionTitle}>Cadastrar novo lote</Text>
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#d1d5db',
         borderRadius: 2,
         alignSelf: 'center',
-        marginBottom: 16,
+        marginBottom: 24,
     },
     title: {
         fontSize: 20,
@@ -161,13 +161,13 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 20,
     },
-    optionList: { gap: 12 },
+    optionList: { gap: 10 },
     option: {
         backgroundColor: 'white',
         borderWidth: 1,
         borderColor: '#e5e7eb',
         borderRadius: 12,
-        paddingVertical: 12,
+        paddingVertical: 14,
         paddingHorizontal: 16,
         flexDirection: 'row',
         alignItems: 'center',
