@@ -33,6 +33,10 @@ import {
   where,
 } from 'firebase/firestore';
 
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+dayjs.extend(utc);
+
 interface NovaColetaModalProps {
   visible: boolean;
   onClose: () => void;
@@ -63,7 +67,8 @@ interface RecentCollection {
 const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
   visible,
   onClose,
-  onSuccess }) => {
+  onSuccess
+}) => {
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [selectedLote, setSelectedLote] = useState('');
   const [selectedArvore, setSelectedArvore] = useState('');
@@ -79,9 +84,11 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+
   const handleClose = () => {
     onClose();
   };
+
   // Monitorar autenticação
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -104,58 +111,6 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
 
     return () => unsubscribe();
   }, []);
-
-  // Carregar coletas recentes
-  const loadRecentCollections = async () => {
-    if (!currentUserId) return;
-    try {
-      const coletasQuery = query(collection(db, 'coletas'), where('coletorId', '==', currentUserId));
-      const coletasSnapshot = await getDocs(coletasQuery);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const coletasData: RecentCollection[] = [];
-
-      for (const docSnapshot of coletasSnapshot.docs) {
-        const data = docSnapshot.data();
-        const dataColeta = data.dataColeta?.toDate?.() || new Date();
-        const dataColetaDay = new Date(dataColeta);
-        dataColetaDay.setHours(0, 0, 0, 0);
-
-        if (dataColetaDay.getTime() !== today.getTime()) continue;
-
-        let loteNome = 'Lote não encontrado';
-        let arvoreCodigo = 'Árvore não encontrada';
-
-        if (data.loteId) {
-          const loteDoc = await getDoc(doc(db, 'lotes', data.loteId));
-          if (loteDoc.exists()) loteNome = loteDoc.data().codigo || loteDoc.data().nome || 'Lote sem nome';
-        }
-
-        if (data.arvoreId) {
-          const arvoreDoc = await getDoc(doc(db, 'arvores', data.arvoreId));
-          if (arvoreDoc.exists()) arvoreCodigo = arvoreDoc.data().codigo || 'Sem código';
-        }
-
-        const hora = dataColeta.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-        coletasData.push({
-          id: docSnapshot.id,
-          lote: loteNome,
-          arvore: arvoreCodigo,
-          quantidade: `${data.quantidade || 0} kg`,
-          hora,
-          status: data.status || 'pendente',
-        });
-      }
-
-      coletasData.sort((a, b) => (b.hora.localeCompare(a.hora)));
-      setRecentCollections(coletasData.slice(0, 10));
-    } catch (error) {
-      console.error('Erro ao carregar coletas recentes:', error);
-      setRecentCollections([]);
-    }
-  };
 
   // Carregar lotes e árvores
   useEffect(() => {
@@ -182,7 +137,6 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
           codigo: doc.data().codigo || `L-${doc.id.slice(-3)}`,
           nome: doc.data().nome || 'Lote sem nome',
         }));
-
         setLotes(lotesData);
 
         if (lotesData.length > 0) {
@@ -199,7 +153,7 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
           setArvores(arvoresData);
         }
 
-        await loadRecentCollections();
+        await loadRecentCollections(lotesData);
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
         Alert.alert('Erro', 'Falha ao carregar dados. Tente novamente.');
@@ -210,6 +164,52 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
 
     if (currentUserId) loadData();
   }, [currentUserId, isAdmin]);
+
+  // Carregar coletas recentes
+  const loadRecentCollections = async (lotesData: Lote[]) => {
+    if (!currentUserId) return;
+    try {
+      const coletasQuery = query(
+        collection(db, 'coletas'),
+        where('coletorId', '==', currentUserId)
+      );
+      const coletasSnapshot = await getDocs(coletasQuery);
+
+      const lotesMap = new Map(lotesData.map(l => [l.id, l]));
+      const arvoresMap = new Map(arvores.map(a => [a.id, a]));
+
+      const today = dayjs().utc();
+      const coletasData: RecentCollection[] = [];
+
+      for (const docSnapshot of coletasSnapshot.docs) {
+        const data = docSnapshot.data();
+        const dataColeta = data.dataColeta?.toDate?.();
+        if (!dataColeta) continue;
+
+        const dataColetaDay = dayjs(dataColeta).utc();
+        if (!dataColetaDay.isSame(today, 'day')) continue;
+
+        const loteNome = lotesMap.get(data.loteId)?.codigo || 'Lote não encontrado';
+        const arvoreCodigo = arvoresMap.get(data.arvoreId)?.codigo || 'Árvore não encontrada';
+        const hora = dataColetaDay.local().format('HH:mm');
+
+        coletasData.push({
+          id: docSnapshot.id,
+          lote: loteNome,
+          arvore: arvoreCodigo,
+          quantidade: `${data.quantidade || 0} kg`,
+          hora,
+          status: data.status || 'pendente',
+        });
+      }
+
+      coletasData.sort((a, b) => b.hora.localeCompare(a.hora));
+      setRecentCollections(coletasData.slice(0, 10));
+    } catch (error) {
+      console.error('Erro ao carregar coletas recentes:', error);
+      setRecentCollections([]);
+    }
+  };
 
   // Submeter coleta
   const handleSubmit = async () => {
@@ -264,7 +264,7 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
       setQuantidade('');
       setObservacoes('');
 
-      await loadRecentCollections();
+      await loadRecentCollections(lotes);
       onSuccess?.(coletaData);
     } catch (error) {
       console.error('Erro ao registrar coleta:', error);

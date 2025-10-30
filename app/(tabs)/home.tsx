@@ -13,7 +13,7 @@ const HomeScreen: React.FC = () => {
   const router = useRouter();
 
   const handleQuickAction = (route: string) => {
-    router.push(route as any); 
+    router.push(route as any);
   };
 
   const handleNotifications = () => {
@@ -27,6 +27,7 @@ const HomeScreen: React.FC = () => {
     atividadeRecente,
     isAdmin,
     loading,
+    percentualHoje,
   } = useHomeData();
 
   const stats = [
@@ -68,8 +69,8 @@ const HomeScreen: React.FC = () => {
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <ProductionCard
-          productionToday="12.5 kg"
-          changePercent="+8% em relação a ontem"
+          productionToday={kgHoje}  
+          changePercent={percentualHoje}
         />
         <StatsCards stats={stats} />
         <QuickActions actions={quickActions} onActionPress={handleQuickAction} />

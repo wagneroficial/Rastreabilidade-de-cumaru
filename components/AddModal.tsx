@@ -117,7 +117,7 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
                 } }
                 onSuccess={(novaArvore) => {
                     console.log('Nova árvore registrada:', novaArvore);
-                } } loteId={''}            />
+                } }            />
             {/* Modal do Novo Lote */}
             <NovoLoteModal
                 visible={novoLoteVisible}

@@ -72,6 +72,19 @@ const ColetaForm: React.FC<ColetaFormProps> = ({
         <View style={styles.dividerLine} />
       </View>
       <Text style={styles.title}>Registre Manualmente</Text>
+                {/* Quantidade */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>                        
+              <Text style={styles.span}>* </Text>Quantidade (kg)</Text>
+            <TextInput
+              style={styles.input}
+              value={quantidade}
+              onChangeText={onQuantidadeChange}
+              placeholder="0.0"
+              placeholderTextColor="#9ca3af"
+              keyboardType="decimal-pad"
+            />
+          </View>
       {lotes.length === 0 ? (
         <View style={styles.noDataContainer}>
           <Ionicons name="leaf-outline" size={48} color="#9ca3af" />
@@ -128,20 +141,6 @@ const ColetaForm: React.FC<ColetaFormProps> = ({
                 Nenhuma árvore cadastrada neste lote
               </Text>
             )}
-          </View>
-
-          {/* Quantidade */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>                        
-              <Text style={styles.span}>* </Text>Quantidade (kg)</Text>
-            <TextInput
-              style={styles.input}
-              value={quantidade}
-              onChangeText={onQuantidadeChange}
-              placeholder="0.0"
-              placeholderTextColor="#9ca3af"
-              keyboardType="decimal-pad"
-            />
           </View>
 
           {/* Observações */}

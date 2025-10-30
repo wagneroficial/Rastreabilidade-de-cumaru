@@ -10,11 +10,14 @@ import {
   Text,
   TouchableOpacity,
   View,
+  TextInput,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 
 import { auth, db } from '@/app/services/firebaseConfig.js';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 interface PerfilScreenProps {
   navigation: any;
@@ -47,6 +50,13 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // 🟢 Estados do modal de edição
+  const [editVisible, setEditVisible] = useState(false);
+  const [editNome, setEditNome] = useState('');
+  const [editTelefone, setEditTelefone] = useState('');
+  const [editPropriedade, setEditPropriedade] = useState('');
+  const [saving, setSaving] = useState(false);
+
   // Buscar dados do usuário logado
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -62,11 +72,11 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
               telefone: data.telefone || 'Não informado',
               propriedade: data.propriedade || 'Não informado',
               tipo: data.tipo || 'colaborador',
-              cadastro: data.criadoEm ? 
-                (data.criadoEm.seconds ? 
-                  new Date(data.criadoEm.seconds * 1000).toLocaleDateString('pt-BR') : 
-                  new Date(data.criadoEm).toLocaleDateString('pt-BR')
-                ) : 'Não informado'
+              cadastro: data.criadoEm
+                ? data.criadoEm.seconds
+                  ? new Date(data.criadoEm.seconds * 1000).toLocaleDateString('pt-BR')
+                  : new Date(data.criadoEm).toLocaleDateString('pt-BR')
+                : 'Não informado',
             });
           }
         } catch (error) {
@@ -82,7 +92,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
     return () => unsubscribe();
   }, []);
 
-  // Redirecionar para login se não estiver autenticado (usando useEffect)
+  // Redirecionar se não autenticado
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.replace('/');
@@ -90,72 +100,80 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   }, [loading, isAuthenticated]);
 
   const menuItems: MenuItem[] = [
-    { title: 'Relatórios', icon: 'document-text-outline', route: '/relatorios'},
+    { title: 'Relatórios', icon: 'document-text-outline', route: '/relatorios' },
     { title: 'Notificações', icon: 'notifications-outline', route: '/notificacoes' },
     { title: 'Quem Somos', icon: 'information-circle-outline', route: '/quem-somos' },
     { title: 'Segurança', icon: 'shield-checkmark-outline', route: '/seguranca' },
     { title: 'Ajuda', icon: 'help-circle-outline', route: '/ajuda' },
-    { title: 'Sair', icon: 'log-out-outline', action: 'logout', color: '#dc2626' }
+    { title: 'Sair', icon: 'log-out-outline', action: 'logout', color: '#dc2626' },
   ];
 
   const stats: StatItem[] = [
     { label: 'Total Lotes', value: '12' },
     { label: 'Total Colhido', value: '1.2t' },
-    { label: 'Dias Ativo', value: '45' }
+    { label: 'Dias Ativo', value: '45' },
   ];
 
   const handleLogout = async () => {
     try {
-      console.log('Iniciando processo de logout...');
-      
-      // Fazer logout do Firebase Auth
       await signOut(auth);
-      console.log('Logout do Firebase realizado com sucesso');
-      
-      // O redirecionamento será feito automaticamente pelo useEffect
-      // quando onAuthStateChanged detectar que o usuário não está mais logado
-      
     } catch (error) {
       console.error('Erro durante logout:', error);
-      
-      // Mostrar erro para o usuário
-      Alert.alert(
-        'Erro',
-        'Ocorreu um erro ao sair. Tente novamente.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Erro', 'Ocorreu um erro ao sair. Tente novamente.');
     }
   };
 
   const handleMenuPress = (item: MenuItem) => {
-    console.log('Menu pressionado:', item.title);
-    
     if (item.action === 'logout') {
-      console.log('Ação de logout detectada');
-      
-      // Mostrar confirmação antes do logout
-      Alert.alert(
-        'Sair',
-        'Tem certeza que deseja sair do aplicativo?',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { 
-            text: 'Sair', 
-            style: 'destructive',
-            onPress: () => {
-              console.log('Usuário confirmou logout');
-              handleLogout();
-            }
-          }
-        ]
-      );
+      Alert.alert('Sair', 'Tem certeza que deseja sair do aplicativo?', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sair', style: 'destructive', onPress: handleLogout },
+      ]);
     } else if (item.route) {
-      console.log('Navegando para:', item.route);
       router.push(item.route as any);
     }
   };
 
-  // Mostrar loading enquanto carrega dados do usuário
+  // 🟢 Função para abrir modal com dados atuais
+  const openEditModal = () => {
+    if (userData) {
+      setEditNome(userData.nome);
+      setEditTelefone(userData.telefone);
+      setEditPropriedade(userData.propriedade);
+      setEditVisible(true);
+    }
+  };
+
+  // 🟢 Função para salvar alterações no Firestore
+  const handleSaveChanges = async () => {
+    if (!userData || !auth.currentUser) return;
+
+    setSaving(true);
+    try {
+      const userRef = doc(db, 'usuarios', auth.currentUser.uid);
+      await updateDoc(userRef, {
+        nome: editNome.trim(),
+        telefone: editTelefone.trim(),
+        propriedade: editPropriedade.trim(),
+      });
+
+      setUserData({
+        ...userData,
+        nome: editNome.trim(),
+        telefone: editTelefone.trim(),
+        propriedade: editPropriedade.trim(),
+      });
+
+      setEditVisible(false);
+      Alert.alert('Sucesso', 'Informações atualizadas com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar alterações:', error);
+      Alert.alert('Erro', 'Não foi possível salvar as alterações.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, styles.centerContent]}>
@@ -164,7 +182,6 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
     );
   }
 
-  // Se não há usuário logado, mostrar tela vazia (redirecionamento será feito pelo useEffect)
   if (!isAuthenticated || !userData) {
     return (
       <SafeAreaView style={[styles.container, styles.centerContent]}>
@@ -176,7 +193,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#16a34a" barStyle="light-content" />
-      
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -187,17 +204,19 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
             <Text style={styles.userName}>{userData.nome}</Text>
             <Text style={styles.userProperty}>{userData.propriedade}</Text>
             <View style={styles.userTypeContainer}>
-              <Text style={[
-                styles.userType, 
-                userData.tipo === 'admin' ? styles.userTypeAdmin : styles.userTypeColaborador
-              ]}>
+              <Text
+                style={[
+                  styles.userType,
+                  userData.tipo === 'admin' ? styles.userTypeAdmin : styles.userTypeColaborador,
+                ]}
+              >
                 {userData.tipo === 'admin' ? 'Administrador' : 'Colaborador'}
               </Text>
             </View>
           </View>
         </View>
 
-        {/* Stats Cards */}
+        {/* Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.statsGrid}>
             {stats.map((stat, index) => (
@@ -212,21 +231,35 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
         {/* Profile Info */}
         <View style={styles.profileInfoContainer}>
           <View style={styles.profileInfoCard}>
-            <Text style={styles.profileInfoTitle}>Informações Pessoais</Text>
+            <View style={styles.profileInfoHeader}>
+              <Text style={styles.profileInfoTitle}>Informações Pessoais</Text>
+
+              {/* 🟢 Botão de editar funcionando */}
+              <TouchableOpacity
+                onPress={() => {
+                  console.log('Abrindo modal de edição...');
+                  openEditModal();
+                }}
+                activeOpacity={0.7}
+                style={{ padding: 6 }}
+              >
+                <Ionicons name="create-outline" size={22} color="#16a34a" />
+              </TouchableOpacity>
+            </View>
+
+
             <View style={styles.profileInfoList}>
               <View style={styles.profileInfoItem}>
                 <Text style={styles.profileInfoLabel}>E-mail</Text>
                 <Text style={styles.profileInfoValue}>{userData.email}</Text>
               </View>
-              <View style={[styles.profileInfoItem]}>
+              <View style={styles.profileInfoItem}>
                 <Text style={styles.profileInfoLabel}>Telefone</Text>
                 <Text style={styles.profileInfoValue}>{userData.telefone}</Text>
               </View>
-              <View style={[styles.profileInfoItem]}>
-                <Text style={styles.profileInfoLabel}>Tipo de Usuário</Text>
-                <Text style={styles.profileInfoValue}>
-                  {userData.tipo === 'admin' ? 'Administrador' : 'Colaborador'}
-                </Text>
+              <View style={styles.profileInfoItem}>
+                <Text style={styles.profileInfoLabel}>Propriedade</Text>
+                <Text style={styles.profileInfoValue}>{userData.propriedade}</Text>
               </View>
               <View style={styles.profileInfoItem}>
                 <Text style={styles.profileInfoLabel}>Cadastro</Text>
@@ -236,28 +269,22 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Menu Options */}
+        {/* Menu */}
         <View style={styles.menuContainer}>
           <View style={styles.menuCard}>
             {menuItems.map((item, index) => (
               <TouchableOpacity
                 key={index}
-                style={[
-                  styles.menuItem,
-                  index < menuItems.length - 1 && styles.menuItemBorder
-                ]}
+                style={[styles.menuItem, index < menuItems.length - 1 && styles.menuItemBorder]}
                 onPress={() => handleMenuPress(item)}
               >
                 <View style={styles.menuItemContent}>
-                  <Ionicons 
-                    name={item.icon as any} 
-                    size={20} 
-                    color={item.color || '#6b7280'} 
+                  <Ionicons
+                    name={item.icon as any}
+                    size={20}
+                    color={item.color || '#6b7280'}
                   />
-                  <Text style={[
-                    styles.menuItemText,
-                    item.color && { color: item.color }
-                  ]}>
+                  <Text style={[styles.menuItemText, item.color && { color: item.color }]}>
                     {item.title}
                   </Text>
                 </View>
@@ -266,22 +293,63 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
             ))}
           </View>
         </View>
+      </ScrollView>
 
-        {/* App Info */}
-        <View style={styles.appInfoContainer}>
-          <View style={styles.appInfoCard}>
-            <View style={styles.appIconContainer}>
-              <Ionicons name="leaf" size={24} color="#16a34a" />
+      {/* 🟢 Modal de edição */}
+      <Modal
+        visible={editVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Editar Perfil</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Nome"
+              value={editNome}
+              onChangeText={setEditNome}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Telefone"
+              value={editTelefone}
+              onChangeText={setEditTelefone}
+              keyboardType="phone-pad"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Propriedade"
+              value={editPropriedade}
+              onChangeText={setEditPropriedade}
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setEditVisible(false)}
+              >
+                <Text style={styles.cancelText}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.saveButton]}
+                onPress={handleSaveChanges}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.saveText}>Salvar</Text>
+                )}
+              </TouchableOpacity>
             </View>
-            <Text style={styles.appName}>CumaruApp</Text>
-            <Text style={styles.appDescription}>Gestão de Colheitas de Cumaru</Text>
-            <Text style={styles.appVersion}>Versão 1.0.0</Text>
           </View>
         </View>
+      </Modal>
 
-        {/* Bottom spacing */}
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -423,8 +491,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     overflow: 'hidden',
-   borderBottomWidth: 1,
-   borderBottomColor: '#f3f4f6',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
   },
   menuItem: {
     flexDirection: 'row',
@@ -484,6 +552,67 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 80,
+  },
+  profileInfoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '90%',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  input: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    padding: 10,
+    marginBottom: 12,
+    fontSize: 14,
+    color: '#111827',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+  },
+  modalButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  cancelButton: {
+    backgroundColor: '#f3f4f6',
+  },
+  saveButton: {
+    backgroundColor: '#16a34a',
+  },
+  cancelText: {
+    color: '#374151',
+    fontWeight: '500',
+  },
+  saveText: {
+    color: 'white',
+    fontWeight: '600',
   },
 });
 

@@ -1,18 +1,23 @@
-// components/ProductionCard.tsx
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface ProductionCardProps {
-  productionToday: string; // Ex: "12.5 kg"
-  changePercent: string;   // Ex: "+8% em relação a ontem"
+  productionToday?: number; // Produção em kg
+  changePercent: string;    // Ex: "+8% em relação a ontem"
 }
 
-const ProductionCard: React.FC<ProductionCardProps> = ({
-  productionToday,
-  changePercent,
-}) => {
+const ProductionCard: React.FC<ProductionCardProps> = ({ productionToday, changePercent }) => {
+  const [loading, setLoading] = useState(productionToday === undefined);
+
   const isPositive = changePercent.trim().startsWith('+');
+
+  // Caso productionToday não seja passado, mostramos carregamento
+  useEffect(() => {
+    if (productionToday !== undefined) {
+      setLoading(false);
+    }
+  }, [productionToday]);
 
   return (
     <View style={styles.card}>
@@ -20,7 +25,11 @@ const ProductionCard: React.FC<ProductionCardProps> = ({
       <View style={styles.header}>
         <View>
           <Text style={styles.label}>Produção de hoje</Text>
-          <Text style={styles.value}>{productionToday}</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color="#16a34a" />
+          ) : (
+            <Text style={styles.value}>{productionToday?.toFixed(1) ?? '0.0'} kg</Text>
+          )}
         </View>
 
         <View style={styles.iconContainer}>
@@ -36,12 +45,7 @@ const ProductionCard: React.FC<ProductionCardProps> = ({
           color={isPositive ? '#16a34a' : '#dc2626'}
           style={styles.footerIcon}
         />
-        <Text
-          style={[
-            styles.footerText,
-            { color: isPositive ? '#16a34a' : '#dc2626' },
-          ]}
-        >
+        <Text style={[styles.footerText, { color: isPositive ? '#16a34a' : '#dc2626' }]}>
           {changePercent}
         </Text>
       </View>
@@ -58,7 +62,6 @@ const styles = StyleSheet.create({
     marginVertical: 24,
     borderWidth: 1,
     borderColor: '#c4e0cc',
-
   },
   header: {
     flexDirection: 'row',

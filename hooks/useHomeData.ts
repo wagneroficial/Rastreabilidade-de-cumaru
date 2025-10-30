@@ -8,6 +8,7 @@ export const useHomeData = () => {
   const [lotesCount, setLotesCount] = useState(0);
   const [arvoresCount, setArvoresCount] = useState(0);
   const [kgHoje, setKgHoje] = useState(0);
+  const [kgOntem, setKgOntem] = useState(0);
   const [lotesAtivos, setLotesAtivos] = useState(0);
   const [atividadeRecente, setAtividadeRecente] = useState<any[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -87,6 +88,9 @@ export const useHomeData = () => {
         // --- COLETAS ---
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
+        const ontem = new Date();
+        ontem.setDate(ontem.getDate() - 1);
+        ontem.setHours(0, 0, 0, 0);
 
         let coletasQuery;
         if (isAdmin) {
@@ -99,6 +103,7 @@ export const useHomeData = () => {
             );
           } else {
             setKgHoje(0);
+            setKgOntem(0);
             setAtividadeRecente([]);
             return;
           }
@@ -106,33 +111,36 @@ export const useHomeData = () => {
 
         const coletasSnap = await getDocs(coletasQuery);
         let totalHoje = 0;
+        let totalOntem = 0;
         let recentes: any[] = [];
 
         coletasSnap.forEach(doc => {
           const data = doc.data();
           const dataColeta = data.dataColeta?.toDate?.() || null;
+          if (!dataColeta) return;
 
-          if (dataColeta) {
-            const dataColetaSemHora = new Date(dataColeta);
-            dataColetaSemHora.setHours(0, 0, 0, 0);
+          const dataColetaSemHora = new Date(dataColeta);
+          dataColetaSemHora.setHours(0, 0, 0, 0);
 
-            if (dataColetaSemHora.getTime() === hoje.getTime()) {
-              totalHoje += data.quantidade || 0;
-            }
-
-            const loteCodigo = data.loteId ? lotesMap[data.loteId] : "Sem lote";
-
-            recentes.push({
-              action: "Coleta realizada",
-              lote: loteCodigo,
-              amount: `${data.quantidade || 0} kg`,
-              time: dataColeta.toLocaleDateString("pt-BR"),
-              timestamp: dataColeta.getTime()
-            });
+          if (dataColetaSemHora.getTime() === hoje.getTime()) {
+            totalHoje += data.quantidade || 0;
+          } else if (dataColetaSemHora.getTime() === ontem.getTime()) {
+            totalOntem += data.quantidade || 0;
           }
+
+          const loteCodigo = data.loteId ? lotesMap[data.loteId] : "Sem lote";
+
+          recentes.push({
+            action: "Coleta realizada",
+            lote: loteCodigo,
+            amount: `${data.quantidade || 0} kg`,
+            time: dataColeta.toLocaleDateString("pt-BR"),
+            timestamp: dataColeta.getTime()
+          });
         });
 
         setKgHoje(totalHoje);
+        setKgOntem(totalOntem);
 
         const recentesOrdenadas = recentes
           .sort((a, b) => b.timestamp - a.timestamp)
@@ -149,6 +157,13 @@ export const useHomeData = () => {
     carregarDados();
   }, [isAdmin, currentUserId, loading]);
 
+  // --- Percentual hoje vs ontem ---
+  const percentualHoje = kgOntem > 0
+    ? `${(((kgHoje - kgOntem) / kgOntem) * 100).toFixed(1)}%`
+    : kgHoje > 0
+      ? '+100%'
+      : '0%';
+
   return {
     lotesCount,
     arvoresCount,
@@ -157,5 +172,6 @@ export const useHomeData = () => {
     atividadeRecente,
     isAdmin,
     loading,
+    percentualHoje,
   };
 };
