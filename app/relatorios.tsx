@@ -11,9 +11,9 @@ import SummaryPreview from '@/components/relatorios/SummaryPreview';
 import TabNavigation from '@/components/relatorios/TabNavigation';
 import { useRelatoriosData } from '@/hooks/useRelatoriosData';
 import React from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,

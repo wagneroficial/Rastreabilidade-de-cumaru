@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   value: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '600',
     color: '#1f2937',
   },
   label: {

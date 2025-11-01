@@ -1,23 +1,23 @@
-// app/arvore/[id].tsx
 
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Modal,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 import { db } from '../services/firebaseConfig';
 
@@ -55,6 +55,11 @@ export default function DetalheArvoreScreen() {
   const [sharingQR, setSharingQR] = useState(false);
   const qrCodeRef = useRef<View>(null);
 
+  // NOVO: Modal de edição
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editData, setEditData] = useState<Partial<ArvoreData>>({});
+  const isAdmin = true; // ajuste conforme a autenticação do seu app
+
   useEffect(() => {
     loadArvoreData();
   }, [id]);
@@ -62,18 +67,10 @@ export default function DetalheArvoreScreen() {
   const loadArvoreData = async () => {
     try {
       setLoading(true);
-
-      // Buscar dados da árvore
       const arvoreDoc = await getDoc(doc(db, 'arvores', id as string));
-      
-      if (!arvoreDoc.exists()) {
-        console.log('Árvore não encontrada');
-        return;
-      }
-
+      if (!arvoreDoc.exists()) return;
       const arvore = arvoreDoc.data();
 
-      // Buscar nome do lote
       let loteNome = 'Lote não encontrado';
       if (arvore.loteId) {
         const loteDoc = await getDoc(doc(db, 'lotes', arvore.loteId));
@@ -97,21 +94,18 @@ export default function DetalheArvoreScreen() {
         longitude: arvore.longitude,
       });
 
-      // Buscar histórico de coletas (SEM orderBy para evitar necessidade de índice)
+      // Histórico coletas
       const coletasQuery = query(
         collection(db, 'coletas'),
         where('arvoreId', '==', id),
         where('status', '==', 'aprovada')
       );
-
       const coletasSnapshot = await getDocs(coletasQuery);
       const coletasData: ColetaHistorico[] = [];
       let total = 0;
-
       for (const docSnap of coletasSnapshot.docs) {
         const coleta = docSnap.data();
         total += coleta.quantidade || 0;
-
         coletasData.push({
           id: docSnap.id,
           quantidade: coleta.quantidade || 0,
@@ -120,28 +114,37 @@ export default function DetalheArvoreScreen() {
           qualidade: coleta.qualidade,
         });
       }
-
-      // Ordenar manualmente por data (mais recente primeiro)
-      coletasData.sort((a, b) => {
-        const dateA = a.dataColeta?.seconds || 0;
-        const dateB = b.dataColeta?.seconds || 0;
-        return dateB - dateA;
-      });
-
+      coletasData.sort((a, b) => (b.dataColeta?.seconds || 0) - (a.dataColeta?.seconds || 0));
       setColetas(coletasData);
       setTotalProducao(total);
-
     } catch (error) {
-      console.error('Erro ao carregar dados da árvore:', error);
+      console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+
+
+  // NOVO: Salvar alterações da árvore
+  const handleSaveEdit = async () => {
+    if (!arvoreData) return;
+    try {
+      const arvoreRef = doc(db, 'arvores', arvoreData.id);
+      await updateDoc(arvoreRef, editData);
+      setArvoreData({ ...arvoreData, ...editData });
+      setShowEditModal(false);
+      Alert.alert('Sucesso', 'Dados da árvore atualizados!');
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Erro', 'Não foi possível atualizar a árvore.');
     }
   };
 
   const getQualidadeColor = (qualidade: string) => {
     switch (qualidade?.toLowerCase()) {
       case 'saudavel':
-      case 'saudável': 
+      case 'saudável':
       case 'excelente': return '#059669';
       case 'bom': return '#F59E0B';
       case 'ruim':
@@ -163,76 +166,48 @@ export default function DetalheArvoreScreen() {
 
   const generateQRData = () => {
     if (!arvoreData) return '';
-    
-    // Buscar código do lote
     const codigoLote = arvoreData.loteNome?.split(' - ')[0] || arvoreData.loteNome || 'LOTE';
-    const codigoArvore = arvoreData.codigo;
-
-    // Gerar no formato JSON
-    const qrData = {
-      codigoLote: codigoLote,
-      codigoArvore: codigoArvore
-    };
-
-    return JSON.stringify(qrData);
+    return JSON.stringify({ codigoLote, codigoArvore: arvoreData.codigo });
   };
 
   const handleShareQR = async () => {
     try {
       setSharingQR(true);
-
-      // Verificar se o dispositivo suporta compartilhamento
       const isAvailable = await Sharing.isAvailableAsync();
       if (!isAvailable) {
-        Alert.alert('Erro', 'Compartilhamento não disponível neste dispositivo.');
+        Alert.alert('Erro', 'Compartilhamento não disponível.');
         setSharingQR(false);
         return;
       }
-
-      // Capturar a view do QR Code como imagem
-      const uri = await captureRef(qrCodeRef, {
-        format: 'png',
-        quality: 1,
-      });
-
-      // Compartilhar diretamente a URI capturada (sem precisar copiar para cache)
-      await Sharing.shareAsync(uri, {
-        mimeType: 'image/png',
-        dialogTitle: `QR Code - ${arvoreData?.codigo}`,
-      });
-
+      const uri = await captureRef(qrCodeRef, { format: 'png', quality: 1 });
+      await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: `QR Code - ${arvoreData?.codigo}` });
       setSharingQR(false);
     } catch (error) {
-      console.error('Erro ao compartilhar QR Code:', error);
+      console.error(error);
       setSharingQR(false);
       Alert.alert('Erro', 'Não foi possível compartilhar o QR Code.');
     }
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#059669" />
-        <Text style={styles.loadingText}>Carregando...</Text>
-      </SafeAreaView>
-    );
-  }
+  if (loading) return (
+    <SafeAreaView style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#059669" />
+      <Text style={styles.loadingText}>Carregando...</Text>
+    </SafeAreaView>
+  );
 
-  if (!arvoreData) {
-    return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Árvore não encontrada</Text>
-        <TouchableOpacity style={styles.backButtonError} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Voltar</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
+  if (!arvoreData) return (
+    <SafeAreaView style={styles.loadingContainer}>
+      <Text style={styles.loadingText}>Árvore não encontrada</Text>
+      <TouchableOpacity style={styles.backButtonError} onPress={() => router.back()}>
+        <Text style={styles.backButtonText}>Voltar</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#16a34a" barStyle="light-content" />
-     
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -242,62 +217,53 @@ export default function DetalheArvoreScreen() {
           <Text style={styles.headerTitle}>{arvoreData.codigo}</Text>
           <Text style={styles.headerSubtitle}>{arvoreData.tipo}</Text>
         </View>
-        <View style={[
-          styles.statusBadge,
-          { backgroundColor: getQualidadeColor(arvoreData.estadoSaude) }
-        ]}>
+        <View style={[styles.statusBadge, { backgroundColor: getQualidadeColor(arvoreData.estadoSaude) }]}>
           <Text style={styles.statusText}>{arvoreData.estadoSaude}</Text>
         </View>
       </View>
 
-      {/* Botão Gerar QR Code */}
+      {/* Botão QR */}
       <View style={styles.qrButtonContainer}>
-        <TouchableOpacity
-          style={styles.qrButton}
-          onPress={() => setShowQRModal(true)}
-        >
+        <TouchableOpacity style={styles.qrButton} onPress={() => setShowQRModal(true)}>
           <Ionicons name="qr-code-outline" size={20} color="white" />
           <Text style={styles.qrButtonText}>Gerar QR Code</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Tabs */}
+      {/* Tabs e conteúdo */}
       <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'dados' && styles.tabActive]}
-          onPress={() => setActiveTab('dados')}
-        >
-          <Text style={[styles.tabText, activeTab === 'dados' && styles.tabTextActive]}>
-            Dados
-          </Text>
+        <TouchableOpacity style={[styles.tab, activeTab === 'dados' && styles.tabActive]} onPress={() => setActiveTab('dados')}>
+          <Text style={[styles.tabText, activeTab === 'dados' && styles.tabTextActive]}>Dados</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'producao' && styles.tabActive]}
-          onPress={() => setActiveTab('producao')}
-        >
-          <Text style={[styles.tabText, activeTab === 'producao' && styles.tabTextActive]}>
-            Produção
-          </Text>
+        <TouchableOpacity style={[styles.tab, activeTab === 'producao' && styles.tabActive]} onPress={() => setActiveTab('producao')}>
+          <Text style={[styles.tabText, activeTab === 'producao' && styles.tabTextActive]}>Produção</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {activeTab === 'dados' ? (
           <>
-            {/* Informações Gerais */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Informações Gerais</Text>
+              <View style={styles.row}>
+                <Text style={styles.sectionTitle}>Informações Gerais</Text>
+                {/* NOVO: Botão Editar */}
+                {isAdmin && (
+                  <TouchableOpacity style={{ marginLeft: 12, backgroundColor: '#fff' }}>
+                    <Ionicons name="create-outline" size={20} color="#059669" />
+                  </TouchableOpacity>
+                )}
+              </View>
               <View style={styles.card}>
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Lote:</Text>
                   <Text style={styles.infoValue}>{arvoreData.loteNome}</Text>
                 </View>
-                <View style={[styles.infoRow]}>
+                <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Espécie:</Text>
                   <Text style={styles.infoValue}>{arvoreData.tipo}</Text>
                 </View>
                 {arvoreData.dataPlantio && (
-                  <View style={[styles.infoRow]}>
+                  <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Data Plantio:</Text>
                     <Text style={styles.infoValue}>
                       {new Date(arvoreData.dataPlantio.seconds * 1000).toLocaleDateString('pt-BR')}
@@ -314,8 +280,6 @@ export default function DetalheArvoreScreen() {
                 </View>
               </View>
             </View>
-
-            {/* Localização GPS */}
             {(arvoreData.latitude && arvoreData.longitude) && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Localização GPS</Text>
@@ -324,15 +288,13 @@ export default function DetalheArvoreScreen() {
                     <Text style={styles.infoLabel}>Latitude:</Text>
                     <Text style={styles.infoValue}>{arvoreData.latitude}</Text>
                   </View>
-                  <View style={[styles.infoRow]}>
+                  <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Longitude:</Text>
                     <Text style={styles.infoValue}>{arvoreData.longitude}</Text>
                   </View>
                 </View>
               </View>
             )}
-
-            {/* Observações */}
             {arvoreData.observacoes && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Observações</Text>
@@ -344,7 +306,6 @@ export default function DetalheArvoreScreen() {
           </>
         ) : (
           <>
-            {/* Resumo de Produção */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Resumo de Produção</Text>
               <View style={styles.statsGrid}>
@@ -358,8 +319,6 @@ export default function DetalheArvoreScreen() {
                 </View>
               </View>
             </View>
-
-            {/* Histórico de Coletas */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Histórico de Coletas</Text>
               {coletas.length === 0 ? (
@@ -380,9 +339,7 @@ export default function DetalheArvoreScreen() {
                     {coleta.qualidade && (
                       <View style={styles.coletaQualidade}>
                         <Text style={styles.coletaQualidadeLabel}>Qualidade:</Text>
-                        <Text style={styles.coletaQualidadeValue}>
-                          {getQualidadeLabel(coleta.qualidade)}
-                        </Text>
+                        <Text style={styles.coletaQualidadeValue}>{getQualidadeLabel(coleta.qualidade)}</Text>
                       </View>
                     )}
                   </View>
@@ -391,10 +348,47 @@ export default function DetalheArvoreScreen() {
             </View>
           </>
         )}
-
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
+      {/* Modal de edição */}
+      <Modal visible={showEditModal} transparent animationType="slide" onRequestClose={() => setShowEditModal(false)}>
+        <View style={{ flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 16 }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 16 }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>Editar Árvore</Text>
+
+            <Text>Espécie:</Text>
+            <TextInput
+              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8, marginBottom: 12 }}
+              value={editData.tipo}
+              onChangeText={(text) => setEditData({ ...editData, tipo: text })}
+            />
+
+            <Text>Estado de Saúde:</Text>
+            <TextInput
+              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8, marginBottom: 12 }}
+              value={editData.estadoSaude}
+              onChangeText={(text) => setEditData({ ...editData, estadoSaude: text })}
+            />
+
+            <Text>Observações:</Text>
+            <TextInput
+              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8, marginBottom: 12 }}
+              value={editData.observacoes}
+              onChangeText={(text) => setEditData({ ...editData, observacoes: text })}
+            />
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <TouchableOpacity onPress={() => setShowEditModal(false)} style={{ padding: 12 }}>
+                <Text>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleSaveEdit} style={{ padding: 12 }}>
+                <Text style={{ fontWeight: 'bold', color: '#059669' }}>Salvar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       {/* Modal QR Code */}
       <Modal
         visible={showQRModal}
@@ -554,7 +548,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    color:'#1F2937',
+    color: '#1F2937',
     backgroundColor: '#16a34a',
     paddingVertical: 12,
     borderRadius: 8,
@@ -596,12 +590,17 @@ const styles = StyleSheet.create({
   section: {
     padding: 16,
   },
+    row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#1F2937',
     marginTop: 12,
     marginBottom: 12,
+        flex: 1,
   },
   card: {
     backgroundColor: 'white',
@@ -641,7 +640,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-   
+
   },
   statValue: {
     fontSize: 24,
@@ -686,7 +685,7 @@ const styles = StyleSheet.create({
   coletaQuantidade: {
     fontSize: 18,
     fontWeight: 'bold',
-     color:'#1F2937',
+    color: '#1F2937',
   },
   coletaColetor: {
     fontSize: 14,

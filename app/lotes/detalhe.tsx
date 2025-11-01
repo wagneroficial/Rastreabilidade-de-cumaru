@@ -1,9 +1,9 @@
 // screens/DetalheLoteScreen.tsx
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -21,15 +21,13 @@ import StatusModal from '@/components/detalhe-lote/StatusModal';
 import TabNavigator from '@/components/detalhe-lote/TabNavigator';
 import VisaoGeralTab from '@/components/detalhe-lote/VisaoGeralTab';
 import CadastrarArvoreModal from '@/components/nova_arvore';
-
-// 🆕 Import do seu modal de novo/editar lote
 import NovoLoteModal from '@/components/novo_lote';
 
 // Hook customizado
 import { useLoteData } from '@/hooks/useLoteData';
 
 // Tipos
-import { ArvoreFormData, Lote, TabType } from '@/types/lote.types';
+import { ArvoreFormData, ArvoreItem, Lote, TabType } from '@/types/lote.types';
 
 export default function DetalheLoteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -39,7 +37,6 @@ export default function DetalheLoteScreen() {
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [colaboradoresModalVisible, setColaboradoresModalVisible] = useState(false);
 
-  // 🆕 controle do modal de edição
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [loteParaEditar, setLoteParaEditar] = useState<Lote | null>(null);
 
@@ -58,12 +55,24 @@ export default function DetalheLoteScreen() {
     handleColaboradorToggle,
   } = useLoteData(id);
 
+  // Estado derivado para atualizar as árvores localmente
+  const [arvoresState, setArvoresState] = useState<ArvoreItem[]>([]);
+
+  useEffect(() => {
+    if (arvores) setArvoresState(arvores);
+  }, [arvores]);
+
   const handleBack = () => router.back();
 
-  const handleNovaArvore = (arvoreData: ArvoreFormData) => {
-    console.log('Nova árvore cadastrada:', arvoreData.idArvore);
-    setModalVisible(false);
-  };
+const handleArvoreCadastrada = (novaArvore: ArvoreItem) => {
+  setArvoresState(prev => [novaArvore, ...prev]); // sempre aparece primeiro
+  setModalVisible(false);
+};
+
+// 🔹 Atualiza o estado local quando o hook arvores mudar
+useEffect(() => {
+  if (arvores) setArvoresState([...arvores].reverse()); // coloca o último cadastrado no topo
+}, [arvores]);
 
   const handleOpenColaboradoresModal = () => {
     setColaboradoresModalVisible(true);
@@ -79,18 +88,15 @@ export default function DetalheLoteScreen() {
     getColaboradorNome(id)
   );
 
-  // 🆕 Abre o modal de edição
   const handleEditLote = (lote: Lote) => {
     setLoteParaEditar(lote);
     setEditModalVisible(true);
   };
 
-  // 🆕 Fecha e recarrega dados após edição
   const handleEditSuccess = () => {
     setEditModalVisible(false);
   };
 
-  // 🧹 Conteúdo das abas
   const renderTabContent = () => {
     if (!loteData) return null;
 
@@ -103,12 +109,12 @@ export default function DetalheLoteScreen() {
             colaboradoresNomes={colaboradoresNomes}
             historico={historicoData}
             onManageColaboradores={isAdmin ? handleOpenColaboradoresModal : undefined}
-            onEditLote={handleEditLote} // ✅ agora o botão Editar chama o modal
+            onEditLote={handleEditLote}
           />
         );
 
       case 'arvores':
-        return <ArvoresTab arvores={arvores} isAdmin={isAdmin} />;
+        return <ArvoresTab arvores={arvoresState} isAdmin={isAdmin} />;
 
       case 'historico':
         return <HistoricoTab historico={historicoData} />;
@@ -149,7 +155,6 @@ export default function DetalheLoteScreen() {
         onStatusPress={isAdmin ? () => setStatusModalVisible(true) : undefined}
       />
 
-      {/* Botão "Cadastrar Nova Árvore" (somente Admin) */}
       {isAdmin && (
         <View style={styles.cadastrarContainer}>
           <TouchableOpacity
@@ -157,37 +162,31 @@ export default function DetalheLoteScreen() {
             onPress={() => setModalVisible(true)}
           >
             <Ionicons name="add-outline" size={20} color="white" />
-            <Text style={styles.cadastrarButtonText}>Cadastrar Nova Árvore</Text>
+            <Text style={styles.cadastrarButtonText}>Nova Árvore</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Tabs */}
       <TabNavigator
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        arvoresCount={arvores.length}
+        arvoresCount={arvoresState.length}
         historicoCount={historicoData.length}
       />
 
-      {/* Conteúdo */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {renderTabContent()}
         <View style={styles.bottomSpacing} />
       </ScrollView>
 
-      {/* Modais */}
       {isAdmin && (
         <>
-          {/* Modal de nova árvore */}
           <CadastrarArvoreModal
             visible={modalVisible}
             onClose={() => setModalVisible(false)}
-            onSubmit={(data: ArvoreFormData) => handleNovaArvore(data)}
-            loteId={loteData.id}
+            onSuccess={handleArvoreCadastrada}
           />
 
-          {/* Modal de status */}
           <StatusModal
             visible={statusModalVisible}
             currentStatus={loteData.status}
@@ -199,7 +198,6 @@ export default function DetalheLoteScreen() {
             }}
           />
 
-          {/* Modal de colaboradores */}
           <ColaboradoresModal
             visible={colaboradoresModalVisible}
             colaboradores={colaboradores}
@@ -209,7 +207,6 @@ export default function DetalheLoteScreen() {
             onToggle={handleColaboradorToggle}
           />
 
-          {/* 🆕 Modal de edição do lote */}
           <NovoLoteModal
             visible={editModalVisible}
             onClose={() => setEditModalVisible(false)}
@@ -226,7 +223,7 @@ export default function DetalheLoteScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#fdfdfd',
   },
   loadingContainer: {
     flex: 1,

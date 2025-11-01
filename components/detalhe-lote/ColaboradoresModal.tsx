@@ -31,7 +31,7 @@ const ColaboradoresModal: React.FC<ColaboradoresModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.modal}>
           <View style={styles.header}>
-            <Text style={styles.title}>Gerenciar Colaboradores</Text>
+            <Text style={styles.title}>Adicionar Colaboradores</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color="#6b7280" />
             </TouchableOpacity>
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   footerButton: {
-    backgroundColor: '#059669',
+    backgroundColor: '#16a34a',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',

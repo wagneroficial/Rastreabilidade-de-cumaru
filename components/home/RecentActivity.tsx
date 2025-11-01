@@ -48,7 +48,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities, isAdmin }) 
 const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 16,
-    marginTop: 12,
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,

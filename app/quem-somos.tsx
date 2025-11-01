@@ -1,15 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-    Alert,
-    Linking,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface TeamMember {
@@ -32,19 +32,19 @@ const QuemSomosScreen: React.FC = () => {
     {
       name: 'Prof. esp. Raimundo Junior',
       role: 'Orientador do Projeto',
-      description: 'Especialista ',
+      description: 'Orientador especializado em gestão de projetos sustentáveis e tecnologia aplicada à agricultura amazônica.',
       avatar: 'RJ'
     },
     {
       name: 'Graduando Wagner Sampaio',
-      role: 'Desenvolvedora Mobile',
-      description: 'Desenvolvedor mobile e QA',
+      role: 'Desenvolvedor Mobile',
+      description: 'Desenvolvedor mobile, QA e responsável pela integração de funcionalidades com backend e APIs.',
       avatar: 'WS'
     },
     {
       name: 'Graduanda Ellen Viana',
       role: 'UI/UX Designer',
-      description: 'Designer UI/UX',
+      description: 'Designer de interfaces e experiência do usuário, garantindo usabilidade e acesso intuitivo às funcionalidades.',
       avatar: 'EV'
     },
   ];
@@ -52,36 +52,39 @@ const QuemSomosScreen: React.FC = () => {
   const features: Feature[] = [
     {
       icon: 'qr-code-outline',
-      title: 'QR Code Integrado',
-      description: 'Tecnologia avançada para identificação rápida de árvores'
+      title: 'Rastreabilidade por QR Code',
+      description: 'Cada produto derivado do cumaru possui um QR code permitindo rastrear sua origem de produção.'
     },
     {
       icon: 'location-outline',
       title: 'Geolocalização Precisa',
-      description: 'GPS de alta precisão para validação de localização'
+      description: 'Registra a localização exata de cada árvore, ajudando a monitorar e validar as áreas de colheita.'
     },
     {
       icon: 'bar-chart-outline',
-      title: 'Análise Inteligente',
-      description: 'Gráficos e relatórios detalhados sobre produção'
+      title: 'Análises e Relatórios',
+      description: 'Permite gerar relatórios detalhados sobre produção, produtividade e sustentabilidade do manejo.'
     },
     {
       icon: 'cloud-outline',
       title: 'Dados na Nuvem',
-      description: 'Sincronização automática e backup seguro'
+      description: 'Todas as informações ficam sincronizadas na nuvem, garantindo backup seguro e acesso remoto aos dados.'
+    },
+    {
+      icon: 'shield-checkmark-outline',
+      title: 'Segurança e Compliance',
+      description: 'O sistema garante conformidade com normas ambientais e facilita certificações para o mercado.'
     }
   ];
 
-  const handleBack = () => {
-    router.back();
-  };
+  const handleBack = () => router.back();
 
   const handleContact = (type: 'email' | 'phone') => {
     if (type === 'email') {
       Linking.openURL('mailto:contato@cumaruapp.com.br').catch(() => {
         Alert.alert('Erro', 'Não foi possível abrir o aplicativo de email');
       });
-    } else if (type === 'phone') {
+    } else {
       Linking.openURL('tel:+5592333344444').catch(() => {
         Alert.alert('Erro', 'Não foi possível fazer a ligação');
       });
@@ -98,161 +101,160 @@ const QuemSomosScreen: React.FC = () => {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Quem Somos</Text>
         </View>
-        
-        <View style={styles.headerContent}>
-          <View style={styles.appIconContainer}>
-            <Ionicons name="leaf" size={48} color="white" />
+      </View>
+    
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.headerContent}>
+            <View style={styles.appIconContainer}>
+              <Ionicons name="leaf" size={48} color="white" />
+            </View>
+            <Text style={styles.appTitle}>CumaTrack</Text>
+            <Text style={styles.appSubtitle}>Digitalizando o manejo do Cumaru na Amazônia</Text>
           </View>
-          <Text style={styles.appTitle}>CumaruApp</Text>
-          <Text style={styles.appSubtitle}>Tecnologia para o Futuro do Cumaru</Text>
+    
+
+
+
+      {/* Mission */}
+      <View style={styles.section}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Nossa Missão</Text>
+          <Text style={styles.missionText}>
+            Transformar a gestão de produção de cumaru através da tecnologia,
+            oferecendo ferramentas digitais que aumentam a eficiência, transparência
+            e sustentabilidade, ajudando produtores a tomar decisões baseadas em dados reais.
+          </Text>
         </View>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Mission */}
-        <View style={styles.section}>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Nossa Missão</Text>
-            <Text style={styles.missionText}>
-              Transformar a gestão de colheitas de cumaru através da tecnologia, 
-              proporcionando ferramentas digitais que aumentam a eficiência, 
-              organização e sustentabilidade da produção para pequenos, médios 
-              e grandes produtores da região amazônica.
+      {/* About Project */}
+      <View style={styles.section}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Sobre o Projeto</Text>
+          <View style={styles.aboutContent}>
+            <Text style={styles.aboutParagraph}>
+              O CumaTrack nasceu da necessidade de modernizar e digitalizar 
+              o processo de colheita do cumaru, oferecendo rastreabilidade completa 
+              desde o plantio até o consumidor final.
+            </Text>
+            <Text style={styles.aboutParagraph}>
+              Desenvolvido em parceria com produtores locais, 
+               o aplicativo permite registrar, monitorar e analisar a produção de forma prática e eficiente.
+            </Text>
+            <Text style={styles.aboutParagraph}>
+              Nosso objetivo é apoiar a sustentabilidade da floresta amazônica, 
+              otimizar a gestão das colheitas e fornecer informações confiáveis para o mercado.
             </Text>
           </View>
         </View>
+      </View>
 
-        {/* About Project */}
-        <View style={styles.section}>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Sobre o Projeto</Text>
-            <View style={styles.aboutContent}>
-              <Text style={styles.aboutParagraph}>
-                O CumaruApp nasceu da necessidade de modernizar e digitalizar 
-                o processo de colheita do cumaru, uma das especiarias mais 
-                valiosas da floresta amazônica.
-              </Text>
-              <Text style={styles.aboutParagraph}>
-                Desenvolvido em parceria com produtores locais e especialistas 
-                em agricultura sustentável, nosso aplicativo oferece uma solução 
-                completa para o registro, monitoramento e análise da produção.
-              </Text>
-              <Text style={styles.aboutParagraph}>
-                Com tecnologias como QR Code, GPS e análise de dados, facilitamos 
-                o trabalho dos produtores e contribuímos para o desenvolvimento 
-                sustentável da região.
-              </Text>
-            </View>
+      {/* Key Features */}
+      <View style={styles.section}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Principais Recursos</Text>
+          <View style={styles.featuresList}>
+            {features.map((feature, index) => (
+              <View key={index} style={styles.featureItem}>
+                <View style={styles.featureIcon}>
+                  <Ionicons name={feature.icon as any} size={24} color="white" />
+                </View>
+                <View style={styles.featureContent}>
+                  <Text style={styles.featureTitle}>{feature.title}</Text>
+                  <Text style={styles.featureDescription}>{feature.description}</Text>
+                </View>
+              </View>
+            ))}
           </View>
         </View>
+      </View>
 
-        {/* Key Features */}
-        <View style={styles.section}>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Principais Recursos</Text>
-            <View style={styles.featuresList}>
-              {features.map((feature, index) => (
-                <View key={index} style={styles.featureItem}>
-                  <View style={styles.featureIcon}>
-                    <Ionicons name={feature.icon as any} size={24} color="white" />
-                  </View>
-                  <View style={styles.featureContent}>
-                    <Text style={styles.featureTitle}>{feature.title}</Text>
-                    <Text style={styles.featureDescription}>{feature.description}</Text>
-                  </View>
+      {/* Team */}
+      <View style={styles.section}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Nossa Equipe</Text>
+          <View style={styles.teamList}>
+            {teamMembers.map((member, index) => (
+              <View key={index} style={styles.teamMember}>
+                <View style={styles.teamAvatar}>
+                  <Text style={styles.teamAvatarText}>{member.avatar}</Text>
                 </View>
-              ))}
-            </View>
+                <View style={styles.teamInfo}>
+                  <Text style={styles.teamName}>{member.name}</Text>
+                  <Text style={styles.teamRole}>{member.role}</Text>
+                  <Text style={styles.teamDescription}>{member.description}</Text>
+                </View>
+              </View>
+            ))}
           </View>
         </View>
+      </View>
 
-        {/* Team */}
-        <View style={styles.section}>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Nossa Equipe</Text>
-            <View style={styles.teamList}>
-              {teamMembers.map((member, index) => (
-                <View key={index} style={styles.teamMember}>
-                  <View style={styles.teamAvatar}>
-                    <Text style={styles.teamAvatarText}>{member.avatar}</Text>
-                  </View>
-                  <View style={styles.teamInfo}>
-                    <Text style={styles.teamName}>{member.name}</Text>
-                    <Text style={styles.teamRole}>{member.role}</Text>
-                    <Text style={styles.teamDescription}>{member.description}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
+      {/* Contact & Support */}
+      <View style={styles.section}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Contato e Suporte</Text>
+          <View style={styles.contactList}>
+            <TouchableOpacity
+              style={styles.contactItem}
+              onPress={() => handleContact('email')}
+            >
+              <Ionicons name="mail-outline" size={24} color="#16a34a" />
+              <View style={styles.contactInfo}>
+                <Text style={styles.contactLabel}>E-mail</Text>
+                <Text style={styles.contactValue}>contato@cumaruapp.com.br</Text>
+              </View>
+            </TouchableOpacity>
 
-        {/* Contact & Support */}
-        <View style={styles.section}>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Contato e Suporte</Text>
-            <View style={styles.contactList}>
-              <TouchableOpacity 
-                style={styles.contactItem}
-                onPress={() => handleContact('email')}
-              >
-                <Ionicons name="mail-outline" size={24} color="#16a34a" />
-                <View style={styles.contactInfo}>
-                  <Text style={styles.contactLabel}>E-mail</Text>
-                  <Text style={styles.contactValue}>contato@cumaruapp.com.br</Text>
-                </View>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.contactItem}
-                onPress={() => handleContact('phone')}
-              >
-                <Ionicons name="call-outline" size={24} color="#16a34a" />
-                <View style={styles.contactInfo}>
-                  <Text style={styles.contactLabel}>Telefone</Text>
-                  <Text style={styles.contactValue}>(92) 3333-4444</Text>
-                </View>
-              </TouchableOpacity>
-              
-              <View style={styles.contactItem}>
-                <Ionicons name="location-outline" size={24} color="#16a34a" />
-                <View style={styles.contactInfo}>
-                  <Text style={styles.contactLabel}>Localização</Text>
-                  <Text style={styles.contactValue}>Oriximiná, Pará - Brasil</Text>
-                </View>
+            <TouchableOpacity
+              style={styles.contactItem}
+              onPress={() => handleContact('phone')}
+            >
+              <Ionicons name="call-outline" size={24} color="#16a34a" />
+              <View style={styles.contactInfo}>
+                <Text style={styles.contactLabel}>Telefone</Text>
+                <Text style={styles.contactValue}>(92) 3333-4444</Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.contactItem}>
+              <Ionicons name="location-outline" size={24} color="#16a34a" />
+              <View style={styles.contactInfo}>
+                <Text style={styles.contactLabel}>Localização</Text>
+                <Text style={styles.contactValue}>Oriximiná, Pará - Brasil</Text>
               </View>
             </View>
           </View>
         </View>
+      </View>
 
-        {/* App Info */}
-        <View style={styles.section}>
-          <View style={styles.appInfoCard}>
-            <Text style={styles.appInfoTitle}>Versão do Aplicativo</Text>
-            <Text style={styles.appInfoVersion}>CumaruApp v100.0.0</Text>
-      
-          </View>
+      {/* App Info */}
+      <View style={styles.section}>
+        <View style={styles.appInfoCard}>
+          <Text style={styles.appInfoTitle}>Versão do Aplicativo</Text>
+          <Text style={styles.appInfoVersion}>CumaruApp v100.0.0</Text>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+      
+    </ScrollView>
+    </SafeAreaView >
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#fdfdfd',
   },
   header: {
     backgroundColor: '#16a34a',
     paddingHorizontal: 16,
-    paddingBottom: 32,
+    paddingVertical: 20,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 24,
   },
   backButton: {
     width: 32,
@@ -267,6 +269,10 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     alignItems: 'center',
+    backgroundColor: '#16a34a',
+    paddingHorizontal: 16,
+    paddingVertical: 32,
+    marginBottom: 32,
   },
   appIconContainer: {
     width: 64,
@@ -286,6 +292,7 @@ const styles = StyleSheet.create({
   appSubtitle: {
     fontSize: 18,
     color: '#bbf7d0',
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
@@ -298,17 +305,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+
   },
   cardTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1f2937',
-    marginBottom: 16,
+    marginBottom: 24,
     textAlign: 'center',
   },
   missionText: {
@@ -332,7 +335,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 16,
     padding: 12,
-    backgroundColor: '#f0fdf4',
     borderRadius: 8,
   },
   featureIcon: {
@@ -439,12 +441,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#bbf7d0',
     marginBottom: 16,
-  },
-  appInfoDescription: {
-    fontSize: 14,
-    color: '#bbf7d0',
-    textAlign: 'center',
-    lineHeight: 20,
   },
 });
 

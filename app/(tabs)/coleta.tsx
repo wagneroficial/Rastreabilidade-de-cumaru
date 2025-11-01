@@ -1,10 +1,10 @@
 // screens/ColetaScreen.tsx
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Alert,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -52,7 +52,7 @@ interface RecentCollection {
   status: 'pendente' | 'aprovada' | 'rejeitada';
 }
 
-const ColetaScreen: React.FC = () => {
+const NovaColetaModal: React.FC = () => {
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [selectedLote, setSelectedLote] = useState('');
   const [selectedArvore, setSelectedArvore] = useState('');
@@ -402,11 +402,22 @@ const ColetaScreen: React.FC = () => {
     );
   }
 
+  function handleClose() {
+    throw new Error('Function not implemented.');
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#16a34a" barStyle="light-content" />
       
-      <Header onBack={() => router.back()} />
+      <Header   onBack={() => {
+    // Fecha o modal da coleta
+    handleClose();
+    // Também poderia fechar modais filhos caso estejam abertos
+    setShowLoteModal(false);
+    setShowArvoreModal(false);
+    setShowQRScanner(false);
+  }} />
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <QRScannerButton onPress={() => setShowQRScanner(true)} />
@@ -490,4 +501,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ColetaScreen;
+export default NovaColetaModal;

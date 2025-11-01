@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
 import { addDoc, collection, doc, getDocs, query, updateDoc, where } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +17,7 @@ import {
   View,
 } from 'react-native';
 import { db } from '../app/services/firebaseConfig.js';
+
 
 interface NovoLoteModalProps {
   visible: boolean;
@@ -53,14 +54,13 @@ interface LocationData {
   address?: string;
 }
 
-const NovoLoteModal: React.FC<NovoLoteModalProps> = ({ 
-  visible, 
-  onClose, 
+const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
+  visible,
+  onClose,
   onSuccess,
   loteParaEditar = null
 }) => {
   const isEditMode = !!loteParaEditar;
-
   const [formData, setFormData] = useState<FormData>({
     nome: '',
     area: '',
@@ -73,19 +73,65 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
     numeroArvores: '',
     colaboradoresResponsaveis: []
   });
-  
+
   const [isLoading, setIsLoading] = useState(false);
+   const [nome, setNome] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
   const [showSoloModal, setShowSoloModal] = useState(false);
   const [showColaboradoresModal, setShowColaboradoresModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState<'inicio' | 'fim' | null>(null);
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
   const [loadingColaboradores, setLoadingColaboradores] = useState(false);
-  
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [locationPermission, setLocationPermission] = useState<Location.PermissionStatus | null>(null);
 
+  // Estados de validação
+  const [nomeError, setNomeError] = useState('');
+  const [checkingNome, setCheckingNome] = useState(false);
+
+  // Função de debounce
+const debounce = (func: (...args: any[]) => void, delay: number) => {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return (...args: any[]) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
+};
+
+  // Verifica no Firestore se já existe um lote com o mesmo nome
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const verificarNomeExistente = useCallback(
+    debounce(async (valor: string) => {
+      if (!valor.trim()) {
+        setNomeError('');
+        return;
+      }
+
+      setCheckingNome(true);
+      try {
+        const querySnapshot = await getDocs(collection(db, 'lotes'));
+        const existe = querySnapshot.docs.some((doc) => doc.data().nome === valor);
+        if (existe) {
+          setNomeError('Já existe um lote com este nome');
+        } else {
+          setNomeError('');
+        }
+      } catch (error) {
+        console.error('Erro ao verificar nome do lote:', error);
+        setNomeError('Erro ao validar nome.');
+      } finally {
+        setCheckingNome(false);
+      }
+    }, 500),
+    []
+  );
+
+  // Executa validação ao digitar
+  useEffect(() => {
+    verificarNomeExistente(nome);
+  }, [nome]);
+  
   useEffect(() => {
     if (visible && isEditMode && loteParaEditar) {
       setFormData({
@@ -114,7 +160,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
     try {
       const { status } = await Location.getForegroundPermissionsAsync();
       setLocationPermission(status);
-      
+
       if (status !== Location.PermissionStatus.GRANTED) {
         const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
         setLocationPermission(newStatus);
@@ -155,7 +201,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
       };
 
       setCurrentLocation(locationData);
-      
+
       handleInputChange('latitude', latitude.toFixed(6));
       handleInputChange('longitude', longitude.toFixed(6));
 
@@ -180,24 +226,24 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
   const validateCoordinates = (lat: string, lng: string): boolean => {
     const latitude = parseFloat(lat);
     const longitude = parseFloat(lng);
-    
-    return !isNaN(latitude) && 
-           !isNaN(longitude) && 
-           latitude >= -90 && 
-           latitude <= 90 && 
-           longitude >= -180 && 
-           longitude <= 180;
+
+    return !isNaN(latitude) &&
+      !isNaN(longitude) &&
+      latitude >= -90 &&
+      latitude <= 90 &&
+      longitude >= -180 &&
+      longitude <= 180;
   };
 
   const formatCoordinates = (lat: string, lng: string): string => {
     if (!lat || !lng) return '';
-    
+
     if (validateCoordinates(lat, lng)) {
       const latitude = parseFloat(lat);
       const longitude = parseFloat(lng);
       return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
     }
-    
+
     return 'Coordenadas inválidas';
   };
 
@@ -214,7 +260,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
 
     const lat = parseFloat(formData.latitude);
     const lng = parseFloat(formData.longitude);
-    
+
     const url = Platform.select({
       ios: `maps:${lat},${lng}`,
       android: `geo:${lat},${lng}?q=${lat},${lng}`,
@@ -239,7 +285,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
       );
       const querySnapshot = await getDocs(q);
       const colaboradoresList: Colaborador[] = [];
-      
+
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         colaboradoresList.push({
@@ -250,7 +296,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
           propriedade: data.propriedade
         });
       });
-      
+
       setColaboradores(colaboradoresList);
     } catch (error) {
       console.error('Erro ao buscar colaboradores:', error);
@@ -270,13 +316,13 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
   const handleColaboradorToggle = (colaboradorId: string) => {
     const currentColaboradores = formData.colaboradoresResponsaveis;
     const isSelected = currentColaboradores.includes(colaboradorId);
-    
+
     if (isSelected) {
-      handleInputChange('colaboradoresResponsaveis', 
+      handleInputChange('colaboradoresResponsaveis',
         currentColaboradores.filter(id => id !== colaboradorId)
       );
     } else {
-      handleInputChange('colaboradoresResponsaveis', 
+      handleInputChange('colaboradoresResponsaveis',
         [...currentColaboradores, colaboradorId]
       );
     }
@@ -296,7 +342,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
     if (Platform.OS === 'android') {
       setShowDatePicker(null);
     }
-    
+
     if (selectedDate) {
       if (showDatePicker === 'inicio') {
         handleInputChange('dataInicio', selectedDate);
@@ -304,7 +350,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
         handleInputChange('dataFim', selectedDate);
       }
     }
-    
+
     if (Platform.OS === 'ios' && event.type === 'dismissed') {
       setShowDatePicker(null);
     }
@@ -331,8 +377,8 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
       return;
     }
 
-    if ((formData.latitude || formData.longitude) && 
-        !validateCoordinates(formData.latitude, formData.longitude)) {
+    if ((formData.latitude || formData.longitude) &&
+      !validateCoordinates(formData.latitude, formData.longitude)) {
       Alert.alert('Erro', 'Coordenadas inválidas. Verifique os valores inseridos.');
       return;
     }
@@ -347,9 +393,9 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
         observacoes: formData.descricao,
         latitude: formData.latitude || '',
         longitude: formData.longitude || '',
-        localizacao: currentLocation?.address || 
-                    (formData.latitude && formData.longitude ? 
-                     formatCoordinates(formData.latitude, formData.longitude) : ''),
+        localizacao: currentLocation?.address ||
+          (formData.latitude && formData.longitude ?
+            formatCoordinates(formData.latitude, formData.longitude) : ''),
         tipoSolo: formData.tipoSolo,
         colaboradoresResponsaveis: formData.colaboradoresResponsaveis,
       };
@@ -361,10 +407,12 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
         });
 
         Alert.alert('Sucesso!', 'Lote atualizado com sucesso!', [
-          { text: 'OK', onPress: () => {
-            onSuccess();
-            handleClose();
-          }}
+          {
+            text: 'OK', onPress: () => {
+              onSuccess();
+              handleClose();
+            }
+          }
         ]);
       } else {
         const newLote = {
@@ -381,10 +429,12 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
         await addDoc(collection(db, 'lotes'), newLote);
 
         Alert.alert('Sucesso!', 'Lote criado com sucesso!', [
-          { text: 'OK', onPress: () => {
-            onSuccess(newLote);
-            handleClose();
-          }}
+          {
+            text: 'OK', onPress: () => {
+              onSuccess(newLote);
+              handleClose();
+            }
+          }
         ]);
       }
     } catch (error) {
@@ -394,7 +444,6 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
       setIsLoading(false);
     }
   };
-
   const resetForm = () => {
     setFormData({
       nome: '',
@@ -472,7 +521,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
             </TouchableOpacity>
             <View style={styles.headerInfo}>
               <Text style={styles.headerTitle}>
-                {isEditMode ? 'Editar Lote' : 'Cadastrar Novo Lote'}
+                {isEditMode ? 'Editar lote' : 'Cadastrar novo Lote'}
               </Text>
               <Text style={styles.headerSubtitle}>
                 {isEditMode ? loteParaEditar?.codigo : `Etapa ${currentStep} de 2`}
@@ -486,23 +535,29 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
           {(currentStep === 1 || isEditMode) && (
             <View style={styles.stepContainer}>
               <View style={styles.stepHeader}>
-                <Text style={styles.stepTitle}>Informações Básicas</Text>
-                <Text style={styles.stepSubtitle}>Defina o nome e características do lote</Text>
+                <Text style={styles.stepTitle}>Preencha os dados abaixo para cadastrar um novo lote</Text>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Nome do Lote</Text>
+                <Text style={styles.inputLabel}>
+                  <Text style={styles.span}>* </Text>
+                  Nome do Lote</Text>
                 <TextInput
-                  style={styles.input}
-                  value={formData.nome}
-                  onChangeText={(value) => handleInputChange('nome', value)}
-                  placeholder="Ex: Lote Norte A-15"
-                  placeholderTextColor="#9ca3af"
+              style={[
+                    styles.input,
+                    nomeError ? { borderColor: '#ff4d4d' } : {},
+                  ]}
+                  placeholder="Digite o nome do lote"
+                  value={nome}
+                  onChangeText={setNome}
                 />
+                {checkingNome && <ActivityIndicator size="small" color="#666" style={{ marginTop: 4 }} />}
+                {nomeError ? <Text style={styles.errorText}>{nomeError}</Text> : null}
               </View>
-
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Área (hectares)</Text>
+                <Text style={styles.inputLabel}>
+                  <Text style={styles.span}>* </Text>
+                  Área (hectares)</Text>
                 <TextInput
                   style={styles.input}
                   value={formData.area}
@@ -514,7 +569,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Descrição</Text>
+                <Text style={styles.inputLabel}>Descrição (opcional)</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   value={formData.descricao}
@@ -529,7 +584,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Número de Árvores (estimado)</Text>
+                <Text style={styles.inputLabel}>Estimativa de Árvores (opcional)</Text>
                 <TextInput
                   style={styles.input}
                   value={formData.numeroArvores}
@@ -596,7 +651,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
                     <View style={styles.summaryRow}>
                       <Text style={styles.summaryLabel}>Localização:</Text>
                       <Text style={styles.summaryValue}>
-                        {formData.latitude && formData.longitude 
+                        {formData.latitude && formData.longitude
                           ? formatCoordinates(formData.latitude, formData.longitude)
                           : 'Não informado'
                         }
@@ -605,7 +660,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
                     <View style={styles.summaryRow}>
                       <Text style={styles.summaryLabel}>Responsáveis:</Text>
                       <Text style={styles.summaryValue}>
-                        {formData.colaboradoresResponsaveis.length > 0 
+                        {formData.colaboradoresResponsaveis.length > 0
                           ? `${formData.colaboradoresResponsaveis.length} colaborador(es)`
                           : 'Nenhum'
                         }
@@ -621,8 +676,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
           {(currentStep === 2 || isEditMode) && (
             <View style={styles.stepContainer}>
               <View style={styles.stepHeader}>
-                <Text style={styles.stepTitle}>Localização</Text>
-                <Text style={styles.stepSubtitle}>Defina a localização GPS do lote</Text>
+                <Text style={styles.stepTitle}>Adicione a localização do lote</Text>
               </View>
 
               {/* Seção de localização atual */}
@@ -706,7 +760,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
                     </View>
                   </View>
                 </View>
-                
+
                 {formData.latitude && formData.longitude && (
                   <View style={styles.coordinatesValidation}>
                     {validateCoordinates(formData.latitude, formData.longitude) ? (
@@ -743,7 +797,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
                     <Text style={styles.permissionWarningText}>
                       Para usar a localização automática, é necessário permitir o acesso à localização do dispositivo.
                     </Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.permissionButton}
                       onPress={checkLocationPermission}
                     >
@@ -765,7 +819,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
                 <Text style={styles.backButtonText}>Voltar</Text>
               </TouchableOpacity>
             )}
-            
+
             {currentStep < 2 && !isEditMode ? (
               <TouchableOpacity
                 onPress={nextStep}
@@ -792,9 +846,9 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
                   </>
                 ) : (
                   <>
-                   <Ionicons name="save" size={16} color="white" />
+
                     <Text style={styles.submitButtonText}>
-                      {isEditMode ? 'Salvar Alterações' : 'Criar Lote'}
+                      {isEditMode ? 'Salvar Alterações' : 'Cadastrar'}
                     </Text>
                   </>
                 )}
@@ -818,7 +872,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
                   <Ionicons name="close" size={24} color="#6b7280" />
                 </TouchableOpacity>
               </View>
-              
+
               <ScrollView style={styles.modalOptions}>
                 {tiposSolo.map((tipo) => (
                   <TouchableOpacity
@@ -863,7 +917,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
                   <Ionicons name="close" size={24} color="#6b7280" />
                 </TouchableOpacity>
               </View>
-              
+
               {loadingColaboradores ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color="#16a34a" />
@@ -915,7 +969,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
                   )}
                 </ScrollView>
               )}
-              
+
               <View style={styles.modalFooter}>
                 <TouchableOpacity
                   style={styles.modalFooterButton}
@@ -934,7 +988,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
         {showDatePicker && (
           <DateTimePicker
             value={
-              showDatePicker === 'inicio' 
+              showDatePicker === 'inicio'
                 ? formData.dataInicio || new Date()
                 : formData.dataFim || new Date()
             }
@@ -959,13 +1013,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#16a34a',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingLeft: 16,
+    paddingVertical: 20,
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
     gap: 12,
   },
   closeButton: {
@@ -992,23 +1045,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   stepContainer: {
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 36,
   },
   stepHeader: {
     alignItems: 'center',
-    marginBottom: 24,
   },
   stepTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 8,
-  },
-  stepSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
+    color: '#1F2937',
+    marginBottom: 32,
     textAlign: 'center',
+    fontWeight: '600',
   },
+
   inputGroup: {
     marginBottom: 20,
   },
@@ -1016,7 +1066,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#374151',
-    marginBottom: 8,
+    marginBottom: 10,
+  },
+  span: {
+    color: '#EF4444',
   },
   input: {
     backgroundColor: 'white',
@@ -1027,6 +1080,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: '#1f2937',
+  },
+    errorText: {
+    color: '#ff4d4d',
+    marginTop: 4,
+    fontSize: 13,
   },
   textArea: {
     height: 80,

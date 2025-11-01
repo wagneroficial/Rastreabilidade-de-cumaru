@@ -10,31 +10,32 @@ const SummaryPreview: React.FC<SummaryPreviewProps> = ({ summaryData }) => {
   return (
     <View style={styles.section}>
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryTitle}>Resumo - Produção</Text>
-        <View style={styles.summaryGrid}>
+        <Text style={styles.summaryTitle}>Resumo da Produção</Text>
+
+        <View style={styles.summaryList}>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{summaryData.totalColhido}</Text>
             <Text style={styles.summaryLabel}>Total Colhido</Text>
+            <Text style={styles.summaryValue}>{summaryData.totalColhido}</Text>
           </View>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{summaryData.mediaDiaria}</Text>
             <Text style={styles.summaryLabel}>Média Diária</Text>
+            <Text style={styles.summaryValue}>{summaryData.mediaDiaria}</Text>
           </View>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{summaryData.melhorLote}</Text>
             <Text style={styles.summaryLabel}>Melhor Lote</Text>
+            <Text style={styles.summaryValue}>{summaryData.melhorLote}</Text>
           </View>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{summaryData.crescimento}</Text>
             <Text style={styles.summaryLabel}>Crescimento</Text>
+            <Text style={styles.summaryValue}>{summaryData.crescimento}</Text>
           </View>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{summaryData.totalLotes}</Text>
             <Text style={styles.summaryLabel}>Total de Lotes</Text>
+            <Text style={styles.summaryValue}>{summaryData.totalLotes}</Text>
           </View>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{summaryData.totalArvores}</Text>
             <Text style={styles.summaryLabel}>Total de Árvores</Text>
+            <Text style={styles.summaryValue}>{summaryData.totalArvores}</Text>
           </View>
         </View>
       </View>
@@ -45,13 +46,14 @@ const SummaryPreview: React.FC<SummaryPreviewProps> = ({ summaryData }) => {
 const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 28,
   },
   summaryCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
-    elevation: 1,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
   summaryTitle: {
     fontSize: 18,
@@ -59,25 +61,23 @@ const styles = StyleSheet.create({
     color: '#1f2937',
     marginBottom: 16,
   },
-  summaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
+  summaryList: {
+    gap: 12,
   },
   summaryItem: {
-    width: '45%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  summaryValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#16a34a',
+    paddingVertical: 6,
   },
   summaryLabel: {
-    fontSize: 12,
+    fontSize: 14,
+    color: '#374151',
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#1f2937',
-    textAlign: 'center',
-    marginTop: 4,
   },
 });
 

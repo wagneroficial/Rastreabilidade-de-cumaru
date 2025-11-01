@@ -1,34 +1,53 @@
-// components/ProductionCard.tsx
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface ProductionCardProps {
-  productionToday: string; // Ex: "12.5 kg"
-  changePercent: string; // Ex: "+8% em relação a ontem"
+  productionToday?: number; // Produção em kg
+  changePercent: string;    // Ex: "+8% em relação a ontem"
 }
 
-const ProductionCard: React.FC<ProductionCardProps> = ({
-  productionToday,
-  changePercent,
-}) => {
+const ProductionCard: React.FC<ProductionCardProps> = ({ productionToday, changePercent }) => {
+  const [loading, setLoading] = useState(productionToday === undefined);
+
+  const isPositive = changePercent.trim().startsWith('+');
+
+  // Caso productionToday não seja passado, mostramos carregamento
+  useEffect(() => {
+    if (productionToday !== undefined) {
+      setLoading(false);
+    }
+  }, [productionToday]);
+
   return (
     <View style={styles.card}>
       {/* Cabeçalho */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.label}>Produção de Hoje</Text>
-          <Text style={styles.value}>{productionToday}</Text>
+          <Text style={styles.label}>Produção de hoje</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color="#16a34a" />
+          ) : (
+            <Text style={styles.value}>{productionToday?.toFixed(1) ?? '0.0'} kg</Text>
+          )}
         </View>
+
         <View style={styles.iconContainer}>
-          <Ionicons name="leaf-outline" size={28} color="#16a34a" />
+          <Ionicons name="leaf-outline" size={24} color="#16a34a" />
         </View>
       </View>
 
       {/* Rodapé */}
       <View style={styles.footer}>
-        <Ionicons name="arrow-up-outline" size={16} color="#16a34a" style={styles.footerIcon} />
-        <Text style={styles.footerText}>{changePercent}</Text>
+        <Ionicons
+          name={isPositive ? 'arrow-up-outline' : 'arrow-down-outline'}
+          size={16}
+          color={isPositive ? '#16a34a' : '#dc2626'}
+          style={styles.footerIcon}
+        />
+        <Text style={[styles.footerText, { color: isPositive ? '#16a34a' : '#dc2626' }]}>
+          {changePercent}
+        </Text>
       </View>
     </View>
   );
@@ -36,14 +55,13 @@ const ProductionCard: React.FC<ProductionCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 20,
+    backgroundColor: '#f8fffa',
+    borderRadius: 16,
     padding: 20,
-    margin: 16,
-    marginTop: 0,
-    marginBottom: 24,
+    marginHorizontal: 16,
+    marginVertical: 24,
     borderWidth: 1,
-    borderColor:'#2e8b561c',
-    backgroundColor: '#16a34a10',// Ajuste a cor conforme necessário
+    borderColor: '#c4e0cc',
   },
   header: {
     flexDirection: 'row',
@@ -52,20 +70,21 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   label: {
-    color: '#000',
-    fontSize: 15,
-    marginBottom: 2,
+    color: '#052e16',
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 4,
   },
   value: {
-    color: '#000',
-    fontSize: 29,
-    fontWeight: '500',
+    color: '#052e16',
+    fontSize: 32,
+    fontWeight: '600',
   },
   iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#dcfce7',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -74,11 +93,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerIcon: {
-    marginRight: 6,
+    marginRight: 4,
   },
   footerText: {
-    color: '#2E8B57',
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '400',
   },
 });
 

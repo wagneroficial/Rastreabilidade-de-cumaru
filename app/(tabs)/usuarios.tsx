@@ -9,16 +9,18 @@ import { filterUsers } from '@/utils/userHelpers';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-    ActivityIndicator,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+
+
 
 type TabType = 'todos' | 'pendentes' | 'aprovados' | 'reprovados' | 'desativados';
 
@@ -262,7 +264,11 @@ const UsuariosScreen: React.FC = () => {
         user={managingLotes}
         lotes={lotes}
         loading={loadingLotes}
-        onClose={() => setManagingLotes(null)}
+        onClose={() => {
+          // Reabre o UserDetailModal com o mesmo usuário
+          if (managingLotes) setViewingUser(managingLotes);
+          setManagingLotes(null);
+        }}
         onToggleLote={handleToggleLote}
       />
 
@@ -286,6 +292,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#16a34a',
     paddingTop: 20,
     paddingBottom: 16,
+    marginTop: 0,
   },
   headerContent: {
     flexDirection: 'row',
@@ -332,61 +339,61 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1f2937',
   },
- tabsContainer: {
-  backgroundColor: 'white',
-  height: 56,
-  marginBottom: 8,
-},
-tabsContent: {
-  paddingHorizontal: 12,
-  alignItems: 'center',
+  tabsContainer: {
+    backgroundColor: 'white',
+    height: 56,
+    marginBottom: 8,
+  },
+  tabsContent: {
+    paddingHorizontal: 12,
+    alignItems: 'center',
 
-},
-tab: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  paddingHorizontal: 14,
-  paddingVertical: 8,
-  marginHorizontal: 4,
-  borderRadius: 20,
-  backgroundColor: '#f3f4f6',
-  minWidth: 110,
-  height: 38,
-},
-tabActive: {
-  backgroundColor: '#dcfce7',
-  borderColor: '#dcfce7',
-  borderWidth: 1,
-},
-tabText: {
-  fontSize: 14,
-  fontWeight: '500',
-  color: '#6b7280',
-},
-tabTextActive: {
-  color: '#166534',
-},
-tabBadge: {
-  backgroundColor: '#e5e7eb',
-  paddingHorizontal: 6,
-  paddingVertical: 2,
-  borderRadius: 10,
-  marginLeft: 6,
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-tabBadgeActive: {
-  backgroundColor: '#16a34a',
-},
-tabBadgeText: {
-  fontSize: 12,
-  fontWeight: '600',
-  color: '#374151',
-},
-tabBadgeTextActive: {
-  color: 'white',
-},
+  },
+  tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginHorizontal: 4,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    minWidth: 110,
+    height: 38,
+  },
+  tabActive: {
+    backgroundColor: '#dcfce7',
+    borderColor: '#dcfce7',
+    borderWidth: 1,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  tabTextActive: {
+    color: '#166534',
+  },
+  tabBadge: {
+    backgroundColor: '#e5e7eb',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabBadgeActive: {
+    backgroundColor: '#16a34a',
+  },
+  tabBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  tabBadgeTextActive: {
+    color: 'white',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -417,7 +424,7 @@ tabBadgeTextActive: {
     marginTop: 8,
   },
   listContainer: {
-   
+
   },
   listContent: {
     padding: 16,

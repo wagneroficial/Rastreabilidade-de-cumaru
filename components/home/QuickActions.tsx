@@ -42,6 +42,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions, onActionPress }) =
 const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 16,
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
@@ -61,7 +62,7 @@ const styles = StyleSheet.create({
     width: '48%',
     marginBottom: 8,
     borderWidth: 1,
-    borderColor:'#2e8b561c',
+    borderColor: '#e6e6e6c3',
   },
   icon: {
     width: 48,

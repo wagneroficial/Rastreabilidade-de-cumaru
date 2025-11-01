@@ -16,11 +16,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Alert,
   Linking,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -290,12 +290,13 @@ const GeolocalizacaoScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#fdfdfd',
   },
   header: {
     backgroundColor: '#16a34a',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 20,
+    marginTop: 0,
   },
   headerContent: {
     flexDirection: 'row',
@@ -344,7 +345,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     backgroundColor: '#f3f4f6',
-    paddingHorizontal: 8,
+    paddingHorizontal: 14,
     paddingVertical: 4,
     borderRadius: 12,
   },

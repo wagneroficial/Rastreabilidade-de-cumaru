@@ -49,7 +49,7 @@ export const ManageLotesModal: React.FC<ManageLotesModalProps> = ({
               <Ionicons name="arrow-back" size={24} color="white" />
             </TouchableOpacity>
             <View style={styles.headerInfo}>
-              <Text style={styles.headerTitle}>Gerenciar Lotes</Text>
+              <Text style={styles.headerTitle}>Adicionar Lotes</Text>
               <Text style={styles.headerSubtitle}>{user.nome}</Text>
             </View>
           </View>
