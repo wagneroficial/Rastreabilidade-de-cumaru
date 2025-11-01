@@ -521,7 +521,7 @@ const debounce = (func: (...args: any[]) => void, delay: number) => {
             </TouchableOpacity>
             <View style={styles.headerInfo}>
               <Text style={styles.headerTitle}>
-                {isEditMode ? 'Editar lote' : 'Cadastrar novo Lote'}
+                {isEditMode ? 'Editar lote' : 'Cadastrar novo lote'}
               </Text>
               <Text style={styles.headerSubtitle}>
                 {isEditMode ? loteParaEditar?.codigo : `Etapa ${currentStep} de 2`}

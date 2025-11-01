@@ -13,11 +13,14 @@ import {
   TextInput,
   Modal,
   ActivityIndicator,
+  Image,
 } from 'react-native';
-
 import { auth, db } from '@/app/services/firebaseConfig.js';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import randomColor from 'randomcolor';
+import * as ImagePicker from 'expo-image-picker';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface PerfilScreenProps {
   navigation: any;
@@ -30,6 +33,7 @@ interface UserData {
   propriedade: string;
   tipo: 'admin' | 'colaborador';
   cadastro: string;
+  fotoURL?: string | null;
 }
 
 interface MenuItem {
@@ -49,13 +53,108 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [avatarColor, setAvatarColor] = useState<string>('#16a34a');
+  const [userPhoto, setUserPhoto] = useState<string | null>(null);
 
-  // 🟢 Estados do modal de edição
+  // Modal de edição
   const [editVisible, setEditVisible] = useState(false);
   const [editNome, setEditNome] = useState('');
   const [editTelefone, setEditTelefone] = useState('');
   const [editPropriedade, setEditPropriedade] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Abrir galeria
+  const pickImageFromGallery = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+        allowsEditing: false,
+      });
+
+      if (!result.canceled && result.assets?.length > 0 && result.assets[0].uri) {
+        setUserPhoto(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Erro ao escolher imagem da galeria:', error);
+      Alert.alert('Erro', 'Falha ao selecionar imagem.');
+    }
+  };
+
+  // Abrir câmera
+  const takePhotoWithCamera = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão necessária', 'Precisamos de acesso à câmera.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        quality: 0.7,
+        allowsEditing: false, 
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      });
+
+      if (!result.canceled && result.assets?.length > 0 && result.assets[0].uri) {
+        setUserPhoto(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Erro ao abrir câmera:', error);
+      Alert.alert('Erro', 'Falha ao abrir a câmera.');
+    }
+  };
+
+  // Salvar alterações
+  const handleSaveChanges = async () => {
+    if (!userData || !auth.currentUser) return;
+
+    setSaving(true);
+
+    try {
+      let fotoURL = userData.fotoURL || null;
+
+      if (userPhoto && !userPhoto.startsWith('https://')) {
+        const response = await fetch(userPhoto); // URI local
+        const blob = await response.blob();      // converte para Blob
+        const storageRef = ref(getStorage(), `users/${auth.currentUser.uid}/profile.jpg`);
+        await uploadBytes(storageRef, blob);     // upload direto
+        fotoURL = await getDownloadURL(storageRef);
+      }
+
+      const userRef = doc(db, 'usuarios', auth.currentUser.uid);
+      await updateDoc(userRef, {
+        nome: editNome.trim(),
+        telefone: editTelefone.trim(),
+        propriedade: editPropriedade.trim(),
+        fotoURL,
+      });
+
+      setUserData({
+        ...userData,
+        nome: editNome.trim(),
+        telefone: editTelefone.trim(),
+        propriedade: editPropriedade.trim(),
+        fotoURL,
+      });
+
+      setAvatarColor(randomColor({ seed: editNome.trim() }));
+      setEditVisible(false);
+      Alert.alert('Sucesso', 'Informações atualizadas com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar alterações:', error);
+      Alert.alert('Erro', 'Não foi possível salvar as alterações.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
 
   // Buscar dados do usuário logado
   useEffect(() => {
@@ -66,7 +165,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
           const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
           if (userDoc.exists()) {
             const data = userDoc.data();
-            setUserData({
+            const userDataFormatted: UserData = {
               nome: data.nome || 'Usuário',
               email: data.email || user.email || '',
               telefone: data.telefone || 'Não informado',
@@ -77,7 +176,11 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
                   ? new Date(data.criadoEm.seconds * 1000).toLocaleDateString('pt-BR')
                   : new Date(data.criadoEm).toLocaleDateString('pt-BR')
                 : 'Não informado',
-            });
+              fotoURL: data.fotoURL || null,
+            };
+            setUserData(userDataFormatted);
+            setAvatarColor(randomColor({ seed: userDataFormatted.nome }));
+            setUserPhoto(userDataFormatted.fotoURL || null);
           }
         } catch (error) {
           console.error('Erro ao buscar dados do usuário:', error);
@@ -144,36 +247,6 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
     }
   };
 
-  // 🟢 Função para salvar alterações no Firestore
-  const handleSaveChanges = async () => {
-    if (!userData || !auth.currentUser) return;
-
-    setSaving(true);
-    try {
-      const userRef = doc(db, 'usuarios', auth.currentUser.uid);
-      await updateDoc(userRef, {
-        nome: editNome.trim(),
-        telefone: editTelefone.trim(),
-        propriedade: editPropriedade.trim(),
-      });
-
-      setUserData({
-        ...userData,
-        nome: editNome.trim(),
-        telefone: editTelefone.trim(),
-        propriedade: editPropriedade.trim(),
-      });
-
-      setEditVisible(false);
-      Alert.alert('Sucesso', 'Informações atualizadas com sucesso!');
-    } catch (error) {
-      console.error('Erro ao salvar alterações:', error);
-      Alert.alert('Erro', 'Não foi possível salvar as alterações.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, styles.centerContent]}>
@@ -193,16 +266,35 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#16a34a" barStyle="light-content" />
-
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
-            <View style={styles.avatarContainer}>
-              <Ionicons name="person" size={48} color="white" />
+            <View style={[styles.avatarContainer, { backgroundColor: avatarColor }]}>
+              {userPhoto ? (
+                <Image source={{ uri: userPhoto }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarInitials}>
+                  {userData.nome
+                    .split(' ')
+                    .map((n) => n[0])
+                    .join('')
+                    .toUpperCase()}
+                </Text>
+              )}
+
+              <TouchableOpacity
+                style={styles.editAvatarButton}
+                onPress={openEditModal}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="brush" size={20} color="white" />
+              </TouchableOpacity>
             </View>
+
             <Text style={styles.userName}>{userData.nome}</Text>
             <Text style={styles.userProperty}>{userData.propriedade}</Text>
+
             <View style={styles.userTypeContainer}>
               <Text
                 style={[
@@ -233,21 +325,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
           <View style={styles.profileInfoCard}>
             <View style={styles.profileInfoHeader}>
               <Text style={styles.profileInfoTitle}>Informações Pessoais</Text>
-
-              {/* 🟢 Botão de editar funcionando */}
-              <TouchableOpacity
-                onPress={() => {
-                  console.log('Abrindo modal de edição...');
-                  openEditModal();
-                }}
-                activeOpacity={0.7}
-                style={{ padding: 6 }}
-              >
-                <Ionicons name="create-outline" size={22} color="#16a34a" />
-              </TouchableOpacity>
             </View>
-
-
             <View style={styles.profileInfoList}>
               <View style={styles.profileInfoItem}>
                 <Text style={styles.profileInfoLabel}>E-mail</Text>
@@ -295,7 +373,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
         </View>
       </ScrollView>
 
-      {/* 🟢 Modal de edição */}
+      {/* Modal de edição */}
       <Modal
         visible={editVisible}
         transparent
@@ -306,12 +384,35 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Editar Perfil</Text>
 
+            {/* Foto do perfil */}
+            <TouchableOpacity
+              style={styles.photoContainer}
+              onPress={() =>
+                Alert.alert('Alterar Foto', 'Escolha a forma de alterar a foto', [
+                  { text: 'Galeria', onPress: pickImageFromGallery },
+                  { text: 'Câmera', onPress: takePhotoWithCamera },
+                  { text: 'Cancelar', style: 'cancel' },
+                ])
+              }
+            >
+              {userPhoto ? (
+                <Image source={{ uri: userPhoto }} style={styles.photo} />
+              ) : (
+                <View style={styles.photoPlaceholder}>
+                  <Ionicons name="camera" size={28} color="#9ca3af" />
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <Text style={styles.inputLabel}>Nome</Text>
             <TextInput
               style={styles.input}
               placeholder="Nome"
               value={editNome}
               onChangeText={setEditNome}
             />
+
+            <Text style={styles.inputLabel}>Telefone</Text>
             <TextInput
               style={styles.input}
               placeholder="Telefone"
@@ -319,6 +420,8 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
               onChangeText={setEditTelefone}
               keyboardType="phone-pad"
             />
+
+            <Text style={styles.inputLabel}>Propriedade</Text>
             <TextInput
               style={styles.input}
               placeholder="Propriedade"
@@ -339,116 +442,130 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
                 onPress={handleSaveChanges}
                 disabled={saving}
               >
-                {saving ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text style={styles.saveText}>Salvar</Text>
-                )}
+                {saving ? <ActivityIndicator color="white" /> : <Text style={styles.saveText}>Salvar</Text>}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-
     </SafeAreaView>
   );
 };
 
+// Estilos
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fdfdfd',
+  container: { 
+    flex: 1, 
+    backgroundColor: '#fdfdfd' 
   },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
+  centerContent: { 
+    justifyContent: 'center', 
+    alignItems: 'center' },
+  loadingText: { fontSize: 16, color: '#6b7280' 
+
   },
-  loadingText: {
-    fontSize: 16,
-    color: '#6b7280',
+  scrollView: { 
+    flex: 1 
   },
-  scrollView: {
-    flex: 1,
-  },
-  header: {
-    backgroundColor: '#16a34a',
-    paddingHorizontal: 4,
-    paddingVertical: 32,
-    paddingTop: 48,
-    marginTop: 0,
-  },
-  headerContent: {
-    alignItems: 'center',
+  header: { 
+    backgroundColor: '#16a34a', 
+    paddingHorizontal: 4, 
+    paddingVertical: 32, 
+    paddingTop: 62 },
+  headerContent: { 
+    alignItems: 'center' 
   },
   avatarContainer: {
-    width: 80,
-    height: 80,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 40,
+    width: 92,
+    height: 92,
+    borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  userName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  userProperty: {
-    fontSize: 14,
-    color: '#bbf7d0',
-    marginTop: 4,
-  },
-  userTypeContainer: {
-    marginTop: 8,
     marginBottom: 20,
+    position: 'relative',
   },
-  userType: {
-    fontSize: 12,
-    fontWeight: '600',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    overflow: 'hidden',
+  avatarInitials: { 
+    fontSize: 28, 
+    fontWeight: 'bold', 
+    color: 'white' 
   },
-  userTypeAdmin: {
-    backgroundColor: '#fef3c7',
-    color: '#92400e',
+  avatarImage: { 
+    width: '100%', 
+    height: '100%', 
+    borderRadius: 50 
   },
-  userTypeColaborador: {
-    backgroundColor: '#e0f2fe',
-    color: '#0277bd',
-  },
-  statsContainer: {
-    paddingHorizontal: 16,
-    marginTop: -32,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
+  editAvatarButton: {
+    position: 'absolute',
+    bottom: -10,
+    right: -10,
+    backgroundColor: '#71ca90',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
     alignItems: 'center',
-    elevation: 1,
+    borderWidth: 2,
+    borderColor: '#16a34a',
   },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#16a34a',
+  userName: { 
+    fontSize: 20, 
+    fontWeight: 'bold', 
+    color: 'white' 
   },
-  statLabel: {
-    fontSize: 12,
-    color: '#1f2937',
-    textAlign: 'center',
-    marginTop: 6,
+  userProperty: { 
+    fontSize: 14, 
+    color: '#bbf7d0', 
+    marginTop: 4 
   },
-  profileInfoContainer: {
-    paddingHorizontal: 16,
-    marginTop: 24,
+  userTypeContainer: { 
+    marginTop: 8, 
+    marginBottom: 20 
+  },
+  userType: { 
+    fontSize: 12, 
+    fontWeight: '600', 
+    paddingHorizontal: 12, 
+    paddingVertical: 4, 
+    borderRadius: 12 
+  },
+  userTypeAdmin: { 
+    backgroundColor: '#fef3c7', 
+    color: '#92400e' 
+  },
+  userTypeColaborador: { 
+    backgroundColor: '#e0f2fe', 
+    color: '#0277bd' 
+  },
+  statsContainer: { 
+    paddingHorizontal: 16, 
+    marginTop: -32 
+  },
+  statsGrid: { 
+    flexDirection: 'row', 
+    gap: 12 
+  },
+  statCard: { 
+    flex: 1, 
+    backgroundColor: 'white', 
+    borderRadius: 12, 
+    padding: 16, 
+    alignItems: 'center', 
+    elevation: 1 
+  },
+  statValue: { 
+    fontSize: 24, 
+    fontWeight: 'bold', 
+    color: '#16a34a' 
+  },
+  statLabel: { 
+    fontSize: 12, 
+    color: '#1f2937', 
+    textAlign: 'center', 
+    marginTop: 6 
+  },
+  profileInfoContainer: { 
+    paddingHorizontal: 16, 
+    marginTop: 24 
   },
   profileInfoCard: {
     backgroundColor: 'white',
@@ -470,7 +587,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
   },
-
   profileInfoLabel: {
     fontSize: 14,
     color: '#6b7280',
@@ -572,12 +688,35 @@ const styles = StyleSheet.create({
     padding: 20,
     elevation: 5,
   },
+  photoContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignSelf: 'center',
+    marginBottom: 16,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#16a34a',
+  },
+  photo: {
+    width: '100%',
+    height: '100%',
+  },
+  photoPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+  },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1f2937',
     marginBottom: 16,
     textAlign: 'center',
+  },
+  inputLabel: {
+    marginBottom: 12,
   },
   input: {
     backgroundColor: '#f9fafb',
