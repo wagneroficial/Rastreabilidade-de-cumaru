@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { addDoc, collection, getDocs } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -21,6 +21,8 @@ interface CadastrarArvoreModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: (arvoreData?: any) => void;
+  editMode?: boolean; // NOVO
+  arvoreToEdit?: any; // NOVO
 }
 
 interface Lote {
@@ -43,10 +45,14 @@ const estadosSaude = [
   { label: 'Saudável', value: 'saudavel' },
   { label: 'Ruim', value: 'ruim' },
 ];
+
 const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
   visible,
   onClose,
-  onSuccess }) => {
+  onSuccess,
+  editMode = false, // NOVO
+  arvoreToEdit, // NOVO
+}) => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showEstadoModal, setShowEstadoModal] = useState(false);
@@ -65,6 +71,22 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // NOVO: Preencher dados quando em modo edição
+  useEffect(() => {
+    if (editMode && arvoreToEdit && visible) {
+      setFormData({
+        idArvore: arvoreToEdit.codigo || '',
+        loteId: arvoreToEdit.loteId || '',
+        estadoSaude: arvoreToEdit.estadoSaude || '',
+        dataPlantio: arvoreToEdit.dataPlantio || '',
+        latitude: arvoreToEdit.latitude?.toString() || '',
+        longitude: arvoreToEdit.longitude?.toString() || '',
+        notasAdicionais: arvoreToEdit.observacoes || arvoreToEdit.notasAdicionais || '',
+      });
+    }
+  }, [editMode, arvoreToEdit, visible]);
+
   // Buscar lotes cadastrados
   useEffect(() => {
     const fetchLotes = async () => {
@@ -103,7 +125,6 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // NOVAS funções que faltavam: handleNext e handleBack
   const handleNext = () => {
     if (!validateCurrentStep()) return;
     if (currentStep < 2) {
@@ -120,17 +141,15 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
       handleClose();
     }
   };
-  // --- Ajuste do handleDateChange ---
+
   const handleDateChange = (_: any, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
     if (selectedDate) {
-      // Salva no formato ISO para consistência no Firebase
       updateFormData('dataPlantio', selectedDate.toISOString());
     }
   };
 
   const handleUseCurrentLocation = () => {
-    // placeholder: mantenho seu valor de exemplo — você pode integrar Location daqui se quiser
     updateFormData('latitude', '-3.123456');
     updateFormData('longitude', '-60.123456');
   };
@@ -138,29 +157,42 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
   const handleSubmit = async () => {
     if (!validateCurrentStep()) return;
     setIsLoading(true);
+    
     try {
       const arvoreData = {
         codigo: formData.idArvore,
         loteId: formData.loteId,
         estadoSaude: formData.estadoSaude,
         dataPlantio: formData.dataPlantio,
-        latitude: formData.latitude,
-        longitude: formData.longitude,
-        notasAdicionais: formData.notasAdicionais,
-        producaoTotal: '0 kg',
-        ultimaColeta: 'Nunca coletada',
-        diasAtras: 0,
-        createdAt: new Date().toISOString(),
+        latitude: parseFloat(formData.latitude),
+        longitude: parseFloat(formData.longitude),
+        observacoes: formData.notasAdicionais,
+        updatedAt: new Date().toISOString(),
       };
 
-      const docRef = await addDoc(collection(db, 'arvores'), arvoreData);
-      onSuccess({ id: docRef.id, ...arvoreData });
+      if (editMode && arvoreToEdit?.id) {
+        // MODO EDIÇÃO
+        await updateDoc(doc(db, 'arvores', arvoreToEdit.id), arvoreData);
+        onSuccess({ id: arvoreToEdit.id, ...arvoreData });
+        Alert.alert('Sucesso!', 'Árvore atualizada com sucesso!');
+      } else {
+        // MODO CRIAÇÃO
+        const novaArvore = {
+          ...arvoreData,
+          producaoTotal: '0 kg',
+          ultimaColeta: 'Nunca coletada',
+          diasAtras: 0,
+          createdAt: new Date().toISOString(),
+        };
+        const docRef = await addDoc(collection(db, 'arvores'), novaArvore);
+        onSuccess({ id: docRef.id, ...novaArvore });
+        Alert.alert('Sucesso!', 'Árvore cadastrada com sucesso!');
+      }
 
-      Alert.alert('Sucesso!', 'Árvore cadastrada com sucesso!');
       handleClose();
     } catch (error) {
-      console.error('Erro ao cadastrar árvore:', error);
-      Alert.alert('Erro', 'Falha ao cadastrar a árvore.');
+      console.error('Erro ao salvar árvore:', error);
+      Alert.alert('Erro', editMode ? 'Falha ao atualizar a árvore.' : 'Falha ao cadastrar a árvore.');
     } finally {
       setIsLoading(false);
     }
@@ -185,7 +217,9 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
 
   const renderStep1 = () => (
     <View>
-      <Text style={styles.stepSubtitle}>Preencha os dados abaixo para cadastrar uma nova árvore</Text>
+      <Text style={styles.stepSubtitle}>
+        {editMode ? 'Edite os dados da árvore' : 'Preencha os dados abaixo para cadastrar uma nova árvore'}
+      </Text>
 
       <View style={styles.form}>
         <View style={styles.inputGroup}>
@@ -195,6 +229,7 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
             value={formData.idArvore}
             onChangeText={value => updateFormData('idArvore', value)}
             placeholder="e.g. CUM-A12-001"
+            editable={!editMode} // Desabilita edição do código em modo edição
           />
           {errors.idArvore && <Text style={styles.errorText}>{errors.idArvore}</Text>}
         </View>
@@ -267,7 +302,6 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
           </View>
         </Modal>
 
-
         {/* Estado da Árvore */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Estado da Árvore</Text>
@@ -286,21 +320,18 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
 
         {/* Data do plantio */}
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Data de Cadastro</Text>
+          <Text style={styles.inputLabel}>Data de {editMode ? 'Plantio' : 'Cadastro'}</Text>
           <View style={styles.dateContainer}>
-                        <TouchableOpacity
-              
-              onPress={() => setShowDatePicker(true)}
-            >
-            <TextInput
-              style={[styles.input, styles.dateInput, errors.dataPlantio && styles.inputError]}
-              value={formData.dataPlantio ? new Date(formData.dataPlantio).toLocaleDateString('pt-BR') : ''}
-              placeholder="DD/MM/AAAA"
-              editable={false}
-            />
-
+            <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+              <TextInput
+                style={[styles.input, styles.dateInput, errors.dataPlantio && styles.inputError]}
+                value={formData.dataPlantio ? new Date(formData.dataPlantio).toLocaleDateString('pt-BR') : ''}
+                placeholder="DD/MM/AAAA"
+                editable={false}
+              />
               <View style={styles.dateIcon}>
-              <Ionicons name="calendar-outline" size={20} color="#6B7280" /></View>
+                <Ionicons name="calendar-outline" size={20} color="#6B7280" />
+              </View>
             </TouchableOpacity>
           </View>
           {errors.dataPlantio && <Text style={styles.errorText}>{errors.dataPlantio}</Text>}
@@ -309,7 +340,7 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
 
       {showDatePicker && (
         <DateTimePicker
-          value={new Date()}
+          value={formData.dataPlantio ? new Date(formData.dataPlantio) : new Date()}
           mode="date"
           display="spinner"
           onChange={handleDateChange}
@@ -317,9 +348,12 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
       )}
     </View>
   );
+
   const renderStep2 = () => (
     <View>
-      <Text style={styles.stepSubtitle}>Adicione a Localização da Árvore</Text>
+      <Text style={styles.stepSubtitle}>
+        {editMode ? 'Atualize a localização da árvore' : 'Adicione a Localização da Árvore'}
+      </Text>
       <View style={styles.form}>
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Localização GPS*</Text>
@@ -389,7 +423,13 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
     }
   };
 
-  const getButtonText = () => (currentStep === 1 ? 'Continuar' : 'Cadastrar');
+  const getButtonText = () => {
+    if (editMode) {
+      return currentStep === 1 ? 'Continuar' : 'Salvar Alterações';
+    }
+    return currentStep === 1 ? 'Continuar' : 'Cadastrar';
+  };
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
       <SafeAreaView style={styles.container}>
@@ -398,7 +438,9 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
             <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>Cadastrar nova árvore</Text>
+            <Text style={styles.headerTitle}>
+              {editMode ? 'Editar árvore' : 'Cadastrar nova árvore'}
+            </Text>
             <Text style={styles.headerSubtitle}>Etapa {currentStep} de 2</Text>
           </View>
         </View>
@@ -409,7 +451,7 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
 
         <View style={styles.bottomButtons}>
           {currentStep > 1 && (
-            <TouchableOpacity style={styles.backButtonBottom} onPress={handleClose}>
+            <TouchableOpacity style={styles.backButtonBottom} onPress={handleBack}>
               <Text style={styles.backButtonText}>Voltar</Text>
             </TouchableOpacity>
           )}
@@ -421,7 +463,9 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
             {isLoading ? (
               <>
                 <ActivityIndicator size="small" color="white" />
-                <Text style={styles.continueButtonText}>Salvando...</Text>
+                <Text style={styles.continueButtonText}>
+                  {editMode ? 'Salvando...' : 'Cadastrando...'}
+                </Text>
               </>
             ) : (
               <Text style={styles.continueButtonText}>{getButtonText()}</Text>
@@ -471,7 +515,7 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
       </SafeAreaView>
     </Modal>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -515,7 +559,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 32,
     textAlign: 'center',
-    fontWeight: 600,
+    fontWeight: '600',
   },
   form: {
     width: '100%',
@@ -656,7 +700,6 @@ const styles = StyleSheet.create({
   disabledButton: {
     backgroundColor: '#9CA3AF',
   },
-  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -708,4 +751,5 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+
 export default CadastrarArvoreModal;

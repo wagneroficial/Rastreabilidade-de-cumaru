@@ -1,8 +1,8 @@
-
+import CadastrarArvoreModal from '@/components/nova_arvore';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import { collection, doc, getDoc, getDocs, query, updateDoc, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -12,7 +12,6 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
@@ -53,11 +52,11 @@ export default function DetalheArvoreScreen() {
   const [activeTab, setActiveTab] = useState<'dados' | 'producao'>('dados');
   const [showQRModal, setShowQRModal] = useState(false);
   const [sharingQR, setSharingQR] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const qrCodeRef = useRef<View>(null);
 
-  // NOVO: Modal de edição
+  // Modal de edição usando CadastrarArvoreModal
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editData, setEditData] = useState<Partial<ArvoreData>>({});
   const isAdmin = true; // ajuste conforme a autenticação do seu app
 
   useEffect(() => {
@@ -124,21 +123,52 @@ export default function DetalheArvoreScreen() {
     }
   };
 
+  // Excluir árvore
+  const handleDeleteArvore = () => {
+    Alert.alert(
+      'Confirmar Exclusão',
+      `Tem certeza que deseja excluir a árvore ${arvoreData?.codigo}?\n\nEsta ação não pode ser desfeita e todas as coletas associadas serão perdidas.`,
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setDeleting(true);
+              
+              // Excluir todas as coletas associadas
+              const coletasQuery = query(
+                collection(db, 'coletas'),
+                where('arvoreId', '==', id)
+              );
+              const coletasSnapshot = await getDocs(coletasQuery);
+              const deletePromises = coletasSnapshot.docs.map((doc) => 
+                deleteDoc(doc.ref)
+              );
+              await Promise.all(deletePromises);
 
+              // Excluir a árvore
+              await deleteDoc(doc(db, 'arvores', id as string));
 
-  // NOVO: Salvar alterações da árvore
-  const handleSaveEdit = async () => {
-    if (!arvoreData) return;
-    try {
-      const arvoreRef = doc(db, 'arvores', arvoreData.id);
-      await updateDoc(arvoreRef, editData);
-      setArvoreData({ ...arvoreData, ...editData });
-      setShowEditModal(false);
-      Alert.alert('Sucesso', 'Dados da árvore atualizados!');
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Erro', 'Não foi possível atualizar a árvore.');
-    }
+              Alert.alert('Sucesso', 'Árvore excluída com sucesso!', [
+                {
+                  text: 'OK',
+                  onPress: () => router.back(),
+                },
+              ]);
+            } catch (error) {
+              console.error(error);
+              Alert.alert('Erro', 'Não foi possível excluir a árvore.');
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const getQualidadeColor = (qualidade: string) => {
@@ -246,9 +276,12 @@ export default function DetalheArvoreScreen() {
             <View style={styles.section}>
               <View style={styles.row}>
                 <Text style={styles.sectionTitle}>Informações Gerais</Text>
-                {/* NOVO: Botão Editar */}
+                {/* Botão Editar */}
                 {isAdmin && (
-                  <TouchableOpacity style={{ marginLeft: 12, backgroundColor: '#fff' }}>
+                  <TouchableOpacity 
+                    style={styles.editButton}
+                    onPress={() => setShowEditModal(true)}
+                  >
                     <Ionicons name="create-outline" size={20} color="#059669" />
                   </TouchableOpacity>
                 )}
@@ -348,47 +381,48 @@ export default function DetalheArvoreScreen() {
             </View>
           </>
         )}
+
+        {/* Botão de Excluir */}
+        {isAdmin && (
+          <View style={styles.deleteSection}>
+            <TouchableOpacity
+              style={[styles.deleteButton, deleting && styles.deleteButtonDisabled]}
+              onPress={handleDeleteArvore}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <>
+                  <ActivityIndicator size="small" color="white" />
+                  <Text style={styles.deleteButtonText}>Excluindo...</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="trash-outline" size={20} color="white" />
+                  <Text style={styles.deleteButtonText}>Excluir Árvore</Text>
+                </>
+              )}
+            </TouchableOpacity>
+            <Text style={styles.deleteWarning}>
+              Esta ação irá excluir permanentemente a árvore e todas as suas coletas
+            </Text>
+          </View>
+        )}
+
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {/* Modal de edição */}
-      <Modal visible={showEditModal} transparent animationType="slide" onRequestClose={() => setShowEditModal(false)}>
-        <View style={{ flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 16 }}>
-          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 16 }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>Editar Árvore</Text>
+      {/* Modal de Edição usando CadastrarArvoreModal */}
+      <CadastrarArvoreModal
+        visible={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={(updatedData) => {
+          setShowEditModal(false);
+          loadArvoreData(); // Recarrega os dados atualizados
+        }}
+        editMode={true}
+        arvoreToEdit={arvoreData}
+      />
 
-            <Text>Espécie:</Text>
-            <TextInput
-              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8, marginBottom: 12 }}
-              value={editData.tipo}
-              onChangeText={(text) => setEditData({ ...editData, tipo: text })}
-            />
-
-            <Text>Estado de Saúde:</Text>
-            <TextInput
-              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8, marginBottom: 12 }}
-              value={editData.estadoSaude}
-              onChangeText={(text) => setEditData({ ...editData, estadoSaude: text })}
-            />
-
-            <Text>Observações:</Text>
-            <TextInput
-              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8, marginBottom: 12 }}
-              value={editData.observacoes}
-              onChangeText={(text) => setEditData({ ...editData, observacoes: text })}
-            />
-
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <TouchableOpacity onPress={() => setShowEditModal(false)} style={{ padding: 12 }}>
-                <Text>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleSaveEdit} style={{ padding: 12 }}>
-                <Text style={{ fontWeight: 'bold', color: '#059669' }}>Salvar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
       {/* Modal QR Code */}
       <Modal
         visible={showQRModal}
@@ -548,7 +582,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#1F2937',
     backgroundColor: '#16a34a',
     paddingVertical: 12,
     borderRadius: 8,
@@ -590,7 +623,7 @@ const styles = StyleSheet.create({
   section: {
     padding: 16,
   },
-    row: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -600,13 +633,18 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginTop: 12,
     marginBottom: 12,
-        flex: 1,
+    flex: 1,
+  },
+  editButton: {
+    marginLeft: 12,
+    padding: 8,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 8,
   },
   card: {
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 0,
-
   },
   infoRow: {
     flexDirection: 'row',
@@ -640,7 +678,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-
   },
   statValue: {
     fontSize: 24,
@@ -707,6 +744,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#059669',
+  },
+  // Estilos do botão de excluir
+  deleteSection: {
+    padding: 16,
+    paddingTop: 8,
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#DC2626',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  deleteButtonDisabled: {
+    opacity: 0.6,
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  deleteWarning: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 12,
+    lineHeight: 18,
   },
   qrModalOverlay: {
     flex: 1,
