@@ -1,12 +1,14 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { AppState, Platform, TouchableOpacity } from 'react-native';
+import { auth, db } from '@/app/services/firebaseConfig';
 import AddModal from '@/components/AddModal';
 import BiometricLock from '@/components/BiometricLock';
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { useBiometric } from '@/contexts/BiometricContext';
+import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import { doc, onSnapshot } from 'firebase/firestore';
+import React, { useEffect, useRef, useState } from 'react';
+import { AppState, Platform, TouchableOpacity } from 'react-native';
 
 const INACTIVITY_TIMEOUT = 5 * 60 * 1000;
 
@@ -15,6 +17,24 @@ export default function TabLayout() {
   const appState = useRef(AppState.currentState);
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Verifica se o usuário é admin
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    const unsubscribe = onSnapshot(
+      doc(db, 'usuarios', auth.currentUser.uid),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          setIsAdmin(userData.tipo === 'admin');
+        }
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', nextAppState => {
@@ -106,10 +126,11 @@ export default function TabLayout() {
         />
 
         <Tabs.Screen
-          name="usuarios"
+          name="gerenciamento"
           options={{
-            title: 'Usuários',
+            title: 'Gerenciar',
             tabBarIcon: ({ color }) => <Ionicons name="person-add" size={20} color={color} />,
+            href: isAdmin ? undefined : null, // ← ESCONDE A ABA SE NÃO FOR ADMIN
           }}
         />
 
