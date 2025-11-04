@@ -44,139 +44,55 @@ const ErrorScreen: React.FC<ErrorScreenProps> = ({
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 
   const handleBack = () => {
-    if (onBack) {
-      onBack();
-    } else {
-      router.back();
-    }
+    if (onBack) onBack();
+    else router.back();
   };
 
   const handleRetry = () => {
-    if (onRetry) {
-      onRetry();
-    }
+    if (onRetry) onRetry();
   };
 
   const getTechnicalDetails = () => {
     const timestamp = new Date().toISOString();
-    let errorDetails = `Timestamp: ${timestamp}\n`;
-    
-    // Tipo de erro
-    if (errorType) {
-      errorDetails += `Error Type: ${errorType}\n`;
-    }
+    let details = `Timestamp: ${timestamp}\n`;
+    if (errorType) details += `Error Type: ${errorType}\n`;
+    if (route) details += `Route: ${route}\n`;
 
-    // Rota/URL
-    if (route) {
-      errorDetails += `Route: ${route}\n`;
-    }
-
-    // Detalhes do erro
     if (error) {
-      if (error.message) {
-        errorDetails += `Message: ${error.message}\n`;
-      }
-
-      if (error.code) {
-        errorDetails += `Code: ${error.code}\n`;
-      }
-
-      if (error.name) {
-        errorDetails += `Name: ${error.name}\n`;
-      }
-
-      if (error.stack) {
-        errorDetails += `\nStack Trace:\n${error.stack}\n`;
-      }
-
-      if (typeof error === 'string') {
-        errorDetails += `Error: ${error}\n`;
-      }
-
-      if (typeof error === 'object' && !error.message && !error.code) {
-        errorDetails += `Details: ${JSON.stringify(error, null, 2)}\n`;
+      if (typeof error === 'string') details += `Error: ${error}\n`;
+      else {
+        if (error.message) details += `Message: ${error.message}\n`;
+        if (error.code) details += `Code: ${error.code}\n`;
+        if (error.name) details += `Name: ${error.name}\n`;
+        if (error.stack) details += `Stack Trace:\n${error.stack}\n`;
+        if (typeof error === 'object' && !error.message && !error.code) {
+          details += `Details: ${JSON.stringify(error, null, 2)}\n`;
+        }
       }
     } else {
-      // Se não tem erro, mas tem informações
-      if (!errorType && !route) {
-        errorDetails += `Status: No error object provided\n`;
-        errorDetails += `Info: Error occurred but no technical details were captured\n`;
-      }
+      details += `Status: No error object provided\nInfo: Error occurred but no technical details were captured\n`;
     }
 
-    return errorDetails;
+    return details;
   };
 
-  const handleEmailPress = async () => {
-    const subject = encodeURIComponent('Suporte - CumaruApp - Erro no Aplicativo');
-    const technicalDetails = getTechnicalDetails();
-    const body = encodeURIComponent(
-      `Olá, equipe de suporte!\n\n` +
-      `Estou enfrentando um problema no aplicativo.\n\n` +
-      `Descrição do problema:\n${title}\n${message}\n\n` +
-      `--- DETALHES TÉCNICOS (NÃO REMOVER) ---\n${technicalDetails}\n` +
-      `--- FIM DOS DETALHES TÉCNICOS ---\n\n` +
-      `Por favor, me ajudem a resolver este problema.\n\n` +
-      `Obrigado!`
-    );
-
-    const emailUrl = `mailto:${supportEmail}?subject=${subject}&body=${body}`;
-
-    try {
-      const canOpen = await Linking.canOpenURL(emailUrl);
-      if (canOpen) {
-        await Linking.openURL(emailUrl);
-      } else {
-        Alert.alert(
-          'Erro',
-          'Não foi possível abrir o aplicativo de e-mail. Por favor, envie um e-mail manualmente para: ' + supportEmail
-        );
-      }
-    } catch (error) {
-      Alert.alert(
-        'Erro',
-        'Ocorreu um erro ao tentar abrir o e-mail. Email de suporte: ' + supportEmail
-      );
-    }
-  };
-
-  const handlePhonePress = async () => {
-    // Remove caracteres não numéricos exceto o +
-    const cleanPhone = supportPhone.replace(/[^\d+]/g, '');
-    const phoneUrl = `tel:${cleanPhone}`;
-
-    try {
-      const canOpen = await Linking.canOpenURL(phoneUrl);
-      if (canOpen) {
-        // Abre o discador com o número preenchido
-        await Linking.openURL(phoneUrl);
-      } else {
-        // Se não conseguir abrir, mostra o número para copiar
-        Alert.alert(
-          'Telefone de Suporte',
-          `Não foi possível abrir o discador automaticamente.\n\nLigue para: ${supportPhone}`,
-          [
-            { text: 'OK' }
-          ]
-        );
-      }
-    } catch (error) {
-      // Em caso de erro, mostra o número
-      Alert.alert(
-        'Telefone de Suporte',
-        `Número para contato: ${supportPhone}`,
-        [
-          { text: 'OK' }
-        ]
-      );
-    }
-  };
+const handleContact = (type: 'email' | 'phone') => {
+  if (type === 'email') {
+    Linking.openURL('mailto:cumatrack@gmail.com').catch(() => {
+      Alert.alert('Erro', 'Não foi possível abrir o aplicativo de email');
+    });
+  } else {
+    Linking.openURL('tel:+5593992099606').catch(() => {
+      Alert.alert('Erro', 'Não foi possível fazer a ligação');
+    });
+  }
+};
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#16a34a" barStyle="light-content" />
-      
-      {/* Header Verde */}
+
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           {showBackButton && (
@@ -192,8 +108,8 @@ const ErrorScreen: React.FC<ErrorScreenProps> = ({
       </View>
 
       <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollContent} 
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.errorContainer}>
@@ -204,89 +120,59 @@ const ErrorScreen: React.FC<ErrorScreenProps> = ({
             </View>
           </View>
 
-          {/* Título */}
+          {/* Título e mensagem */}
           <Text style={styles.title}>{title}</Text>
-
-          {/* Mensagem */}
           <Text style={styles.message}>{message}</Text>
 
           {/* Botões */}
           <View style={styles.buttonsContainer}>
             {showRetryButton && (
-              <TouchableOpacity
-                style={styles.retryButton}
-                onPress={handleRetry}
-              >
+              <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
                 <Ionicons name="refresh" size={20} color="white" />
                 <Text style={styles.retryButtonText}>Tentar Novamente</Text>
               </TouchableOpacity>
             )}
-
             {showBackButton && (
-              <TouchableOpacity
-                style={styles.backButtonSecondary}
-                onPress={handleBack}
-              >
+              <TouchableOpacity style={styles.backButtonSecondary} onPress={handleBack}>
                 <Text style={styles.backButtonText}>Voltar ao Início</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          {/* Informações de suporte */}
+          {/* Contato suporte */}
           <View style={styles.supportContainer}>
             <Text style={styles.supportTitle}>Precisa de ajuda?</Text>
-            <Text style={styles.supportText}>
-              Se o problema persistir, entre em contato conosco
-            </Text>
-
+            <Text style={styles.supportText}>Se o problema persistir, entre em contato conosco</Text>
             <View style={styles.contactButtons}>
-              <TouchableOpacity 
-                style={styles.contactButton}
-                onPress={handleEmailPress}
-              >
-                <Ionicons name="mail" size={18} color="#6b7280" />
+              <TouchableOpacity style={styles.contactButton} onPress={() => handleContact('email')}>
+                <Ionicons name="mail-outline" size={18} color="#6b7280" />
                 <Text style={styles.contactButtonText}>E-mail</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.contactButton}
-                onPress={handlePhonePress}
-              >
-                <Ionicons name="call" size={18} color="#6b7280" />
+              <TouchableOpacity style={styles.contactButton} onPress={() => handleContact('phone')}>
+                <Ionicons name="call-outline" size={18} color="#6b7280" />
                 <Text style={styles.contactButtonText}>Telefone</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Detalhes Técnicos - SEMPRE MOSTRA */}
+          {/* Detalhes técnicos */}
           <View style={styles.technicalContainer}>
             <TouchableOpacity
               style={styles.technicalHeader}
               onPress={() => setShowTechnicalDetails(!showTechnicalDetails)}
             >
               <Text style={styles.technicalTitle}>Detalhes técnicos</Text>
-              <Ionicons 
-                name={showTechnicalDetails ? "chevron-up" : "chevron-down"} 
-                size={20} 
-                color="#6b7280" 
-              />
+              <Ionicons name={showTechnicalDetails ? "chevron-up" : "chevron-down"} size={20} color="#6b7280" />
             </TouchableOpacity>
-
             {showTechnicalDetails && (
               <View style={styles.technicalContent}>
-                <ScrollView 
-                  style={styles.technicalScroll}
-                  nestedScrollEnabled
-                >
-                  <Text style={styles.technicalText}>
-                    {getTechnicalDetails()}
-                  </Text>
+                <ScrollView style={styles.technicalScroll} nestedScrollEnabled>
+                  <Text style={styles.technicalText}>{getTechnicalDetails()}</Text>
                 </ScrollView>
               </View>
             )}
           </View>
 
-          {/* Espaçamento inferior */}
           <View style={styles.bottomSpacer} />
         </View>
       </ScrollView>
@@ -304,7 +190,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 32,
     paddingTop: 16,
-    marginTop: 0,
   },
   headerContent: {
     flexDirection: 'row',
