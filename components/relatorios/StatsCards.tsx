@@ -57,9 +57,9 @@ export default function StatsCards({ summaryData }: StatsCardsProps) {
 
 const styles = StyleSheet.create({
   statsContainer: {
-    paddingHorizontal: 16,
     paddingVertical: 16,
     gap: 12,
+    marginBottom: 20,
   },
   statCard: {
     backgroundColor: 'white',

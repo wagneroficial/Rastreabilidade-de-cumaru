@@ -10,7 +10,6 @@ const SummaryPreview: React.FC<SummaryPreviewProps> = ({ summaryData }) => {
   return (
     <View style={styles.section}>
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryTitle}>Resumo da Produção</Text>
 
         <View style={styles.summaryList}>
           <View style={styles.summaryItem}>
@@ -45,7 +44,6 @@ const SummaryPreview: React.FC<SummaryPreviewProps> = ({ summaryData }) => {
 
 const styles = StyleSheet.create({
   section: {
-    paddingHorizontal: 16,
     marginBottom: 28,
   },
   summaryCard: {
@@ -54,12 +52,6 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: '#e5e7eb',
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 16,
   },
   summaryList: {
     gap: 12,

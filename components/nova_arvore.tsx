@@ -43,16 +43,17 @@ const estadosSaude = [
   { label: 'Saudável', value: 'saudavel' },
   { label: 'Ruim', value: 'ruim' },
 ];
+
 const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
   visible,
   onClose,
-  onSuccess }) => {
+  onSuccess,
+}) => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showEstadoModal, setShowEstadoModal] = useState(false);
   const [showLoteModal, setShowLoteModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [lotes, setLotes] = useState<Lote[]>([]);
 
   const [formData, setFormData] = useState<ArvoreFormData>({
     idArvore: '',
@@ -65,10 +66,15 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  // Buscar lotes cadastrados
+
+  // --- Lotes do Firebase ---
+  const [lotes, setLotes] = useState<Lote[]>([]);
+  const [loadingLotes, setLoadingLotes] = useState(true);
+
   useEffect(() => {
     const fetchLotes = async () => {
       try {
+        setLoadingLotes(true);
         const snapshot = await getDocs(collection(db, 'lotes'));
         const lotesList = snapshot.docs.map(doc => ({
           id: doc.id,
@@ -77,6 +83,8 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
         setLotes(lotesList);
       } catch (error) {
         console.error('Erro ao buscar lotes:', error);
+      } finally {
+        setLoadingLotes(false);
       }
     };
     fetchLotes();
@@ -103,7 +111,6 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // NOVAS funções que faltavam: handleNext e handleBack
   const handleNext = () => {
     if (!validateCurrentStep()) return;
     if (currentStep < 2) {
@@ -120,17 +127,15 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
       handleClose();
     }
   };
-  // --- Ajuste do handleDateChange ---
+
   const handleDateChange = (_: any, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
     if (selectedDate) {
-      // Salva no formato ISO para consistência no Firebase
       updateFormData('dataPlantio', selectedDate.toISOString());
     }
   };
 
   const handleUseCurrentLocation = () => {
-    // placeholder: mantenho seu valor de exemplo — você pode integrar Location daqui se quiser
     updateFormData('latitude', '-3.123456');
     updateFormData('longitude', '-60.123456');
   };
@@ -183,6 +188,7 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
     onClose();
   };
 
+
   const renderStep1 = () => (
     <View>
       <Text style={styles.stepSubtitle}>Preencha os dados abaixo para cadastrar uma nova árvore</Text>
@@ -198,22 +204,19 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
           />
           {errors.idArvore && <Text style={styles.errorText}>{errors.idArvore}</Text>}
         </View>
-
-        {/* Lote */}
+         {/* Lote */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Lote</Text>
           <TouchableOpacity
             style={[styles.input, styles.selectInput, errors.loteId && styles.inputError]}
             onPress={() => setShowLoteModal(true)}
+            disabled={loadingLotes}
           >
-            <Text
-              style={[
-                styles.selectText,
-                !formData.loteId && styles.selectPlaceholder,
-              ]}
-            >
-              {formData.loteId
-                ? lotes.find(lote => lote.id === formData.loteId)?.codigo || 'Selecione um lote'
+            <Text style={[styles.selectText, !formData.loteId && styles.selectPlaceholder]}>
+              {loadingLotes
+                ? 'Carregando lotes...'
+                : formData.loteId
+                ? lotes.find(lote => lote.id === formData.loteId)?.nome || 'Selecione um lote'
                 : 'Selecione um lote'}
             </Text>
             <Ionicons name="chevron-down" size={20} color="#6B7280" />
@@ -221,7 +224,7 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
           {errors.loteId && <Text style={styles.errorText}>{errors.loteId}</Text>}
         </View>
 
-        {/* Modal de seleção de Lote */}
+        {/* Modal de Lotes */}
         <Modal
           visible={showLoteModal}
           transparent
@@ -237,31 +240,41 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
                 </TouchableOpacity>
               </View>
               <ScrollView style={styles.modalOptions}>
-                {lotes.map(lote => (
-                  <TouchableOpacity
-                    key={lote.id}
-                    style={[
-                      styles.modalOption,
-                      formData.loteId === lote.id && styles.modalOptionSelected,
-                    ]}
-                    onPress={() => {
-                      updateFormData('loteId', lote.id);
-                      setShowLoteModal(false);
-                    }}
-                  >
-                    <Text
+                {loadingLotes ? (
+                  <Text style={{ padding: 20, textAlign: 'center', color: '#6B7280' }}>
+                    Carregando lotes...
+                  </Text>
+                ) : lotes.length === 0 ? (
+                  <Text style={{ padding: 20, textAlign: 'center', color: '#6B7280' }}>
+                    Nenhum lote cadastrado
+                  </Text>
+                ) : (
+                  lotes.map(lote => (
+                    <TouchableOpacity
+                      key={lote.id}
                       style={[
-                        styles.modalOptionText,
-                        formData.loteId === lote.id && styles.modalOptionTextSelected,
+                        styles.modalOption,
+                        formData.loteId === lote.id && styles.modalOptionSelected,
                       ]}
+                      onPress={() => {
+                        updateFormData('loteId', lote.id);
+                        setShowLoteModal(false);
+                      }}
                     >
-                      {lote.codigo}
-                    </Text>
-                    {formData.loteId === lote.id && (
-                      <Ionicons name="checkmark" size={20} color="#16a34a" />
-                    )}
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        style={[
+                          styles.modalOptionText,
+                          formData.loteId === lote.id && styles.modalOptionTextSelected,
+                        ]}
+                      >
+                        {lote.nome}
+                      </Text>
+                      {formData.loteId === lote.id && (
+                        <Ionicons name="checkmark" size={20} color="#16a34a" />
+                      )}
+                    </TouchableOpacity>
+                  ))
+                )}
               </ScrollView>
             </View>
           </View>
@@ -288,19 +301,19 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Data de Cadastro</Text>
           <View style={styles.dateContainer}>
-                        <TouchableOpacity
-              
+            <TouchableOpacity
+
               onPress={() => setShowDatePicker(true)}
             >
-            <TextInput
-              style={[styles.input, styles.dateInput, errors.dataPlantio && styles.inputError]}
-              value={formData.dataPlantio ? new Date(formData.dataPlantio).toLocaleDateString('pt-BR') : ''}
-              placeholder="DD/MM/AAAA"
-              editable={false}
-            />
+              <TextInput
+                style={[styles.input, styles.dateInput, errors.dataPlantio && styles.inputError]}
+                value={formData.dataPlantio ? new Date(formData.dataPlantio).toLocaleDateString('pt-BR') : ''}
+                placeholder="DD/MM/AAAA"
+                editable={false}
+              />
 
               <View style={styles.dateIcon}>
-              <Ionicons name="calendar-outline" size={20} color="#6B7280" /></View>
+                <Ionicons name="calendar-outline" size={20} color="#6B7280" /></View>
             </TouchableOpacity>
           </View>
           {errors.dataPlantio && <Text style={styles.errorText}>{errors.dataPlantio}</Text>}

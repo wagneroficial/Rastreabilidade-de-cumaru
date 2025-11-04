@@ -18,20 +18,6 @@ const ExportOptions: React.FC<ExportOptionsProps> = ({ onExport }) => {
             </View>
             <Text style={styles.exportOptionText}>PDF</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.exportOption} onPress={() => onExport('Excel')}>
-            <View style={[styles.exportIconContainer, { backgroundColor: '#f0fdf4' }]}>
-              <Ionicons name="grid-outline" size={20} color="#16a34a" />
-            </View>
-            <Text style={styles.exportOptionText}>Excel</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.exportOption} onPress={() => onExport('E-mail')}>
-            <View style={[styles.exportIconContainer, { backgroundColor: '#eff6ff' }]}>
-              <Ionicons name="mail-outline" size={20} color="#2563eb" />
-            </View>
-            <Text style={styles.exportOptionText}>E-mail</Text>
-          </TouchableOpacity>
         </View>
       </View>
     </View>

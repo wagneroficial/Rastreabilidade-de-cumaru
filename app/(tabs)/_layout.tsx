@@ -1,12 +1,12 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { AppState, Platform, TouchableOpacity } from 'react-native';
 import AddModal from '@/components/AddModal';
 import BiometricLock from '@/components/BiometricLock';
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { useBiometric } from '@/contexts/BiometricContext';
+import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import { AppState, Platform, TouchableOpacity } from 'react-native';
 
 const INACTIVITY_TIMEOUT = 5 * 60 * 1000;
 

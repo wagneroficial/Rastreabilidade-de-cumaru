@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { TabType } from '../../types/relatorios.types';
 
 interface TabNavigationProps {
@@ -9,45 +9,54 @@ interface TabNavigationProps {
 }
 
 const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabChange }) => {
+  const tabs = [
+    { key: 'overview', label: 'Visão Geral', icon: 'bar-chart' },
+    { key: 'lotes', label: 'Por Lote', icon: 'grid' },
+    { key: 'periodo', label: 'Por Período', icon: 'calendar' },
+  ];
+
   return (
-    <View style={styles.tabsContainer}>
-      <TouchableOpacity
-        style={[styles.tab, activeTab === 'analytics' && styles.activeTab]}
-        onPress={() => onTabChange('analytics')}
-      >
-        <Ionicons name="bar-chart" size={16} color={activeTab === 'analytics' ? '#16a34a' : '#6b7280'} />
-        <Text style={[styles.tabText, activeTab === 'analytics' && styles.activeTabText]}>Analytics</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tab, activeTab === 'relatorios' && styles.activeTab]}
-        onPress={() => onTabChange('relatorios')}
-      >
-        <Ionicons name="document-text" size={16} color={activeTab === 'relatorios' ? '#16a34a' : '#6b7280'} />
-        <Text style={[styles.tabText, activeTab === 'relatorios' && styles.activeTabText]}>Relatórios</Text>
-      </TouchableOpacity>
+    <View style={styles.tabsWrapper}>
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
+            style={[styles.tab, activeTab === tab.key && styles.activeTab]}
+            onPress={() => onTabChange(tab.key as TabType)}
+          >
+            <Ionicons
+              name={tab.icon as any}
+              size={18}
+              color={activeTab === tab.key ? "#059669" : '#6b7280'}
+            />
+            <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  tabsContainer: {
-    flexDirection: 'row',
+  tabsWrapper: {
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
-    marginBottom: 20,
+    marginBottom: 24,
+        flexDirection: 'row',
+    paddingHorizontal: 8,
   },
   tab: {
-    flex: 1,
-    paddingVertical: 16,
-    alignItems: 'center',
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 6,
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: '#16a34a',
+    borderBottomColor: "#059669",
   },
   tabText: {
     fontSize: 14,
@@ -55,7 +64,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   activeTabText: {
-    color: '#16a34a',
+    color: "#059669",
+    fontWeight: '600',
   },
 });
 

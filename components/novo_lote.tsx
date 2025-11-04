@@ -75,7 +75,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
   });
 
   const [isLoading, setIsLoading] = useState(false);
-   const [nome, setNome] = useState('');
+  const [nome, setNome] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
   const [showSoloModal, setShowSoloModal] = useState(false);
   const [showColaboradoresModal, setShowColaboradoresModal] = useState(false);
@@ -91,13 +91,13 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
   const [checkingNome, setCheckingNome] = useState(false);
 
   // Função de debounce
-const debounce = (func: (...args: any[]) => void, delay: number) => {
-  let timeoutId: ReturnType<typeof setTimeout>;
-  return (...args: any[]) => {
-    if (timeoutId) clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => func(...args), delay);
+  const debounce = (func: (...args: any[]) => void, delay: number) => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    return (...args: any[]) => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func(...args), delay);
+    };
   };
-};
 
   // Verifica no Firestore se já existe um lote com o mesmo nome
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -131,7 +131,7 @@ const debounce = (func: (...args: any[]) => void, delay: number) => {
   useEffect(() => {
     verificarNomeExistente(nome);
   }, [nome]);
-  
+
   useEffect(() => {
     if (visible && isEditMode && loteParaEditar) {
       setFormData({
@@ -543,13 +543,13 @@ const debounce = (func: (...args: any[]) => void, delay: number) => {
                   <Text style={styles.span}>* </Text>
                   Nome do Lote</Text>
                 <TextInput
-              style={[
-                    styles.input,
-                    nomeError ? { borderColor: '#ff4d4d' } : {},
-                  ]}
+                  style={[styles.input, nomeError ? { borderColor: '#ff4d4d' } : {}]}
                   placeholder="Digite o nome do lote"
-                  value={nome}
-                  onChangeText={setNome}
+                  value={formData.nome}
+                  onChangeText={(value) => {
+                    handleInputChange('nome', value);
+                    verificarNomeExistente(value);
+                  }}
                 />
                 {checkingNome && <ActivityIndicator size="small" color="#666" style={{ marginTop: 4 }} />}
                 {nomeError ? <Text style={styles.errorText}>{nomeError}</Text> : null}
@@ -779,14 +779,6 @@ const debounce = (func: (...args: any[]) => void, delay: number) => {
                   </View>
                 )}
               </View>
-
-              {/* Botão para abrir no mapa */}
-              {formData.latitude && formData.longitude && validateCoordinates(formData.latitude, formData.longitude) && (
-                <TouchableOpacity style={styles.openMapButton} onPress={openInMaps}>
-                  <Ionicons name="map-outline" size={16} color="#374151" />
-                  <Text style={styles.openMapButtonText}>Ver no Mapa</Text>
-                </TouchableOpacity>
-              )}
 
               {/* Informações sobre permissões */}
               {locationPermission !== Location.PermissionStatus.GRANTED && (
@@ -1081,7 +1073,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1f2937',
   },
-    errorText: {
+  errorText: {
     color: '#ff4d4d',
     marginTop: 4,
     fontSize: 13,

@@ -112,22 +112,21 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
     return () => unsubscribe();
   }, []);
 
-  // Carregar lotes e árvores
   useEffect(() => {
     const loadData = async () => {
       if (!currentUserId) return;
 
       try {
         setIsLoading(true);
-        let lotesQuery;
 
+        // Carrega lotes
+        let lotesQuery;
         if (isAdmin) {
-          lotesQuery = query(collection(db, 'lotes'), where('status', '==', 'ativo'));
+          lotesQuery = collection(db, 'lotes'); // sem filtro para testar
         } else {
           lotesQuery = query(
             collection(db, 'lotes'),
-            where('colaboradoresResponsaveis', 'array-contains', currentUserId),
-            where('status', '==', 'ativo')
+            where('colaboradoresResponsaveis', 'array-contains', currentUserId)
           );
         }
 
@@ -137,18 +136,32 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
           codigo: doc.data().codigo || `L-${doc.id.slice(-3)}`,
           nome: doc.data().nome || 'Lote sem nome',
         }));
+
         setLotes(lotesData);
 
+        // Carrega árvores dos lotes
         if (lotesData.length > 0) {
-          const loteIds = lotesData.map((l) => l.id);
-          const arvoresQuery = query(collection(db, 'arvores'), where('loteId', 'in', loteIds));
-          const arvoresSnapshot = await getDocs(arvoresQuery);
+          // Firestore limita o "in" a 10 elementos
+          const loteChunks = [];
+          for (let i = 0; i < lotesData.length; i += 10) {
+            loteChunks.push(lotesData.slice(i, i + 10).map(l => l.id));
+          }
 
-          const arvoresData: Arvore[] = arvoresSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            codigo: doc.data().codigo || `ARV-${doc.id.slice(-3)}`,
-            loteId: doc.data().loteId,
-          }));
+          let arvoresData: Arvore[] = [];
+          for (const chunk of loteChunks) {
+            const arvoresQuery = query(
+              collection(db, 'arvores'),
+              where('loteId', 'in', chunk)
+            );
+            const arvoresSnapshot = await getDocs(arvoresQuery);
+            arvoresData = arvoresData.concat(
+              arvoresSnapshot.docs.map((doc) => ({
+                id: doc.id,
+                codigo: doc.data().codigo || `ARV-${doc.id.slice(-3)}`,
+                loteId: doc.data().loteId,
+              }))
+            );
+          }
 
           setArvores(arvoresData);
         }
@@ -162,8 +175,9 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
       }
     };
 
-    if (currentUserId) loadData();
+    loadData();
   }, [currentUserId, isAdmin]);
+
 
   // Carregar coletas recentes
   const loadRecentCollections = async (lotesData: Lote[]) => {
@@ -253,11 +267,19 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
       };
 
       await addDoc(collection(db, 'coletas'), coletaData);
-
-      Alert.alert('Sucesso!', isAdmin
-        ? 'Coleta registrada e aprovada com sucesso!'
-        : 'Coleta registrada! Aguardando aprovação do administrador.', [{ text: 'OK' }]
+      Alert.alert(
+        'Sucesso!',
+        isAdmin
+          ? 'Coleta registrada e aprovada com sucesso!'
+          : 'Coleta registrada! Aguardando aprovação do administrador.',
+        [
+          {
+            text: 'OK',
+            onPress: () => onClose()  // fecha o modal ao clicar em OK
+          }
+        ]
       );
+
 
       setSelectedLote('');
       setSelectedArvore('');
@@ -313,8 +335,6 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
             onObservacoesChange={setObservacoes}
             onSubmit={handleSubmit}
           />
-
-          <RecentCollections collections={recentCollections} />
           <View style={styles.bottomSpacing} />
         </ScrollView>
 
@@ -327,10 +347,14 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
         <SelectionModal
           visible={showLoteModal}
           title="Selecionar Lote"
-          options={lotes.map((l) => ({ id: l.id, label: `${l.codigo} - ${l.nome}` }))}
+          options={lotes.map((l) => ({ id: l.id, label: l.nome }))}
           selectedId={selectedLote}
           onClose={() => setShowLoteModal(false)}
-          onSelect={(id) => { setSelectedLote(id); setSelectedArvore(''); setShowLoteModal(false); }}
+          onSelect={(id) => {
+            setSelectedLote(id);
+            setSelectedArvore('');
+            setShowLoteModal(false);
+          }}
         />
 
         <SelectionModal

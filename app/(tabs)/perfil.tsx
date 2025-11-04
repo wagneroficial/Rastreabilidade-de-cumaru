@@ -206,7 +206,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
     { title: 'Notificações', icon: 'notifications-outline', route: '/notificacoes' },
     { title: 'Sobre Nós', icon: 'information-circle-outline', route: '/quem-somos' },
     { title: 'Segurança', icon: 'shield-checkmark-outline', route: '/seguranca' },
-    { title: 'Ajuda', icon: 'help-circle-outline', route: '/ajuda' },
+    { title: 'Ajuda & Suporte', icon: 'help-circle-outline', route: '/ajuda' },
     { title: 'Sair', icon: 'log-out-outline', action: 'logout', color: '#dc2626' },
   ];
 

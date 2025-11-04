@@ -55,7 +55,7 @@ const ColetaForm: React.FC<ColetaFormProps> = ({
 }) => {
   const getLoteNome = (id: string) => {
     const lote = lotes.find(l => l.id === id);
-    return lote ? `${lote.codigo} - ${lote.nome}` : 'Selecione um lote';
+    return lote ? `${lote.nome}` : 'Selecione um lote';
   };
 
   const getArvoreNome = (id: string) => {

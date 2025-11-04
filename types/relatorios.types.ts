@@ -4,6 +4,7 @@ export interface Period {
 }
 
 export interface RecentReport {
+  pdfUrl: any;
   id: string;
   title: string;
   type: string;
@@ -42,6 +43,8 @@ export interface ColetaData {
 }
 
 export interface ChartDataItem {
+  crescimento: any;
+  label: any;
   name: string;
   value: number;
   color?: string;
@@ -56,5 +59,5 @@ export interface PerformanceIndicator {
   backgroundColor: string;
 }
 
-export type TabType = 'analytics' | 'relatorios';
-export type ChartType = 'volume' | 'lotes';
+export type TabType = 'overview' | 'lotes' | 'periodo';
+export type ChartType = 'volume' | 'lotes' | 'qualidade' | 'eficiencia';
