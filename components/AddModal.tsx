@@ -38,7 +38,7 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
 
                 <View style={styles.container}>
                     <View style={styles.handle} />
-                    <Text style={styles.title}>O que gostaria de fazer?</Text>
+                    <Text style={styles.title}>O que gostaria de fazer agora?</Text>
 
                     <View style={styles.optionList}>
                         {/* Nova Coleta */}
@@ -46,8 +46,8 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
                             style={styles.option}
                             onPress={() => setNovaColetaVisible(true)}
                         >
-                            <View style={[styles.iconBox, { backgroundColor: '#f5f5f5' }]}>
-                                <Ionicons name="add" size={32} color="#1f2937" />
+                            <View style={[styles.iconBox, { backgroundColor: '#da8a5534' }]}>
+                                <Ionicons name="add" size={32} color='#c3743f'  />
                             </View>
                             <View style={styles.textBox}>
                                 <Text style={styles.optionTitle}>Registrar Nova Colheita</Text>
@@ -62,8 +62,8 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
                             style={styles.option}
                             onPress={() => setNovaArvoreVisible(true)}
                         >
-                            <View style={[styles.iconBox, { backgroundColor: '#f5f5f5' }]}>
-                                <Ionicons name="leaf" size={22} color="#1f2937" />
+                            <View style={[styles.iconBox, { backgroundColor: '#dcfce7' }]}>
+                                <Ionicons name="leaf" size={22} color='#16a34a'  />
                             </View>
                             <View style={styles.textBox}>
                                 <Text style={styles.optionTitle}>Cadastrar nova árvore</Text>
@@ -78,7 +78,7 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
                             style={styles.option}
                             onPress={() => setNovoLoteVisible(true)}
                         >
-                            <View style={[styles.iconBox, { backgroundColor: '#f5f5f5' }]}>
+                            <View style={[styles.iconBox, { backgroundColor: '#558b722b' }]}>
                                 <Ionicons name="logo-buffer" size={22} color="#1f2937" />
                             </View>
                             <View style={styles.textBox}>

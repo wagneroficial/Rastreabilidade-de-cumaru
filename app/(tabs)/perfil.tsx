@@ -13,12 +13,16 @@ import {
   TextInput,
   Modal,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 
+import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth, db } from '@/app/services/firebaseConfig.js';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
+// Tipagens
 interface PerfilScreenProps {
   navigation: any;
 }
@@ -49,15 +53,34 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [avatarColor, setAvatarColor] = useState<string>('#16a34a');
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
 
-  // 🟢 Estados do modal de edição
   const [editVisible, setEditVisible] = useState(false);
   const [editNome, setEditNome] = useState('');
   const [editTelefone, setEditTelefone] = useState('');
   const [editPropriedade, setEditPropriedade] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Buscar dados do usuário logado
+  function randomColor({ seed }: { seed: string }): string {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = hash % 360;
+    return `hsl(${hue}, 60%, 45%)`;
+  }
+
+  // Carregar avatar salvo
+  useEffect(() => {
+    const loadAvatar = async () => {
+      const savedUri = await AsyncStorage.getItem('userAvatar');
+      if (savedUri) setAvatarUri(savedUri);
+    };
+    loadAvatar();
+  }, []);
+
+  // Buscar dados do usuário
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -66,7 +89,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
           const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
           if (userDoc.exists()) {
             const data = userDoc.data();
-            setUserData({
+            const userDataFormatted: UserData = {
               nome: data.nome || 'Usuário',
               email: data.email || user.email || '',
               telefone: data.telefone || 'Não informado',
@@ -77,7 +100,9 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
                   ? new Date(data.criadoEm.seconds * 1000).toLocaleDateString('pt-BR')
                   : new Date(data.criadoEm).toLocaleDateString('pt-BR')
                 : 'Não informado',
-            });
+            };
+            setUserData(userDataFormatted);
+            setAvatarColor(randomColor({ seed: userDataFormatted.nome }));
           }
         } catch (error) {
           console.error('Erro ao buscar dados do usuário:', error);
@@ -88,66 +113,56 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
       }
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
-  // Redirecionar se não autenticado
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.replace('/');
-    }
-  }, [loading, isAuthenticated]);
-
-  const menuItems: MenuItem[] = [
-    { title: 'Relatórios', icon: 'document-text-outline', route: '/relatorios' },
-    { title: 'Notificações', icon: 'notifications-outline', route: '/notificacoes' },
-    { title: 'Quem Somos', icon: 'information-circle-outline', route: '/quem-somos' },
-    { title: 'Segurança', icon: 'shield-checkmark-outline', route: '/seguranca' },
-    { title: 'Ajuda', icon: 'help-circle-outline', route: '/ajuda' },
-    { title: 'Sair', icon: 'log-out-outline', action: 'logout', color: '#dc2626' },
-  ];
-
-  const stats: StatItem[] = [
-    { label: 'Total Lotes', value: '12' },
-    { label: 'Total Colhido', value: '1.2t' },
-    { label: 'Dias Ativo', value: '45' },
-  ];
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error('Erro durante logout:', error);
-      Alert.alert('Erro', 'Ocorreu um erro ao sair. Tente novamente.');
-    }
-  };
-
-  const handleMenuPress = (item: MenuItem) => {
-    if (item.action === 'logout') {
-      Alert.alert('Sair', 'Tem certeza que deseja sair do aplicativo?', [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Sair', style: 'destructive', onPress: handleLogout },
-      ]);
-    } else if (item.route) {
-      router.push(item.route as any);
-    }
-  };
-
-  // 🟢 Função para abrir modal com dados atuais
+  // 🔹 Função para abrir modal preenchendo os inputs
   const openEditModal = () => {
-    if (userData) {
-      setEditNome(userData.nome);
-      setEditTelefone(userData.telefone);
-      setEditPropriedade(userData.propriedade);
-      setEditVisible(true);
+    if (!userData) return;
+
+    setEditNome(userData.nome);
+    setEditTelefone(userData.telefone);
+    setEditPropriedade(userData.propriedade);
+
+    // Abrir modal após preencher os estados
+    setTimeout(() => setEditVisible(true), 0);
+  };
+
+  // 🔹 Escolher imagem
+  const pickImage = async (fromCamera = false) => {
+    try {
+      let result;
+      if (fromCamera) {
+        await ImagePicker.requestCameraPermissionsAsync();
+        result = await ImagePicker.launchCameraAsync({
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 1,
+        });
+      } else {
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+        result = await ImagePicker.launchImageLibraryAsync({
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 1,
+        });
+      }
+
+      if (!result.canceled) {
+        const uri = result.assets[0].uri;
+        setAvatarUri(uri);
+        await AsyncStorage.setItem('userAvatar', uri);
+        Alert.alert('Sucesso!', 'Foto atualizada com sucesso!');
+      }
+    } catch (error) {
+      console.error('Erro ao escolher imagem:', error);
+      Alert.alert('Erro', 'Não foi possível carregar a imagem.');
     }
   };
 
-  // 🟢 Função para salvar alterações no Firestore
+  // 🔹 Salvar alterações
   const handleSaveChanges = async () => {
     if (!userData || !auth.currentUser) return;
-
     setSaving(true);
     try {
       const userRef = doc(db, 'usuarios', auth.currentUser.uid);
@@ -164,43 +179,94 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
         propriedade: editPropriedade.trim(),
       });
 
+      setAvatarColor(randomColor({ seed: editNome.trim() }));
       setEditVisible(false);
-      Alert.alert('Sucesso', 'Informações atualizadas com sucesso!');
+      Alert.alert('Sucesso', 'Informações salvas com sucesso!');
     } catch (error) {
-      console.error('Erro ao salvar alterações:', error);
-      Alert.alert('Erro', 'Não foi possível salvar as alterações.');
+      Alert.alert('Erro', 'Não foi possível salvar.');
+      console.error(error);
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>Carregando perfil...</Text>
-      </SafeAreaView>
-    );
-  }
+  // 🔹 Logout
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Erro durante logout:', error);
+      Alert.alert('Erro', 'Ocorreu um erro ao sair. Tente novamente.');
+    }
+  };
 
-  if (!isAuthenticated || !userData) {
+  // 🔹 Menu
+  const menuItems: MenuItem[] = [
+    { title: 'Relatórios', icon: 'document-text-outline', route: '/relatorios' },
+    { title: 'Notificações', icon: 'notifications-outline', route: '/notificacoes' },
+    { title: 'Sobre Nós', icon: 'information-circle-outline', route: '/quem-somos' },
+    { title: 'Segurança', icon: 'shield-checkmark-outline', route: '/seguranca' },
+    { title: 'Ajuda', icon: 'help-circle-outline', route: '/ajuda' },
+    { title: 'Sair', icon: 'log-out-outline', action: 'logout', color: '#dc2626' },
+  ];
+
+  // 🔹 Estatísticas (exemplo)
+  const stats: StatItem[] = [
+    { label: 'Total Lotes', value: '12' },
+    { label: 'Total Colhido', value: '1.2t' },
+    { label: 'Dias Ativo', value: '45' },
+  ];
+
+  // Redirecionar se não autenticado
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.replace('/');
+    }
+  }, [loading, isAuthenticated]);
+
+  if (loading)
     return (
       <SafeAreaView style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>Redirecionando...</Text>
+        <Text>Carregando perfil...</Text>
       </SafeAreaView>
     );
-  }
+
+  if (!isAuthenticated || !userData)
+    return (
+      <SafeAreaView style={[styles.container, styles.centerContent]}>
+        <Text>Redirecionando...</Text>
+      </SafeAreaView>
+    );
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#16a34a" barStyle="light-content" />
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header */}
+      <ScrollView>
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <View style={styles.avatarContainer}>
-              <Ionicons name="person" size={48} color="white" />
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+              ) : (
+                <View style={[styles.avatarFallback, { backgroundColor: avatarColor }]}>
+                  <Text style={styles.avatarInitials}>
+                    {userData.nome
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')
+                      .toUpperCase()}
+                  </Text>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={styles.editAvatarButton}
+                onPress={openEditModal} // <- função corrigida
+              >
+                <Ionicons name="brush" size={18} color="white" />
+              </TouchableOpacity>
             </View>
+
             <Text style={styles.userName}>{userData.nome}</Text>
             <Text style={styles.userProperty}>{userData.propriedade}</Text>
             <View style={styles.userTypeContainer}>
@@ -216,7 +282,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Stats */}
+        {/* Estatísticas */}
         <View style={styles.statsContainer}>
           <View style={styles.statsGrid}>
             {stats.map((stat, index) => (
@@ -228,47 +294,6 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Profile Info */}
-        <View style={styles.profileInfoContainer}>
-          <View style={styles.profileInfoCard}>
-            <View style={styles.profileInfoHeader}>
-              <Text style={styles.profileInfoTitle}>Informações Pessoais</Text>
-
-              {/* 🟢 Botão de editar funcionando */}
-              <TouchableOpacity
-                onPress={() => {
-                  console.log('Abrindo modal de edição...');
-                  openEditModal();
-                }}
-                activeOpacity={0.7}
-                style={{ padding: 6 }}
-              >
-                <Ionicons name="create-outline" size={22} color="#16a34a" />
-              </TouchableOpacity>
-            </View>
-
-
-            <View style={styles.profileInfoList}>
-              <View style={styles.profileInfoItem}>
-                <Text style={styles.profileInfoLabel}>E-mail</Text>
-                <Text style={styles.profileInfoValue}>{userData.email}</Text>
-              </View>
-              <View style={styles.profileInfoItem}>
-                <Text style={styles.profileInfoLabel}>Telefone</Text>
-                <Text style={styles.profileInfoValue}>{userData.telefone}</Text>
-              </View>
-              <View style={styles.profileInfoItem}>
-                <Text style={styles.profileInfoLabel}>Propriedade</Text>
-                <Text style={styles.profileInfoValue}>{userData.propriedade}</Text>
-              </View>
-              <View style={styles.profileInfoItem}>
-                <Text style={styles.profileInfoLabel}>Cadastro</Text>
-                <Text style={styles.profileInfoValue}>{userData.cadastro}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
         {/* Menu */}
         <View style={styles.menuContainer}>
           <View style={styles.menuCard}>
@@ -276,14 +301,19 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
               <TouchableOpacity
                 key={index}
                 style={[styles.menuItem, index < menuItems.length - 1 && styles.menuItemBorder]}
-                onPress={() => handleMenuPress(item)}
+                onPress={() => {
+                  if (item.action === 'logout') {
+                    Alert.alert('Sair', 'Tem certeza que deseja sair do aplicativo?', [
+                      { text: 'Cancelar', style: 'cancel' },
+                      { text: 'Sair', style: 'destructive', onPress: handleLogout },
+                    ]);
+                  } else if (item.route) {
+                    router.push(item.route as any);
+                  }
+                }}
               >
                 <View style={styles.menuItemContent}>
-                  <Ionicons
-                    name={item.icon as any}
-                    size={20}
-                    color={item.color || '#6b7280'}
-                  />
+                  <Ionicons name={item.icon as any} size={20} color={item.color || '#6b7280'} />
                   <Text style={[styles.menuItemText, item.color && { color: item.color }]}>
                     {item.title}
                   </Text>
@@ -295,37 +325,75 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
         </View>
       </ScrollView>
 
-      {/* 🟢 Modal de edição */}
-      <Modal
-        visible={editVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setEditVisible(false)}
-      >
+      {/* Modal de edição */}
+      <Modal visible={editVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Editar Perfil</Text>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Nome"
-              value={editNome}
-              onChangeText={setEditNome}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Telefone"
-              value={editTelefone}
-              onChangeText={setEditTelefone}
-              keyboardType="phone-pad"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Propriedade"
-              value={editPropriedade}
-              onChangeText={setEditPropriedade}
-            />
+            <View style={styles.avatarEditContainer}>
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatarImageModal} />
+              ) : (
+                <View style={[styles.avatarFallback, { backgroundColor: avatarColor }]}>
+                  <Text style={styles.avatarInitials}>
+                    {editNome
+                      ? editNome
+                        .split(' ')
+                        .map((n) => n[0])
+                        .join('')
+                        .toUpperCase()
+                      : 'U'}
+                  </Text>
+                </View>
+              )}
 
+              <View style={styles.avatarActions}>
+                <TouchableOpacity
+                  style={styles.avatarActionButton}
+                  onPress={() =>
+                    Alert.alert('Foto de Perfil', 'Escolha uma opção:', [
+                      { text: 'Galeria', onPress: () => pickImage(false) },
+                      { text: 'Câmera', onPress: () => pickImage(true) },
+                      { text: 'Cancelar', style: 'cancel' },
+                    ])
+                  }
+                >
+                  <Ionicons name="camera-outline" size={22} color="white" />
+                </TouchableOpacity>
+
+                {avatarUri && (
+                  <TouchableOpacity
+                    style={[styles.avatarActionButton, { backgroundColor: '#eaeaea' }]}
+                    onPress={async () => {
+                      setAvatarUri(null);
+                      await AsyncStorage.removeItem('userAvatar');
+                    }}
+                  >
+                    <Ionicons name="trash-outline" size={22} color="#1f2937" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            {/* Formulário */}
+            <View style={{ marginTop: 20 }}>
+              <Text style={styles.inputLabel}>Nome</Text>
+              <TextInput style={styles.input} value={editNome} onChangeText={setEditNome} />
+
+              <Text style={styles.inputLabel}>Telefone</Text>
+              <TextInput
+                style={styles.input}
+                value={editTelefone}
+                onChangeText={setEditTelefone}
+                keyboardType="phone-pad"
+              />
+
+              <Text style={styles.inputLabel}>Propriedade</Text>
+              <TextInput style={styles.input} value={editPropriedade} onChangeText={setEditPropriedade} />
+            </View>
+
+            {/* Botões */}
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
@@ -339,17 +407,12 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
                 onPress={handleSaveChanges}
                 disabled={saving}
               >
-                {saving ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text style={styles.saveText}>Salvar</Text>
-                )}
+                {saving ? <ActivityIndicator color="white" /> : <Text style={styles.saveText}>Salvar</Text>}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-
     </SafeAreaView>
   );
 };
@@ -357,228 +420,294 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fdfdfd',
+    backgroundColor: '#fdfdfd'
   },
+
   centerContent: {
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
+
   loadingText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#6b7280'
   },
-  scrollView: {
-    flex: 1,
-  },
+
   header: {
     backgroundColor: '#16a34a',
     paddingHorizontal: 4,
     paddingVertical: 32,
-    paddingTop: 48,
-    marginTop: 0,
+    paddingTop: 62
   },
+
   headerContent: {
-    alignItems: 'center',
+    alignItems: 'center'
   },
+
   avatarContainer: {
-    width: 80,
-    height: 80,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 40,
+    width: 88,
+    height: 88,
+    borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20
   },
+
+  avatarFallback: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+
+  avatarImage: {
+    width: 96,
+    height: 96,
+    borderRadius: 50,
+    resizeMode: 'cover'
+  },
+
+  editAvatarButton: {
+    position: 'absolute',
+    bottom: -10,
+    right: -10,
+    backgroundColor: '#71ca90',
+    width: 34,
+    height: 34,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#16a34a'
+  },
+
   userName: {
     fontSize: 20,
     fontWeight: 'bold',
     color: 'white',
+    textAlign: 'center',
+    marginTop: 4,
   },
+
   userProperty: {
     fontSize: 14,
     color: '#bbf7d0',
-    marginTop: 4,
+    marginTop: 4
+  },
+
+  avatarInitials: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: 'white',
+    textAlign: "center",
+  },
+  removePhotoButton: {
+    alignSelf: 'center',
+    marginBottom: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#2a2a2a',
+    borderRadius: 8
+  },
+
+  removePhotoText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14
   },
   userTypeContainer: {
     marginTop: 8,
-    marginBottom: 20,
+    marginBottom: 20
   },
+
   userType: {
     fontSize: 12,
     fontWeight: '600',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
+
   userTypeAdmin: {
     backgroundColor: '#fef3c7',
-    color: '#92400e',
+    color: '#92400e'
   },
+
   userTypeColaborador: {
     backgroundColor: '#e0f2fe',
-    color: '#0277bd',
+    color: '#0277bd'
   },
+
   statsContainer: {
     paddingHorizontal: 16,
-    marginTop: -32,
+    marginTop: -32
   },
+
   statsGrid: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 12
   },
+
   statCard: {
     flex: 1,
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    elevation: 1,
+    elevation: 1
   },
+
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#16a34a',
+    color: '#16a34a'
   },
+
   statLabel: {
     fontSize: 12,
     color: '#1f2937',
     textAlign: 'center',
-    marginTop: 6,
+    marginTop: 6
   },
+
   profileInfoContainer: {
     paddingHorizontal: 16,
-    marginTop: 24,
+    marginTop: 24
   },
+
   profileInfoCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
+    padding: 16
   },
+
+  profileInfoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16
+  },
+
   profileInfoTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 16,
+    color: '#1f2937'
   },
+
   profileInfoList: {
-    gap: 12,
+    gap: 12
   },
+
   profileInfoItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 8
   },
 
   profileInfoLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#6b7280'
   },
+
   profileInfoValue: {
     fontSize: 14,
     fontWeight: '500',
     color: '#1f2937',
     textAlign: 'right',
     flex: 1,
-    marginLeft: 16,
+    marginLeft: 16
   },
+
   menuContainer: {
     paddingHorizontal: 16,
-    marginTop: 24,
+    marginTop: 24
   },
+
   menuCard: {
     backgroundColor: 'white',
     borderRadius: 12,
     overflow: 'hidden',
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: '#f3f4f6'
   },
+
   menuItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 16
   },
+
   menuItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: '#f3f4f6'
   },
+
   menuItemContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 16
   },
+
   menuItemText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1f2937',
+    color: '#1f2937'
   },
-  appInfoContainer: {
-    paddingHorizontal: 16,
-    marginTop: 24,
-  },
-  appInfoCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  appIconContainer: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#f0fdf4',
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  appName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-  },
-  appDescription: {
-    fontSize: 14,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  appVersion: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 8,
-  },
-  bottomSpacing: {
-    height: 80,
-  },
-  profileInfoHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
+
   modalContainer: {
     width: '90%',
     backgroundColor: 'white',
     borderRadius: 16,
     padding: 20,
-    elevation: 5,
+    elevation: 5
   },
+
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1f2937',
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: 'center'
   },
+  avatarEditContainer: {
+    alignItems: 'center',
+    position: 'relative',
+  },
+
+  avatarImageModal: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    resizeMode: 'cover',
+    borderWidth: 2,
+    borderColor: '#1f2937',
+  },
+  avatarActions: {
+    flexDirection: 'row',
+    marginTop: 10,
+    gap: 12,
+  },
+  avatarActionButton: {
+    backgroundColor: '#1f2937',
+    padding: 10,
+    borderRadius: 50,
+  },
+  inputLabel: {
+    marginBottom: 12
+  },
+
   input: {
     backgroundColor: '#f9fafb',
     borderRadius: 8,
@@ -587,32 +716,38 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 12,
     fontSize: 14,
-    color: '#111827',
+    color: '#111827'
   },
+
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 8,
+    marginTop: 8
   },
+
   modalButton: {
     paddingVertical: 10,
     paddingHorizontal: 18,
     borderRadius: 8,
-    marginLeft: 8,
+    marginLeft: 8
   },
+
   cancelButton: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#f3f4f6'
   },
+
   saveButton: {
-    backgroundColor: '#16a34a',
+    backgroundColor: '#16a34a'
   },
+
   cancelText: {
     color: '#374151',
-    fontWeight: '500',
+    fontWeight: '500'
   },
+
   saveText: {
     color: 'white',
-    fontWeight: '600',
+    fontWeight: '600'
   },
 });
 
