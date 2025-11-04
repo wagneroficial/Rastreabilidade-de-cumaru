@@ -1,113 +1,22 @@
-// app/admin/usuarios.tsx
-import { ConfirmActionModal } from '@/components/users/ConfirmActionModal';
-import { ManageLotesModal } from '@/components/users/ManageLotesModal';
-import { UserCard } from '@/components/users/UserCard';
-import { UserDetailModal } from '@/components/users/UserDetailModal';
-import { useLotesManagement } from '@/hooks/useLotesManagement';
-import { User, useUsers } from '@/hooks/useUsers';
-import { filterUsers } from '@/utils/userHelpers';
+// app/admin/gerenciamento.tsx
+import ColetasTab from '@/components/gerenciar/ColetasTab';
+import UsuariosTab from '@/components/gerenciar/UsuariosTab';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+type MainTabType = 'usuarios' | 'coletas';
 
-
-type TabType = 'todos' | 'pendentes' | 'aprovados' | 'reprovados' | 'desativados';
-
-const UsuariosScreen: React.FC = () => {
+const GerenciamentoScreen: React.FC = () => {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabType>('todos');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewingUser, setViewingUser] = useState<User | null>(null);
-  const [managingLotes, setManagingLotes] = useState<User | null>(null);
-  const [actioningUser, setActioningUser] = useState<{
-    user: User;
-    action: 'aprovar' | 'reprovar' | 'desativar' | 'reativar';
-  } | null>(null);
-
-  // Hooks
-  const { users, loading, updateUserStatus, updateUserLotes } = useUsers();
-  const { lotes, loading: loadingLotes, fetchLotes, getLoteNome, getLoteCodigo } = useLotesManagement();
-
-  // Filtrar usuários
-  const filteredUsers = useMemo(() => {
-    return filterUsers(users, activeTab, searchQuery);
-  }, [users, activeTab, searchQuery]);
-
-  // Contadores para as tabs
-  const counts = useMemo(() => {
-    return {
-      todos: users.length,
-      pendentes: users.filter(u => u.status === 'pendente').length,
-      aprovados: users.filter(u => u.status === 'aprovado').length,
-      reprovados: users.filter(u => u.status === 'reprovado').length,
-      desativados: users.filter(u => u.status === 'desativado').length,
-    };
-  }, [users]);
-
-  // Handlers
-  const handleOpenManageLotes = (user: User) => {
-    setManagingLotes(user);
-    fetchLotes();
-  };
-
-  const handleToggleLote = async (loteId: string) => {
-    if (!managingLotes) return;
-
-    const currentLotes = managingLotes.lotesAtribuidos || [];
-    const isSelected = currentLotes.includes(loteId);
-    const newLotes = isSelected
-      ? currentLotes.filter(id => id !== loteId)
-      : [...currentLotes, loteId];
-
-    const success = await updateUserLotes(managingLotes.id, newLotes);
-    if (success) {
-      setManagingLotes(prev => prev ? { ...prev, lotesAtribuidos: newLotes } : null);
-    }
-  };
-
-  const handleConfirmAction = async (motivo?: string) => {
-    if (!actioningUser) return;
-
-    const { user, action } = actioningUser;
-    let newStatus: 'aprovado' | 'reprovado' | 'desativado';
-
-    switch (action) {
-      case 'aprovar':
-      case 'reativar':
-        newStatus = 'aprovado';
-        break;
-      case 'reprovar':
-        newStatus = 'reprovado';
-        break;
-      case 'desativar':
-        newStatus = 'desativado';
-        break;
-    }
-
-    const success = await updateUserStatus(user.id, newStatus, motivo);
-    if (success) {
-      setActioningUser(null);
-    }
-  };
-
-  const tabs = [
-    { key: 'todos', label: 'Todos', count: counts.todos },
-    { key: 'pendentes', label: 'Pendentes', count: counts.pendentes },
-    { key: 'aprovados', label: 'Aprovados', count: counts.aprovados },
-    { key: 'reprovados', label: 'Reprovados', count: counts.reprovados },
-    { key: 'desativados', label: 'Desativados', count: counts.desativados },
-  ] as const;
+  const [activeMainTab, setActiveMainTab] = useState<MainTabType>('usuarios');
 
   return (
     <SafeAreaView style={styles.container}>
@@ -118,167 +27,59 @@ const UsuariosScreen: React.FC = () => {
             <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>Gerenciar Usuários</Text>
-            <Text style={styles.headerSubtitle}>{counts.todos} usuário(s) cadastrado(s)</Text>
+            <Text style={styles.headerTitle}>Gerenciamento</Text>
+            <Text style={styles.headerSubtitle}>
+              {activeMainTab === 'usuarios' ? 'Gerencie usuários do sistema' : 'Aprove ou rejeite coletas'}
+            </Text>
           </View>
         </View>
       </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="#9ca3af" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar por nome, email ou propriedade..."
-            placeholderTextColor='#6b7280'
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+      {/* Main Tabs */}
+      <View style={styles.mainTabsContainer}>
+        <TouchableOpacity
+          onPress={() => setActiveMainTab('usuarios')}
+          style={[
+            styles.mainTab,
+            activeMainTab === 'usuarios' && styles.mainTabActive,
+          ]}
+        >
+          <Ionicons 
+            name={activeMainTab === 'usuarios' ? 'people' : 'people-outline'} 
+            size={20} 
+            color={activeMainTab === 'usuarios' ? '#16a34a' : '#6b7280'} 
           />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color="#9ca3af" />
-            </TouchableOpacity>
-          )}
-        </View>
+          <Text style={[
+            styles.mainTabText,
+            activeMainTab === 'usuarios' && styles.mainTabTextActive,
+          ]}>
+            Usuários
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => setActiveMainTab('coletas')}
+          style={[
+            styles.mainTab,
+            activeMainTab === 'coletas' && styles.mainTabActive,
+          ]}
+        >
+          <Ionicons 
+            name={activeMainTab === 'coletas' ? 'leaf' : 'leaf-outline'} 
+            size={20} 
+            color={activeMainTab === 'coletas' ? '#16a34a' : '#6b7280'} 
+          />
+          <Text style={[
+            styles.mainTabText,
+            activeMainTab === 'coletas' && styles.mainTabTextActive,
+          ]}>
+            Coletas
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabsContainer}
-        contentContainerStyle={styles.tabsContent}
-      >
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            onPress={() => setActiveTab(tab.key)}
-            style={[
-              styles.tab,
-              activeTab === tab.key && styles.tabActive,
-            ]}
-          >
-            <Text style={[
-              styles.tabText,
-              activeTab === tab.key && styles.tabTextActive,
-            ]}>
-              {tab.label}
-            </Text>
-            <View style={[
-              styles.tabBadge,
-              activeTab === tab.key && styles.tabBadgeActive,
-            ]}>
-              <Text style={[
-                styles.tabBadgeText,
-                activeTab === tab.key && styles.tabBadgeTextActive,
-              ]}>
-                {tab.count}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Content */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#16a34a" />
-          <Text style={styles.loadingText}>Carregando usuários...</Text>
-        </View>
-      ) : filteredUsers.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="people-outline" size={64} color="#d1d5db" />
-          <Text style={styles.emptyTitle}>
-            {searchQuery ? 'Nenhum usuário encontrado' : 'Nenhum usuário neste filtro'}
-          </Text>
-          <Text style={styles.emptyText}>
-            {searchQuery
-              ? 'Tente ajustar sua busca ou verifique a ortografia'
-              : 'Não há usuários com este status no momento'}
-          </Text>
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.listContainer}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {filteredUsers.map((user) => (
-            <UserCard
-              key={user.id}
-              user={user}
-              getLoteNome={getLoteNome}
-              onView={() => setViewingUser(user)}
-              onManageLotes={() => handleOpenManageLotes(user)}
-              onApprove={user.status === 'pendente' ? () => setActioningUser({ user, action: 'aprovar' }) : undefined}
-              onReject={user.status === 'pendente' ? () => setActioningUser({ user, action: 'reprovar' }) : undefined}
-              onDeactivate={user.status === 'aprovado' ? () => setActioningUser({ user, action: 'desativar' }) : undefined}
-              onReactivate={user.status === 'desativado' ? () => setActioningUser({ user, action: 'reativar' }) : undefined}
-            />
-          ))}
-        </ScrollView>
-      )}
-
-      {/* Modals */}
-      <UserDetailModal
-        visible={!!viewingUser}
-        user={viewingUser}
-        getLoteNome={getLoteNome}
-        getLoteCodigo={getLoteCodigo}
-        onClose={() => setViewingUser(null)}
-        onManageLotes={() => {
-          if (viewingUser) {
-            setViewingUser(null);
-            handleOpenManageLotes(viewingUser);
-          }
-        }}
-        onApprove={viewingUser?.status === 'pendente' ? () => {
-          if (viewingUser) {
-            setViewingUser(null);
-            setActioningUser({ user: viewingUser, action: 'aprovar' });
-          }
-        } : undefined}
-        onReject={viewingUser?.status === 'pendente' ? () => {
-          if (viewingUser) {
-            setViewingUser(null);
-            setActioningUser({ user: viewingUser, action: 'reprovar' });
-          }
-        } : undefined}
-        onDeactivate={viewingUser?.status === 'aprovado' ? () => {
-          if (viewingUser) {
-            setViewingUser(null);
-            setActioningUser({ user: viewingUser, action: 'desativar' });
-          }
-        } : undefined}
-        onReactivate={viewingUser?.status === 'desativado' ? () => {
-          if (viewingUser) {
-            setViewingUser(null);
-            setActioningUser({ user: viewingUser, action: 'reativar' });
-          }
-        } : undefined}
-      />
-
-      <ManageLotesModal
-        visible={!!managingLotes}
-        user={managingLotes}
-        lotes={lotes}
-        loading={loadingLotes}
-        onClose={() => {
-          // Reabre o UserDetailModal com o mesmo usuário
-          if (managingLotes) setViewingUser(managingLotes);
-          setManagingLotes(null);
-        }}
-        onToggleLote={handleToggleLote}
-      />
-
-      <ConfirmActionModal
-        visible={!!actioningUser}
-        user={actioningUser?.user || null}
-        action={actioningUser?.action || null}
-        onClose={() => setActioningUser(null)}
-        onConfirm={handleConfirmAction}
-      />
+      {/* Tab Content */}
+      {activeMainTab === 'usuarios' ? <UsuariosTab /> : <ColetasTab />}
     </SafeAreaView>
   );
 };
@@ -319,120 +120,39 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     marginTop: 2,
   },
-  searchContainer: {
-    padding: 16,
+  mainTabsContainer: {
+    flexDirection: 'row',
     backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
   },
-  searchBar: {
+  mainTab: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9f9f9',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 48,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    backgroundColor: '#f9fafb',
     gap: 8,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#1f2937',
-  },
-  tabsContainer: {
-    backgroundColor: 'white',
-    height: 56,
-    marginBottom: 8,
-  },
-  tabsContent: {
-    paddingHorizontal: 12,
-    alignItems: 'center',
-
-  },
-  tab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginHorizontal: 4,
-    borderRadius: 20,
-    backgroundColor: '#f3f4f6',
-    minWidth: 110,
-    height: 38,
-  },
-  tabActive: {
+  mainTabActive: {
     backgroundColor: '#dcfce7',
-    borderColor: '#dcfce7',
     borderWidth: 1,
+    borderColor: '#86efac',
   },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6b7280',
-  },
-  tabTextActive: {
-    color: '#166534',
-  },
-  tabBadge: {
-    backgroundColor: '#e5e7eb',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginLeft: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabBadgeActive: {
-    backgroundColor: '#16a34a',
-  },
-  tabBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  tabBadgeTextActive: {
-    color: 'white',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyTitle: {
-    fontSize: 18,
+  mainTabText: {
+    fontSize: 15,
     fontWeight: '600',
     color: '#6b7280',
-    marginTop: 16,
-    textAlign: 'center',
   },
-  emptyText: {
-    fontSize: 14,
-    color: '#9ca3af',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  listContainer: {
-
-  },
-  listContent: {
-    padding: 16,
+  mainTabTextActive: {
+    color: '#16a34a',
   },
 });
 
-export default UsuariosScreen;
-
-
-
-
+export default GerenciamentoScreen;
