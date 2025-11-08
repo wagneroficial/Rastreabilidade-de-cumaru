@@ -1,82 +1,64 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Period } from '../../types/relatorios.types';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 
 interface PeriodSelectorProps {
-  periods: Period[];
+  periods: string[];
   selectedPeriod: string;
   onPeriodChange: (period: string) => void;
 }
 
-const PeriodSelector: React.FC<PeriodSelectorProps> = ({ periods, selectedPeriod, onPeriodChange }) => {
+const PeriodSelector: React.FC<PeriodSelectorProps> = ({
+  periods,
+  selectedPeriod,
+  onPeriodChange,
+}) => {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Período</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.periodButtons}>
-          {periods.map((period) => (
-            <TouchableOpacity
-              key={period.key}
-              onPress={() => onPeriodChange(period.key)}
-              style={[
-                styles.periodButton,
-                selectedPeriod === period.key ? styles.periodButtonActive : styles.periodButtonInactive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.periodButtonText,
-                  selectedPeriod === period.key ? styles.periodButtonTextActive : styles.periodButtonTextInactive,
-                ]}
-              >
-                {period.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-    </View>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.container}
+    >
+      {periods.map((period) => {
+        const isSelected = selectedPeriod === period;
+        return (
+          <TouchableOpacity
+            key={period}
+            onPress={() => onPeriodChange(period)}
+            style={[styles.button, isSelected && styles.buttonActive]}
+          >
+            <Text style={[styles.text, isSelected && styles.textActive]}>
+              {period}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    paddingHorizontal: 16,
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 12,
-  },
-  periodButtons: {
+  container: {
     flexDirection: 'row',
-    gap: 8,
     paddingHorizontal: 16,
+    marginVertical: 12,
   },
-  periodButton: {
-    paddingHorizontal: 16,
+  button: {
     paddingVertical: 8,
+    paddingHorizontal: 14,
     borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    marginRight: 8,
   },
-  periodButtonActive: {
+  buttonActive: {
     backgroundColor: '#16a34a',
   },
-  periodButtonInactive: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  periodButtonText: {
+  text: {
+    color: '#6b7280',
     fontSize: 14,
     fontWeight: '500',
   },
-  periodButtonTextActive: {
-    color: 'white',
-  },
-  periodButtonTextInactive: {
-    color: '#6b7280',
+  textActive: {
+    color: '#fff',
   },
 });
 

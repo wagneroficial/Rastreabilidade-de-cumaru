@@ -1,127 +1,140 @@
 import React from 'react';
-import { ScrollView, View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
-import SummaryPreview from './SummaryPreview';
-import { ChartType } from '@/types/relatorios.types';
+import { Ionicons } from '@expo/vector-icons';
+
+const screenWidth = Dimensions.get('window').width;
 
 interface VisaoGeralProps {
-  summaryData: any;
-  chartData: {
-    volume: { name: string | Date; value: number; color?: string }[];
-    lotes: { name: string | Date; value: number; color?: string }[];
-  };
-  activeChart: ChartType;
-  setActiveChart: (chart: ChartType) => void;
-  performanceIndicators?: any[];
+  data: {
+    loteNome: string;
+    producao: number;
+    data?: string;
+  }[];
 }
 
-const VisaoGeral: React.FC<VisaoGeralProps> = ({
-  summaryData,
-  chartData,
-  activeChart,
-  setActiveChart,
-  performanceIndicators,
-}) => {
-  const chartConfig = {
-    backgroundGradientFrom: '#ffffff',
-    backgroundGradientTo: '#ffffff',
-    decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(22, 163, 74, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(75, 85, 99, ${opacity})`,
-    barPercentage: 0.6,
-    propsForDots: {
-      r: '4',
-      strokeWidth: '1',
-      stroke: '#16a34a',
-    },
+const VisaoGeral: React.FC<VisaoGeralProps> = ({ data }) => {
+  if (!data || data.length === 0) {
+    return (
+      <Text style={styles.placeholder}>Nenhum dado disponível.</Text>
+    );
+  }
+
+  // 🔹 Gráfico de produção total por lote
+  const chartData = {
+    labels: data.map((item) => item.loteNome),
+    datasets: [
+      {
+        data: data.map((item) => item.producao || 0),
+      },
+    ],
   };
 
-  const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-  const labels = chartData.volume.map(item => {
-    if (item.name instanceof Date) {
-      return monthNames[item.name.getMonth()]; // mês
-    }
-    return String(item.name); // fallback
-  });
-
-
-  const dataValues = chartData.volume.map(item => item.value);
-
-  const barWidth = 70;
-  const chartWidth = Math.max(barWidth * labels.length, Dimensions.get('window').width - 32); // largura mínima da tela
+  // 🔹 Cálculos para indicadores
+  const totalProducao = data.reduce((acc, item) => acc + (item.producao || 0), 0);
+  
+  const mediaProducao = totalProducao / data.length;
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Cabeçalho */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Visão Geral</Text>
-          <Text style={styles.subtitle}>
-            Visualize o desempenho e acompanhe seus indicadores em tempo real.
-          </Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Visão Geral</Text>
+
+      {/* Indicadores principais */}
+      <View style={styles.statsRow}>
+        <View style={styles.statCard}>
+          <Ionicons name="leaf" size={20} color="#16a34a" />
+          <Text style={styles.statValue}>{totalProducao.toFixed(0)} kg</Text>
+          <Text style={styles.statLabel}>Produção Total</Text>
+        </View>
+
+
+        <View style={styles.statCard}>
+          <Ionicons name="analytics-outline" size={20} color="#16a34a" />
+          <Text style={styles.statValue}>{mediaProducao.toFixed(0)} kg</Text>
+          <Text style={styles.statLabel}>Média por Lote</Text>
         </View>
       </View>
 
-      <SummaryPreview summaryData={summaryData} />
+      {/* Gráfico de barras */}
+      <BarChart
+        data={chartData}
+        width={screenWidth - 32}
+        height={230}
+        fromZero
+        showValuesOnTopOfBars
+        chartConfig={{
+          backgroundColor: '#fff',
+          backgroundGradientFrom: '#fff',
+          backgroundGradientTo: '#fff',
+          decimalPlaces: 0,
+          color: (opacity = 1) => `rgba(22, 163, 74, ${opacity})`,
+          labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
+          barPercentage: 0.6,
+        }}
+        style={styles.chart}
+      />
 
-      <Text style={styles.sectionTitle}>Resumo Geral das Colheitas</Text>
-
-      {/* Gráfico */}
-      <View style={styles.chartWrapper}>
-        {activeChart === 'volume' && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-            <BarChart
-              data={{
-                labels,
-                datasets: [{ data: dataValues }],
-              }}
-              width={chartWidth}
-              height={240}
-              yAxisSuffix=" kg"
-              fromZero
-              showValuesOnTopOfBars
-              chartConfig={chartConfig}
-              style={styles.chartStyle}
-            />
-          </ScrollView>
-        )}
-      </View>
-    </ScrollView>
+      {/* Lista de detalhes resumidos */}
+      {data.map((item, index) => (
+        <View key={index} style={styles.card}>
+          <Text style={styles.name}>Lote: {item.loteNome}</Text>
+          <Text style={styles.info}>Produção: {item.producao} kg</Text>
+          {item.data && <Text style={styles.info}>Data: {item.data}</Text>}
+        </View>
+      ))}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 16
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginVertical: 16,
-  },
+  container: { padding: 16 },
   title: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#111827'
+    fontWeight: 'bold',
+    color: '#16a34a',
+    marginBottom: 12,
   },
-  subtitle: {
-    fontSize: 14,
-    color: '#6b7280'
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
-  chartWrapper: {
-    marginBottom: 24,
+  statCard: {
+    backgroundColor: '#f0fdf4',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    flex: 1,
+    marginHorizontal: 4,
   },
-  chartStyle: {
-    borderRadius: 12
+  statValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#15803d',
+    marginTop: 4,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1f2937',
+  statLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  chart: {
+    borderRadius: 12,
     marginBottom: 16,
+  },
+  card: {
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+  },
+  name: { fontSize: 16, fontWeight: '600', color: '#111827' },
+  info: { fontSize: 14, color: '#6b7280', marginTop: 4 },
+  placeholder: {
+    textAlign: 'center',
+    color: '#9ca3af',
+    marginTop: 20,
   },
 });
 

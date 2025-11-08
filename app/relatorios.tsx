@@ -7,31 +7,31 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 // Componentes principais
 import HeaderRelatorios from '@/components/relatorios/HeaderRelatorios';
 import TabNavigation from '@/components/relatorios/TabNavigation';
 import PeriodSelector from '@/components/relatorios/PeriodSelector';
+
+// Subcomponentes de relatório
 import VisaoGeral from '@/components/relatorios/VisaoGeral';
 import LotesView from '@/components/relatorios/LotesView';
+import PeriodoView from '@/components/relatorios/PeriodoView';
 
-// Hook de dados
+// Hook customizado
 import { useRelatoriosData } from '@/hooks/useRelatoriosData';
 
 const RelatoriosAnalyticsScreen: React.FC = () => {
   const {
-    selectedPeriod,
-    activeTab,
     loading,
-    summaryData,
-    chartData,
-    performanceIndicators,
-    periods,
-    setSelectedPeriod,
+    activeTab,
     setActiveTab,
-    activeChart,
-    setActiveChart,
+    selectedPeriod,
+    setSelectedPeriod,
+    periods,
+    visaoGeralData,
+    lotesData,
+    periodData,
   } = useRelatoriosData();
 
   if (loading) {
@@ -48,53 +48,12 @@ const RelatoriosAnalyticsScreen: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return (
-          <VisaoGeral
-            summaryData={summaryData}
-            chartData={chartData}
-            activeChart={activeChart}
-            setActiveChart={setActiveChart}
-            performanceIndicators={performanceIndicators}
-          />
-        );
+        return <VisaoGeral data={visaoGeralData} />;
 
       case 'lotes':
-        return <LotesView chartData={chartData.lotes} />;
-
+        return <LotesView lotesData={lotesData} />;
       case 'periodo':
-        // Pega os dados do período selecionado
-        const periodChartData = chartData.periods?.[selectedPeriod] || [];
-
-        // Calcula o período com maior produção
-        const melhorPeriodo = periodChartData.reduce(
-          (prev, current) => (current.value > prev.value ? current : prev),
-          { name: '', value: 0 }
-        );
-
-        return (
-          <ScrollView style={{ paddingHorizontal: 16 }} showsVerticalScrollIndicator={false}>
- 
-
-            {/* Gráfico e cards usando o LotesView */}
-            <LotesView chartData={periodChartData} />
-
-            {/* Insight automático */}
-            {melhorPeriodo.name ? (
-              <View style={styles.insightBox}>
-                <Ionicons name="trending-up" size={22} color="#16a34a" />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.insightTitle}>Melhor Desempenho</Text>
-                  <Text style={styles.insightText}>
-                    O <Text style={{ fontWeight: '600' }}>{melhorPeriodo.name}</Text> teve o maior
-                    volume de produção neste período, com{' '}
-                    <Text style={{ color: '#16a34a' }}>{melhorPeriodo.value.toFixed(1)} kg</Text>.
-                  </Text>
-                </View>
-              </View>
-            ) : null}
-          </ScrollView>
-        );
-
+        return <PeriodoView periodData={periodData} />;
       default:
         return (
           <Text style={styles.placeholder}>
@@ -139,32 +98,6 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 40,
     fontSize: 15,
-  },
-  periodTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  insightBox: {
-    backgroundColor: '#ecfdf5',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 16,
-  },
-  insightTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#065f46',
-    marginBottom: 4,
-  },
-  insightText: {
-    fontSize: 13,
-    color: '#065f46',
-    lineHeight: 18,
   },
 });
 
