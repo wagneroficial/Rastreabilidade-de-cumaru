@@ -53,7 +53,7 @@ const RelatoriosAnalyticsScreen: React.FC = () => {
       case 'lotes':
         return <LotesView lotesData={lotesData} />;
       case 'periodo':
-        return <PeriodoView periodData={periodData} />;
+        return <PeriodoView periodoData={periodData} />;
       default:
         return (
           <Text style={styles.placeholder}>

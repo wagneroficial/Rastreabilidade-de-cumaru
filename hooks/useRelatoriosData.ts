@@ -1,17 +1,13 @@
+// hooks/useRelatoriosData.ts
 import { useEffect, useState } from 'react';
 import { db } from '@/app/services/firebaseConfig';
 import { collection, getDocs, onSnapshot } from 'firebase/firestore';
 
-interface Coleta {
-  id: string;
+interface VisaoGeralItem {
   loteId: string;
-  quantidade: number;
-  dataColeta: Date;
-}
-
-interface Lote {
-  id: string;
-  nome: string;
+  loteNome: string;
+  producao: number;
+  data?: string;
 }
 
 export const useRelatoriosData = () => {
@@ -20,7 +16,7 @@ export const useRelatoriosData = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('último mês');
   const [periods] = useState(['última semana', 'último mês', 'último trimestre']);
 
-  const [visaoGeralData, setVisaoGeralData] = useState<any[]>([]);
+  const [visaoGeralData, setVisaoGeralData] = useState<VisaoGeralItem[]>([]);
   const [lotesData, setLotesData] = useState<any[]>([]);
   const [periodData, setPeriodData] = useState<any[]>([]);
 
@@ -29,20 +25,21 @@ export const useRelatoriosData = () => {
       try {
         setLoading(true);
 
-        const lotes: Lote[] = lotesSnap.docs.map((doc) => ({
+        const lotes = lotesSnap.docs.map((doc) => ({
           id: doc.id,
           nome: doc.data().nome || `Lote ${doc.id.slice(-4)}`,
         }));
 
         const coletasSnap = await getDocs(collection(db, 'coletas'));
-        const coletas: Coleta[] = coletasSnap.docs.map((doc) => ({
+        const coletas = coletasSnap.docs.map((doc) => ({
+          ...doc.data(),
           id: doc.id,
           loteId: doc.data().loteId,
           quantidade: doc.data().quantidade || 0,
           dataColeta: doc.data().dataColeta?.toDate?.() || new Date(),
         }));
 
-        // 🔹 Agrupar total de produção por lote
+        // Agrupar produção total por lote
         const dadosAgrupados = lotes.map((lote) => {
           const coletasDoLote = coletas.filter((c) => c.loteId === lote.id);
           const producaoTotal = coletasDoLote.reduce((acc, c) => acc + c.quantidade, 0);
@@ -69,19 +66,23 @@ export const useRelatoriosData = () => {
         const periodoFiltrado = coletas.filter((c) => {
           const data = c.dataColeta;
           if (selectedPeriod === 'última semana') {
-            return agora.getTime() - data.getTime() <= 7 * 24 * 60 * 60 * 1000;
+            const umaSemana = 7 * 24 * 60 * 60 * 1000;
+            return agora.getTime() - data.getTime() <= umaSemana;
           }
           if (selectedPeriod === 'último mês') {
-            return agora.getTime() - data.getTime() <= 30 * 24 * 60 * 60 * 1000;
+            const umMes = 30 * 24 * 60 * 60 * 1000;
+            return agora.getTime() - data.getTime() <= umMes;
           }
           if (selectedPeriod === 'último trimestre') {
-            return agora.getTime() - data.getTime() <= 90 * 24 * 60 * 60 * 1000;
+            const tresMeses = 90 * 24 * 60 * 60 * 1000;
+            return agora.getTime() - data.getTime() <= tresMeses;
           }
           return true;
         });
 
         const dadosPorPeriodo = periodoFiltrado.map((c) => ({
-          loteNome: lotes.find((l) => l.id === c.loteId)?.nome || 'Lote desconhecido',
+          loteNome:
+            lotes.find((l) => l.id === c.loteId)?.nome || 'Lote desconhecido',
           producao: c.quantidade,
           data: c.dataColeta.toLocaleDateString('pt-BR'),
         }));
