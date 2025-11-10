@@ -1,17 +1,19 @@
+import { auth, db } from '@/app/services/firebaseConfig';
+import NovaArvoreModal from '@/components/nova_arvore';
+import NovaColetaModal from '@/components/nova_coleta';
+import NovoLoteModal from '@/components/novo_lote';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
 import {
+    Alert,
     Modal,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
     TouchableWithoutFeedback,
+    View,
 } from 'react-native';
-import NovoLoteModal from '@/components/novo_lote';
-import NovaColetaModal from '@/components/nova_coleta';
-import NovaArvoreModal from '@/components/nova_arvore';
-
 
 interface AddModalProps {
     visible: boolean;
@@ -21,7 +23,46 @@ interface AddModalProps {
 const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
     const [novoLoteVisible, setNovoLoteVisible] = useState(false);
     const [novaColetaVisible, setNovaColetaVisible] = useState(false);
-    const [novaArvoreVisible, setNovaArvoreVisible] = useState(false); // Estado para o novo modal
+    const [novaArvoreVisible, setNovaArvoreVisible] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    // Verifica se o usuário é admin
+    useEffect(() => {
+        const checkUserType = async () => {
+            if (!auth.currentUser) return;
+            
+            try {
+                const userDoc = await getDoc(doc(db, 'usuarios', auth.currentUser.uid));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    setIsAdmin(userData.tipo === 'admin');
+                }
+            } catch (error) {
+                console.error('Erro ao verificar tipo de usuário:', error);
+            }
+        };
+
+        if (visible) {
+            checkUserType();
+        }
+    }, [visible]);
+
+    const handleRestrictedAction = (action: 'lote' | 'arvore') => {
+        if (!isAdmin) {
+            Alert.alert(
+                'Aviso',
+                'Você n',
+                [{ text: 'OK' }]
+            );
+            return;
+        }
+
+        if (action === 'lote') {
+            setNovoLoteVisible(true);
+        } else if (action === 'arvore') {
+            setNovaArvoreVisible(true);
+        }
+    };
 
     return (
         <>
@@ -41,7 +82,7 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
                     <Text style={styles.title}>O que gostaria de fazer agora?</Text>
 
                     <View style={styles.optionList}>
-                        {/* Nova Coleta */}
+                        {/* Nova Coleta - SEMPRE DISPONÍVEL */}
                         <TouchableOpacity
                             style={styles.option}
                             onPress={() => setNovaColetaVisible(true)}
@@ -57,37 +98,53 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
                             </View>
                             <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
                         </TouchableOpacity>
-                        {/* Nova Árvore */}
+
+                        {/* Nova Árvore - RESTRITO */}
                         <TouchableOpacity
-                            style={styles.option}
-                            onPress={() => setNovaArvoreVisible(true)}
+                            style={[styles.option, !isAdmin && styles.disabledOption]}
+                            onPress={() => handleRestrictedAction('arvore')}
                         >
-                            <View style={[styles.iconBox, { backgroundColor: '#dcfce7' }]}>
-                                <Ionicons name="leaf" size={22} color='#16a34a'  />
+                            <View style={[styles.iconBox, { backgroundColor: !isAdmin ? '#f3f4f6' : '#dcfce7' }]}>
+                                <Ionicons name="leaf" size={22} color={!isAdmin ? '#9ca3af' : '#16a34a'}  />
                             </View>
                             <View style={styles.textBox}>
-                                <Text style={styles.optionTitle}>Cadastrar nova árvore</Text>
-                                <Text style={styles.optionSubtitle}>
-                                    Cadastre uma nova árvore plantada
+                                <Text style={[styles.optionTitle, !isAdmin && styles.disabledText]}>
+                                    Cadastrar nova árvore
+                                </Text>
+                                <Text style={[styles.optionSubtitle, !isAdmin && styles.disabledText]}>
+                                    {isAdmin ? 'Cadastre uma nova árvore plantada' : 'Apenas administradores'}
                                 </Text>
                             </View>
-                            <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                            {!isAdmin && (
+                                <Ionicons name="lock-closed" size={20} color="#9ca3af" />
+                            )}
+                            {isAdmin && (
+                                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                            )}
                         </TouchableOpacity>
-                        {/* Novo Lote */}
+
+                        {/* Novo Lote - RESTRITO */}
                         <TouchableOpacity
-                            style={styles.option}
-                            onPress={() => setNovoLoteVisible(true)}
+                            style={[styles.option, !isAdmin && styles.disabledOption]}
+                            onPress={() => handleRestrictedAction('lote')}
                         >
-                            <View style={[styles.iconBox, { backgroundColor: '#558b722b' }]}>
-                                <Ionicons name="logo-buffer" size={22} color="#1f2937" />
+                            <View style={[styles.iconBox, { backgroundColor: !isAdmin ? '#f3f4f6' : '#558b722b' }]}>
+                                <Ionicons name="logo-buffer" size={22} color={!isAdmin ? '#9ca3af' : '#1f2937'} />
                             </View>
                             <View style={styles.textBox}>
-                                <Text style={styles.optionTitle}>Cadastrar novo lote</Text>
-                                <Text style={styles.optionSubtitle}>
-                                    Cadastre uma nova área de plantio
+                                <Text style={[styles.optionTitle, !isAdmin && styles.disabledText]}>
+                                    Cadastrar novo lote
+                                </Text>
+                                <Text style={[styles.optionSubtitle, !isAdmin && styles.disabledText]}>
+                                    {isAdmin ? 'Cadastre uma nova área de plantio' : 'Apenas administradores'}
                                 </Text>
                             </View>
-                            <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                            {!isAdmin && (
+                                <Ionicons name="lock-closed" size={20} color="#9ca3af" />
+                            )}
+                            {isAdmin && (
+                                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                            )}
                         </TouchableOpacity>
                     </View>
 
@@ -114,10 +171,11 @@ const AddModal: React.FC<AddModalProps> = ({ visible, onClose }) => {
                 onClose={() => {
                     setNovaArvoreVisible(false);
                     onClose();
-                } }
+                }}
                 onSuccess={(novaArvore) => {
                     console.log('Nova árvore registrada:', novaArvore);
-                } }            />
+                }}
+            />
             {/* Modal do Novo Lote */}
             <NovoLoteModal
                 visible={novoLoteVisible}
@@ -173,6 +231,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
     },
+    disabledOption: {
+        opacity: 0.6,
+        backgroundColor: '#f9fafb',
+    },
     iconBox: {
         width: 60,
         height: 60,
@@ -192,6 +254,9 @@ const styles = StyleSheet.create({
     optionSubtitle: {
         fontSize: 13,
         color: '#6b7280',
+    },
+    disabledText: {
+        color: '#9ca3af',
     },
     cancelButton: {
         marginTop: 16,

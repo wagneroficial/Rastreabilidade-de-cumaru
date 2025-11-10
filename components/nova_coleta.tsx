@@ -1,25 +1,30 @@
 // screens/ColetaScreen.tsx
-import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   View,
-  Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { auth, db } from '@/app/services/firebaseConfig.js';
 import ColetaForm from '@/components/coleta/ColetaForm';
 import Header from '@/components/coleta/Header';
 import QRScannerButton from '@/components/coleta/QRScannerButton';
 import QRScannerModal from '@/components/coleta/QRScannerModal';
-import RecentCollections from '@/components/coleta/RecentCollections';
 import SelectionModal from '@/components/coleta/SelectionModal';
+
+
+import {
+  getAllAdminIds,
+  notifyAdminNewColeta
+} from '@/hooks/userNotificacao';
+
 
 import { onAuthStateChanged } from 'firebase/auth';
 import {
@@ -246,13 +251,39 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
     setIsSubmitting(true);
 
     try {
+      // Buscar dados do usuário
       const userDoc = await getDoc(doc(db, 'usuarios', currentUserId));
       const userData = userDoc.exists() ? userDoc.data() : {};
 
+      // ✅ BUSCAR LOTE E ÁRVORE PARA PEGAR NOME E CÓDIGO
+      const lote = lotes.find(l => l.id === selectedLote);
+      const arvore = arvores.find(a => a.id === selectedArvore);
+
+      console.log('🔍 Debug - IDs selecionados:', { selectedLote, selectedArvore });
+      console.log('🔍 Debug - Lote encontrado:', lote);
+      console.log('🔍 Debug - Árvore encontrada:', arvore);
+
+      // Validar se encontrou os dados
+      if (!lote) {
+        Alert.alert('Erro', 'Lote selecionado não foi encontrado');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!arvore) {
+        Alert.alert('Erro', 'Árvore selecionada não foi encontrada');
+        setIsSubmitting(false);
+        return;
+      }
+
       const status = isAdmin ? 'aprovada' : 'pendente';
+      
+      // ✅ AGORA COM loteNome E arvoreCodigo
       const coletaData = {
         loteId: selectedLote,
+        loteNome: lote.nome,              // ✅ Adicionar nome do lote
         arvoreId: selectedArvore,
+        arvoreCodigo: arvore.codigo,      // ✅ Adicionar código da árvore
         coletorId: currentUserId,
         coletorNome: userData.nome || 'Usuário sem nome',
         quantidade: quantidadeNum,
@@ -260,36 +291,79 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
         status,
         dataColeta: serverTimestamp(),
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
         ...(isAdmin && {
           aprovadoPor: currentUserId,
           aprovadoEm: serverTimestamp(),
         }),
       };
 
+      console.log('📝 Salvando coleta com dados:', {
+        loteNome: coletaData.loteNome,
+        arvoreCodigo: coletaData.arvoreCodigo,
+      });
+
       await addDoc(collection(db, 'coletas'), coletaData);
-      Alert.alert(
-        'Sucesso!',
-        isAdmin
-          ? 'Coleta registrada e aprovada com sucesso!'
-          : 'Coleta registrada! Aguardando aprovação do administrador.',
-        [
-          {
-            text: 'OK',
-            onPress: () => onClose()  // fecha o modal ao clicar em OK
+      
+      console.log('✅ Coleta salva com sucesso!');
+
+      // ✅ ENVIAR NOTIFICAÇÃO PARA ADMINS (apenas se não for admin)
+      console.log('🔍 Verificando envio de notificações...');
+      console.log('🔍 isAdmin:', isAdmin);
+      console.log('🔍 currentUserId:', currentUserId);
+      
+      if (!isAdmin) {
+        console.log('📬 Iniciando envio de notificações para admins...');
+        try {
+          const adminIds = await getAllAdminIds();
+          console.log(`👥 ${adminIds.length} admins encontrados:`, adminIds);
+          
+          if (adminIds.length === 0) {
+            console.warn('⚠️ NENHUM ADMIN ENCONTRADO! Verifique a coleção usuarios no Firestore');
+            Alert.alert('Aviso', 'Nenhum admin encontrado para notificar');
+          } else {
+            const notificationPromises = adminIds.map(adminId => {
+              console.log(`📨 Enviando notificação para admin ID: ${adminId}`);
+              return notifyAdminNewColeta(adminId, {
+                coletaId: '', 
+                loteNome: lote.nome,
+                arvoreCodigo: arvore.codigo,
+                quantidade: quantidadeNum,
+                coletorNome: userData.nome || 'Usuário sem nome',
+              });
+            });
+
+            await Promise.all(notificationPromises);
+            console.log(`✅ ${adminIds.length} notificações enviadas com sucesso!`);
           }
-        ]
-      );
+        } catch (notifError: any) {
+          console.error('❌ ERRO DETALHADO ao enviar notificações:', notifError);
+          console.error('❌ Stack:', notifError.stack);
+          // NÃO mostrar alert para não interromper o fluxo
+        }
+      } else {
+        console.log('ℹ️ Usuário é admin - notificações não serão enviadas');
+      }
 
-
+      // Limpar formulário
       setSelectedLote('');
       setSelectedArvore('');
       setQuantidade('');
       setObservacoes('');
 
+      // Recarregar coletas recentes
       await loadRecentCollections(lotes);
       onSuccess?.(coletaData);
+
+      // Mostrar mensagem de sucesso (sem fechar o modal)
+      Alert.alert(
+        'Sucesso!',
+        isAdmin
+          ? 'Coleta registrada e aprovada com sucesso!'
+          : 'Coleta registrada! Aguardando aprovação do administrador.'
+      );
     } catch (error) {
-      console.error('Erro ao registrar coleta:', error);
+      console.error('❌ Erro ao registrar coleta:', error);
       Alert.alert('Erro', 'Falha ao registrar coleta. Tente novamente.');
     } finally {
       setIsSubmitting(false);

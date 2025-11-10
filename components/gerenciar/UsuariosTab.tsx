@@ -8,13 +8,13 @@ import { filterUsers } from '@/utils/userHelpers';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 type TabType = 'todos' | 'pendentes' | 'aprovados' | 'reprovados' | 'desativados';
@@ -125,7 +125,7 @@ const UsuariosTab: React.FC = () => {
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.tabsContainer}
-        contentContainerStyle={styles.tabsContent}
+
       >
         {tabs.map((tab) => (
           <TouchableOpacity
@@ -177,7 +177,6 @@ const UsuariosTab: React.FC = () => {
         </View>
       ) : (
         <ScrollView
-          style={styles.listContainer}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         >
@@ -270,7 +269,7 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     flexDirection: 'row',
-    alignItems: 'center',
+
     backgroundColor: '#f9f9f9',
     borderRadius: 12,
     paddingHorizontal: 12,
@@ -285,23 +284,17 @@ const styles = StyleSheet.create({
     color: '#1f2937',
   },
   tabsContainer: {
-    backgroundColor: 'white',
-    height: 56,
-    marginBottom: 8,
+    paddingVertical:15,
   },
-  tabsContent: {
-    paddingHorizontal: 12,
-    alignItems: 'center',
-  },
+
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginHorizontal: 4,
+    
+
     borderRadius: 20,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#26bd12ff',
     minWidth: 110,
     height: 38,
   },
@@ -324,8 +317,8 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 10,
     marginLeft: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
+
+
   },
   tabBadgeActive: {
     backgroundColor: '#16a34a',
@@ -351,8 +344,7 @@ const styles = StyleSheet.create({
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
+
   },
   emptyTitle: {
     fontSize: 18,
@@ -367,9 +359,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
   },
-  listContainer: {
-    flex: 1,
-  },
+
   listContent: {
     padding: 16,
   },

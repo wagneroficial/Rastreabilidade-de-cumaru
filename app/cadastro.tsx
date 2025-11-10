@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Alert,
@@ -14,9 +15,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from "./services/firebaseConfig.js";
+
+// ✅ Importar funções de notificação
+import { getAllAdminIds, notifyAdminNewUser } from "@/hooks/userNotificacao";
 
 interface FormData {
   nome: string;
@@ -96,6 +99,9 @@ export default function Cadastro() {
 
     setIsLoading(true);
     try {
+      console.log('📝 Criando novo usuário...');
+      
+      // Criar usuário no Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         formData.email,
@@ -103,6 +109,9 @@ export default function Cadastro() {
       );
       const uid = userCredential.user.uid;
 
+      console.log('✅ Usuário criado com ID:', uid);
+
+      // Salvar dados do usuário no Firestore
       await setDoc(doc(db, "usuarios", uid), {
         nome: formData.nome,
         email: formData.email,
@@ -112,12 +121,42 @@ export default function Cadastro() {
         status: "pendente",
       });
 
+      console.log('✅ Dados do usuário salvos no Firestore');
+
+      // ✅ ENVIAR NOTIFICAÇÃO PARA TODOS OS ADMINS
+      try {
+        console.log('📬 Buscando admins para notificar...');
+        const adminIds = await getAllAdminIds();
+        console.log(`👥 ${adminIds.length} admins encontrados`);
+
+        if (adminIds.length > 0) {
+          const notificationPromises = adminIds.map(adminId => {
+            console.log(`📨 Enviando notificação para admin: ${adminId}`);
+            return notifyAdminNewUser(adminId, {
+              userId: uid,
+              nome: formData.nome,
+              email: formData.email,
+              propriedade: formData.propriedade,
+            });
+          });
+
+          await Promise.all(notificationPromises);
+          console.log(`✅ ${adminIds.length} notificações enviadas com sucesso!`);
+        } else {
+          console.warn('⚠️ Nenhum admin encontrado para notificar');
+        }
+      } catch (notifError) {
+        console.error('⚠️ Erro ao enviar notificações (não afeta o cadastro):', notifError);
+        // Não bloqueamos o cadastro se houver erro nas notificações
+      }
+
       Alert.alert(
         "Solicitação enviada!",
         "Sua conta foi criada com sucesso! Aguarde aprovação do administrador.",
         [{ text: "OK", onPress: () => router.replace("/") }]
       );
     } catch (error: any) {
+      console.error('❌ Erro ao criar conta:', error);
       let msg = "Erro ao criar conta.";
       if (error.code === "auth/email-already-in-use") msg = "Este e-mail já está em uso.";
       else if (error.code === "auth/invalid-email") msg = "E-mail inválido.";
