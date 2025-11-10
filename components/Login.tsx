@@ -108,10 +108,10 @@ export default function Login() {
       } else if (error.code === 'auth/too-many-requests') {
         message = 'Muitas tentativas de login. Tente novamente mais tarde.';
       } else if (error.code === 'auth/invalid-credential') {
-        message = 'Credenciais inválidas. Verifique seu e-mail e senha.';
+        message = 'Verifique se seu e-mail e senha estão corretos e tente novamente.';
       }
 
-      Alert.alert('Erro', message);
+      Alert.alert('Não foi possível entrar', message);
     } finally {
       setIsLoading(false);
     }

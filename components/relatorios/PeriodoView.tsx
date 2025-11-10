@@ -3,18 +3,36 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Dimensions, ScrollView } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import PeriodSelector from '@/components/relatorios/PeriodSelector';
+import { Ionicons } from '@expo/vector-icons';
+import moment from 'moment';
+import 'moment/locale/pt-br';
 
+moment.locale('pt-br');
 const screenWidth = Dimensions.get('window').width - 32;
 
 type RawItem = any;
 type Normalized = { date: Date; producao: number; loteNome?: string };
 
 interface PeriodoViewProps {
-  periodoData: RawItem[]; // dados brutos do hook
+  periodoData: RawItem[];
   periods: string[];
   selectedPeriod: string;
   onPeriodChange: (period: string) => void;
 }
+
+const normalizePeriod = (p: string): 'week' | 'month' | 'quarter' => {
+  if (!p) return 'month';
+  const s = p.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (s.includes('semana') || s.includes('ultima semana') || s.includes('ultima_semana')) return 'week';
+  if (s.includes('trimestre') || s.includes('trimestral')) return 'quarter';
+  if (s.includes('mes') || s.includes('mês') || s.includes('ultimo mes') || s.includes('ultimo_mês')) return 'month';
+  if (s.includes('month') || s.includes('week') || s.includes('quarter')) {
+    if (s.includes('week')) return 'week';
+    if (s.includes('quarter')) return 'quarter';
+    return 'month';
+  }
+  return 'month';
+};
 
 const PeriodoView: React.FC<PeriodoViewProps> = ({
   periodoData = [],
@@ -24,190 +42,160 @@ const PeriodoView: React.FC<PeriodoViewProps> = ({
 }) => {
   const [debugLogPrinted, setDebugLogPrinted] = useState(false);
 
-  // ----- util: parse universal
   const parseDate = (value: any): Date | null => {
     if (!value && value !== 0) return null;
-
-    // Firebase Timestamp object like { seconds, nanoseconds }
-    if (typeof value === 'object' && value !== null && 'seconds' in value) {
-      const s = Number(value.seconds || 0);
-      return new Date(s * 1000);
-    }
-
-    // If it's a Date instance
+    if (typeof value === 'object' && value !== null && 'seconds' in value)
+      return new Date(value.seconds * 1000);
     if (value instanceof Date) return value;
-
-    // If it's an object with dataColeta or data
     if (typeof value === 'object' && value !== null) {
       if (value.dataColeta) return parseDate(value.dataColeta);
       if (value.data) return parseDate(value.data);
     }
-
-    // number (timestamp ms or seconds)
-    if (typeof value === 'number') {
-      // heuristic: if small (<= 1e10) it's seconds -> *1000
-      if (value <= 1e10) return new Date(value * 1000);
-      return new Date(value);
-    }
-
-    // string: try ISO first
+    if (typeof value === 'number') return new Date(value <= 1e10 ? value * 1000 : value);
     if (typeof value === 'string') {
-      const iso = new Date(value);
-      if (!isNaN(iso.getTime())) return iso;
-
-      // try YYYY-MM-DD
+      const parsed = new Date(value);
+      if (!isNaN(parsed.getTime())) return parsed;
       const parts = value.split(/[T\s]/)[0]?.split(/[-/]/);
-      if (parts && parts.length >= 3) {
+      if (parts?.length >= 3) {
         const [y, m, d] = parts;
-        const yi = Number(y), mi = Number(m) - 1, di = Number(d);
-        if (!Number.isNaN(yi) && !Number.isNaN(mi) && !Number.isNaN(di)) {
-          return new Date(yi, mi, di);
-        }
+        return new Date(Number(y), Number(m) - 1, Number(d));
       }
     }
-
     return null;
   };
 
-  // ----- normalize raw periodoData into list of {date:Date, producao:number}
   const normalized: Normalized[] = useMemo(() => {
-    const out: Normalized[] = [];
-    (periodoData || []).forEach((item: any, idx: number) => {
-      // attempt common field names:
-      const possibleQtd = item.quantidade ?? item.producao ?? item.producaoKg ?? item.value ?? item.amount;
-      const possibleDate = item.data ?? item.dataColeta ?? item.date ?? item.createdAt ?? item.timestamp;
-      const pd = parseDate(possibleDate);
-
-      if (pd && typeof possibleQtd === 'number') {
-        out.push({ date: pd, producao: possibleQtd, loteNome: item.loteNome || item.lote || undefined });
-      } else if (pd && possibleQtd == null && typeof item === 'object') {
-        // maybe item itself has nested fields — try to coerce numeric-like strings
-        const q = Number(item.quantidade || item.producao || item.value || item.amount);
-        if (!Number.isNaN(q)) out.push({ date: pd, producao: q, loteNome: item.loteNome || item.lote || undefined });
-      } else {
-        // push debug placeholder so we can inspect in console
-        // do not push invalid entries as they will pollute aggregates
-      }
-    });
-
-    return out;
+    return (periodoData || [])
+      .map((item: any) => {
+        const qtd = item.quantidade ?? item.producao ?? item.producaoKg ?? item.value ?? item.amount;
+        const date = parseDate(item.data ?? item.dataColeta ?? item.date ?? item.createdAt ?? item.timestamp);
+        if (date && typeof qtd === 'number') return { date, producao: qtd, loteNome: item.loteNome };
+        return null;
+      })
+      .filter(Boolean) as Normalized[];
   }, [periodoData]);
 
-  // print debug once so we can see original shape if needed
   useEffect(() => {
     if (!debugLogPrinted) {
-      // small, helpful logs
-      console.log('--- PeriodoView debug ---');
-      console.log('raw periodoData length:', periodoData?.length);
-      console.log('normalized entries:', normalized.length);
-      if (normalized.length > 0) {
-        console.log('sample normalized (first 6):', normalized.slice(0, 6).map(n => ({ date: n.date.toISOString(), producao: n.producao, loteNome: n.loteNome })));
-      } else {
-        console.log('normalized is empty — check raw data fields and formats (ex: timestamp, dataColeta, data)');
-        console.log('sample raw (first 6):', (periodoData || []).slice(0, 6));
-      }
+      console.log('PeriodoView normalized entries:', normalized.length);
       setDebugLogPrinted(true);
     }
-  }, [periodoData, normalized, debugLogPrinted]);
+  }, [normalized, debugLogPrinted]);
 
-  // ----- helper to aggregate by day key
-  const dayKey = (d: Date) => {
-    return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
-  };
+  const dayKey = (d: Date) =>
+    `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d
+      .getDate()
+      .toString()
+      .padStart(2, '0')}`;
 
-  // ----- prepare chart buckets depending on selectedPeriod
-  const { labels, values } = useMemo(() => {
-    const now = new Date();
-    // ensure normalized sorted by date ascending
-    const sorted = [...normalized].sort((a, b) => a.date.getTime() - b.date.getTime());
-
-    if (selectedPeriod.toLowerCase().includes('semana')) {
-      // last 7 days including today, oldest first
-      const days: Date[] = [];
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(now.getDate() - i);
-        d.setHours(0, 0, 0, 0);
-        days.push(d);
-      }
-      // aggregate sums per day
-      const map: Record<string, number> = {};
-      sorted.forEach((it) => {
-        const k = dayKey(it.date);
-        map[k] = (map[k] || 0) + (it.producao || 0);
-      });
-      const labs = days.map(d => d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').toUpperCase());
-      const vals = days.map(d => map[dayKey(d)] || 0);
-      return { labels: labs, values: vals };
-    }
-
-    if (selectedPeriod.toLowerCase().includes('mês') || selectedPeriod.toLowerCase().includes('mes')) {
-      // last 4 weeks: compute 4 weekly buckets: weekStart..weekEnd
-      // We'll label: Sem 4 (oldest), Sem 3, Sem 2, Sem 1 (most recent)
-      const weeks: { start: Date; end: Date }[] = [];
-      for (let w = 4; w >= 1; w--) {
-        const end = new Date(now);
-        end.setDate(now.getDate() - (w - 1) * 7);
-        end.setHours(23, 59, 59, 999);
-        const start = new Date(end);
-        start.setDate(end.getDate() - 6);
-        start.setHours(0, 0, 0, 0);
-        weeks.push({ start, end });
-      }
-      // aggregate
-      const weeklySums = weeks.map(({ start, end }) => {
-        return sorted.reduce((acc, it) => (it.date >= start && it.date <= end ? acc + it.producao : acc), 0);
-      });
-      const labels = ['Sem 4', 'Sem 3', 'Sem 2', 'Sem 1']; // oldest -> newest
-      return { labels, values: weeklySums };
-    }
-
-    // trimestre: last 3 months totals, label T1 (oldest) .. T3 (most recent)
-    if (selectedPeriod.toLowerCase().includes('trimestre') || selectedPeriod.toLowerCase().includes('trimestral')) {
-      const months: { start: Date; end: Date; label: string }[] = [];
-      // build for last 3 months: oldest first
-      for (let i = 3; i >= 1; i--) {
-        const ref = new Date(now);
-        ref.setMonth(now.getMonth() - (i - 1));
-        const start = new Date(ref.getFullYear(), ref.getMonth(), 1, 0, 0, 0, 0);
-        const end = new Date(ref.getFullYear(), ref.getMonth() + 1, 0, 23, 59, 59, 999); // end of month
-        months.push({ start, end, label: `T${4 - i}` }); // i=3 -> T1, i=2 -> T2, i=1 -> T3
-      }
-      const totals = months.map(({ start, end }) =>
-        sorted.reduce((acc, it) => (it.date >= start && it.date <= end ? acc + it.producao : acc), 0)
-      );
-      const labels = ['T1', 'T2', 'T3'];
-      return { labels, values: totals };
-    }
-
-    // fallback: show aggregated by day for last 7 entries
-    if (sorted.length === 0) return { labels: [], values: [] };
-    const last = sorted.slice(-7);
-    const labs = last.map(it => it.date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
-    const vals = last.map(it => it.producao);
-    return { labels: labs, values: vals };
-  }, [normalized, selectedPeriod]);
-
-  // debug: if labels empty but normalized has items -> print info
+  // normaliza a chave de período vindo do selector
+  const periodKey = normalizePeriod(selectedPeriod);
   useEffect(() => {
-    if ((labels.length === 0 || values.reduce((s, v) => s + v, 0) === 0) && normalized.length > 0) {
-      console.log('PeriodoView: labels/values result might be empty/zero despite normalized data. selectedPeriod=', selectedPeriod);
-      console.log('normalized sample:', normalized.slice(0, 6).map(n => ({ date: n.date.toISOString(), producao: n.producao })));
-      console.log('computed labels:', labels, 'computed values:', values);
+    console.log('PeriodoView selectedPeriod raw:', selectedPeriod, 'normalized key:', periodKey);
+  }, [selectedPeriod]);
+
+  const { labels, values, total, media, periodRange } = useMemo(() => {
+    const now = new Date();
+    const sorted = [...normalized].sort((a, b) => a.date.getTime() - b.date.getTime());
+    let labels: string[] = [];
+    let values: number[] = [];
+    let filtered: Normalized[] = [];
+    let periodRange = '';
+
+    if (periodKey === 'week') {
+      // last 7 days
+      const start = moment(now).subtract(6, 'days').startOf('day').toDate();
+      filtered = sorted.filter(it => it.date >= start && it.date <= now);
+      const days = Array.from({ length: 7 }, (_, i) => moment(start).add(i, 'days').startOf('day').toDate());
+      const map: Record<string, number> = {};
+      filtered.forEach(it => { map[dayKey(it.date)] = (map[dayKey(it.date)] || 0) + it.producao; });
+      labels = days.map(d => moment(d).format('ddd').toUpperCase());
+      values = days.map(d => map[dayKey(d)] || 0);
+      periodRange = `${moment(start).format('DD MMM')} – ${moment(now).format('DD MMM YYYY')}`;
+    } else if (periodKey === 'month') {
+      // Último mês: 4 semanas terminando hoje
+      const end = moment(now).endOf('day').toDate();
+      const start = moment(now).subtract(27, 'days').startOf('day').toDate(); // 4 semanas (28 dias)
+
+      filtered = sorted.filter(it => it.date >= start && it.date <= end);
+
+      const weeks: { start: Date; end: Date }[] = [];
+      for (let i = 0; i < 4; i++) {
+        const wEnd = moment(end).subtract((3 - i) * 7, 'days').endOf('day').toDate();
+        const wStart = moment(wEnd).subtract(6, 'days').startOf('day').toDate();
+        weeks.push({ start: wStart, end: wEnd });
+      }
+
+      values = weeks.map(({ start, end }) =>
+        sorted.reduce(
+          (acc, it) => (it.date >= start && it.date <= end ? acc + it.producao : acc),
+          0
+        )
+      );
+      labels = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+      periodRange = `${moment(start).format('DD MMM')} – ${moment(end).format('DD MMM YYYY')}`;
+    } // === ÚLTIMO TRIMESTRE ===
+    else if (selectedPeriod.toLowerCase().includes('trimestre')) {
+      const end = moment(now).endOf('day').toDate();
+      const start = moment(now).subtract(2, 'months').startOf('month').toDate(); // início de 3 meses atrás
+      filtered = sorted.filter(it => it.date >= start && it.date <= end);
+
+      // divide por mês dentro do trimestre
+      const months = Array.from({ length: 3 }, (_, i) => {
+        const mStart = moment(start).add(i, 'months').startOf('month').toDate();
+        const mEnd = moment(mStart).endOf('month').toDate();
+        return { start: mStart, end: mEnd };
+      });
+
+      labels = months.map(m => moment(m.start).format('MMM').toUpperCase());
+      values = months.map(({ start, end }) =>
+        filtered.reduce(
+          (acc, it) => (it.date >= start && it.date <= end ? acc + it.producao : acc),
+          0
+        )
+      );
+
+      periodRange = `${moment(start).format('DD MMM')} – ${moment(end).format('DD MMM YYYY')}`;
     }
-  }, [labels, values, normalized, selectedPeriod]);
+    const total = filtered.reduce((acc, it) => acc + it.producao, 0);
+    const media = filtered.length > 0 ? total / filtered.length : 0;
+    return { labels, values, total, media, periodRange };
+  }, [normalized, periodKey, selectedPeriod]);
+
+  // últimas coletas
+  const ultimasColetas = [...normalized].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 5);
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>Relatório por Período</Text>
 
-      <PeriodSelector periods={periods} selectedPeriod={selectedPeriod} onPeriodChange={onPeriodChange} />
+      <PeriodSelector
+        periods={periods}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={onPeriodChange}
+      />
+
+      <View style={styles.summaryCard}>
+        <Ionicons name="calendar-outline" size={20} color="#16a34a" />
+        <Text style={styles.periodText}>{periodRange}</Text>
+      </View>
+
+      <View style={styles.cardsContainer}>
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>Total Coletado</Text>
+          <Text style={styles.cardValue}>{total.toFixed(2)} kg</Text>
+        </View>
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>Média por Coleta</Text>
+          <Text style={styles.cardValue}>{media.toFixed(2)} kg</Text>
+        </View>
+      </View>
 
       {labels.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ScrollView horizontal showsHorizontalScrollIndicator nestedScrollEnabled>
           <LineChart
             data={{ labels, datasets: [{ data: values }] }}
-            width={Math.max(screenWidth, labels.length * 60)}
+            width={Math.max(screenWidth, labels.length * 80)}
             height={320}
             yAxisSuffix="kg"
             chartConfig={{
@@ -223,20 +211,141 @@ const PeriodoView: React.FC<PeriodoViewProps> = ({
             bezier
             style={styles.chart}
             fromZero
+            withHorizontalLabels
+            withVerticalLabels
           />
         </ScrollView>
       ) : (
         <Text style={styles.noData}>Nenhum dado disponível para o período selecionado</Text>
       )}
-    </View>
+
+      <Text style={styles.subTitle}>Últimas coletas registradas</Text>
+
+      {ultimasColetas.length > 0 ? (
+        ultimasColetas.map((item, i) => (
+          <View key={i} style={styles.itemRow}>
+            <View>
+              <Text style={styles.itemTitle}>{item.loteNome}</Text>
+              <Text style={styles.itemDate}>{moment(item.date).format('DD/MM/YYYY')}</Text>
+            </View>
+            <Text style={styles.itemValue}>{item.producao} kg</Text>
+          </View>
+        ))
+      ) : (
+        <Text style={styles.noDataSmall}>Nenhuma coleta recente</Text>
+      )}
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
-  title: { fontSize: 18, fontWeight: '600', marginBottom: 8, color: '#111827' },
-  chart: { marginVertical: 8, borderRadius: 12, paddingRight: 48, paddingTop: 20 },
-  noData: { marginTop: 20, textAlign: 'center', color: '#6b7280' },
+  container: {
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+  },
+
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#111827'
+  },
+
+  cardsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 12
+  },
+
+  card: {
+    flex: 1,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+
+  cardLabel: {
+    fontSize: 13,
+    color: '#065f46',
+    marginBottom: 4,
+    fontWeight: '500'
+  },
+
+  cardValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#166534'
+  },
+
+  chart: {
+    marginVertical: 8,
+    borderRadius: 12,
+    paddingTop: 20
+  },
+
+  noData: {
+    marginTop: 20,
+    textAlign: 'center',
+    color: '#6b7280'
+  },
+
+  subTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8,
+    color: '#111827'
+  },
+
+  summaryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ecfdf5',
+    padding: 10,
+    borderRadius: 12,
+    marginBottom: 10,
+    gap: 8
+  },
+
+  periodText: {
+    color: '#065f46',
+    fontWeight: '500'
+  },
+
+  noDataSmall: {
+    textAlign: 'center',
+    color: '#9ca3af'
+  },
+
+  itemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#f9fafb',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 6
+  },
+
+  itemTitle: {
+    fontWeight: '600',
+    color: '#111827'
+  },
+
+  itemDate: {
+    color: '#6b7280',
+    fontSize: 13
+  },
+
+  itemValue: {
+    color: '#16a34a',
+    fontWeight: '600'
+  },
 });
 
 export default PeriodoView;
+

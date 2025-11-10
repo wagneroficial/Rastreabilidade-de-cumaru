@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 
 interface PeriodSelectorProps {
   periods: string[];
@@ -39,15 +39,14 @@ const PeriodSelector: React.FC<PeriodSelectorProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginVertical: 12,
+    marginVertical: 16,
   },
   button: {
     paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     borderRadius: 20,
     backgroundColor: '#f3f4f6',
-    marginRight: 8,
+    marginRight: 12,
   },
   buttonActive: { backgroundColor: '#16a34a' },
   text: {
