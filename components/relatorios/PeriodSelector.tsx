@@ -49,17 +49,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
     marginRight: 8,
   },
-  buttonActive: {
-    backgroundColor: '#16a34a',
-  },
+  buttonActive: { backgroundColor: '#16a34a' },
   text: {
     color: '#6b7280',
     fontSize: 14,
     fontWeight: '500',
   },
-  textActive: {
-    color: '#fff',
-  },
+  textActive: { color: '#fff' },
 });
 
 export default PeriodSelector;

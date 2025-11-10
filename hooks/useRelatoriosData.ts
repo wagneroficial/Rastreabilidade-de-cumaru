@@ -1,4 +1,3 @@
-// hooks/useRelatoriosData.ts
 import { useEffect, useState } from 'react';
 import { db } from '@/app/services/firebaseConfig';
 import { collection, getDocs, onSnapshot } from 'firebase/firestore';
@@ -13,7 +12,7 @@ interface VisaoGeralItem {
 export const useRelatoriosData = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'lotes' | 'periodo'>('overview');
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('último mês');
+  const [selectedPeriod, setSelectedPeriod] = useState<'última semana' | 'último mês' | 'último trimestre'>('última semana');
   const [periods] = useState(['última semana', 'último mês', 'último trimestre']);
 
   const [visaoGeralData, setVisaoGeralData] = useState<VisaoGeralItem[]>([]);
@@ -21,7 +20,7 @@ export const useRelatoriosData = () => {
   const [periodData, setPeriodData] = useState<any[]>([]);
 
   useEffect(() => {
-    const unsubLotes = onSnapshot(collection(db, 'lotes'), async (lotesSnap) => {
+    const unsub = onSnapshot(collection(db, 'lotes'), async (lotesSnap) => {
       try {
         setLoading(true);
 
@@ -31,23 +30,24 @@ export const useRelatoriosData = () => {
         }));
 
         const coletasSnap = await getDocs(collection(db, 'coletas'));
-        const coletas = coletasSnap.docs.map((doc) => ({
-          ...doc.data(),
-          id: doc.id,
-          loteId: doc.data().loteId,
-          quantidade: doc.data().quantidade || 0,
-          dataColeta: doc.data().dataColeta?.toDate?.() || new Date(),
-        }));
+        const coletas = coletasSnap.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            loteId: data.loteId,
+            loteNome: data.loteNome,
+            quantidade: data.quantidade || 0,
+            dataColeta: data.dataColeta?.toDate?.() || new Date(),
+          };
+        });
 
-        // Agrupar produção total por lote
+        // ----- VISÃO GERAL -----
         const dadosAgrupados = lotes.map((lote) => {
           const coletasDoLote = coletas.filter((c) => c.loteId === lote.id);
           const producaoTotal = coletasDoLote.reduce((acc, c) => acc + c.quantidade, 0);
           const dataMaisRecente =
             coletasDoLote.length > 0
-              ? new Date(
-                  Math.max(...coletasDoLote.map((c) => c.dataColeta.getTime()))
-                ).toLocaleDateString('pt-BR')
+              ? new Date(Math.max(...coletasDoLote.map((c) => c.dataColeta.getTime()))).toLocaleDateString('pt-BR')
               : undefined;
 
           return {
@@ -59,44 +59,27 @@ export const useRelatoriosData = () => {
         });
 
         setVisaoGeralData(dadosAgrupados);
+
+        // ----- POR LOTE -----
         setLotesData(dadosAgrupados);
 
-        // 🔹 Filtragem por período
-        const agora = new Date();
-        const periodoFiltrado = coletas.filter((c) => {
-          const data = c.dataColeta;
-          if (selectedPeriod === 'última semana') {
-            const umaSemana = 7 * 24 * 60 * 60 * 1000;
-            return agora.getTime() - data.getTime() <= umaSemana;
-          }
-          if (selectedPeriod === 'último mês') {
-            const umMes = 30 * 24 * 60 * 60 * 1000;
-            return agora.getTime() - data.getTime() <= umMes;
-          }
-          if (selectedPeriod === 'último trimestre') {
-            const tresMeses = 90 * 24 * 60 * 60 * 1000;
-            return agora.getTime() - data.getTime() <= tresMeses;
-          }
-          return true;
-        });
-
-        const dadosPorPeriodo = periodoFiltrado.map((c) => ({
-          loteNome:
-            lotes.find((l) => l.id === c.loteId)?.nome || 'Lote desconhecido',
+        // ----- POR PERÍODO (todas as coletas) -----
+        const periodFormat = coletas.map((c) => ({
+          loteId: c.loteId,
+          loteNome: c.loteNome || lotes.find(l => l.id === c.loteId)?.nome || 'Sem nome',
           producao: c.quantidade,
-          data: c.dataColeta.toLocaleDateString('pt-BR'),
+          data: c.dataColeta, // mantém Date real
         }));
-
-        setPeriodData(dadosPorPeriodo);
+        setPeriodData(periodFormat);
       } catch (error) {
-        console.error('Erro ao carregar relatórios:', error);
+        console.error('Erro ao carregar dados dos relatórios:', error);
       } finally {
         setLoading(false);
       }
     });
 
-    return () => unsubLotes();
-  }, [selectedPeriod]);
+    return () => unsub();
+  }, []);
 
   return {
     loading,
@@ -107,6 +90,6 @@ export const useRelatoriosData = () => {
     periods,
     visaoGeralData,
     lotesData,
-    periodData,
+    periodData, // ← usado em PeriodoView
   };
 };

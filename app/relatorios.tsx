@@ -11,7 +11,6 @@ import {
 // Componentes principais
 import HeaderRelatorios from '@/components/relatorios/HeaderRelatorios';
 import TabNavigation from '@/components/relatorios/TabNavigation';
-import PeriodSelector from '@/components/relatorios/PeriodSelector';
 
 // Subcomponentes de relatório
 import VisaoGeral from '@/components/relatorios/VisaoGeral';
@@ -45,15 +44,29 @@ const RelatoriosAnalyticsScreen: React.FC = () => {
     );
   }
 
+  // 🔹 Função auxiliar para evitar tipagem implícita incompatível
+  const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period as any);
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <VisaoGeral data={visaoGeralData} />;
+        return <VisaoGeral data={[]} />;
 
       case 'lotes':
         return <LotesView lotesData={lotesData} />;
+
       case 'periodo':
-        return <PeriodoView periodoData={periodData} />;
+        return (
+          <PeriodoView
+            periodoData={periodData}
+            periods={periods}
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={handlePeriodChange}
+          />
+        );
+
       default:
         return (
           <Text style={styles.placeholder}>
@@ -67,13 +80,7 @@ const RelatoriosAnalyticsScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <HeaderRelatorios />
       <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <PeriodSelector
-          periods={periods}
-          selectedPeriod={selectedPeriod}
-          onPeriodChange={setSelectedPeriod}
-        />
         {renderContent()}
       </ScrollView>
     </SafeAreaView>
@@ -88,10 +95,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
   },
-  loadingText: {
-    fontSize: 16,
-    color: '#6b7280',
-  },
+  loadingText: { fontSize: 16, color: '#6b7280' },
   scrollView: { flex: 1 },
   placeholder: {
     textAlign: 'center',
