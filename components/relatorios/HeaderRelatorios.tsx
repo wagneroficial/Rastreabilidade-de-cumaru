@@ -25,7 +25,7 @@ const HeaderRelatorios: React.FC = () => {
 const styles = StyleSheet.create({
   header: {
     backgroundColor: '#16a34a',
-    paddingHorizontal: 16,
+    paddingLeft: 16,
     paddingVertical: 16,
   },
   headerContent: {

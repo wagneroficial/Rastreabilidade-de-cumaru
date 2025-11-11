@@ -1,14 +1,10 @@
 // app/services/firebaseConfig.ts
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { initializeApp } from "firebase/app";
-import {
-  getReactNativePersistence,
-  initializeAuth
-} from "firebase/auth";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBdEtF94S7SnLpGfcihwWWKyjaVxjQfULQ",
+  apiKey: "AIzaSyBdEtF94S7SnLpGfcihwWWKyjaVxjQfULQ",
   authDomain: "virtual-75deb.firebaseapp.com",
   projectId: "virtual-75deb",
   storageBucket: "virtual-75deb.appspot.com",
@@ -17,12 +13,10 @@ const firebaseConfig = {
   measurementId: "G-2GNG35NFKH",
 };
 
-const app = initializeApp(firebaseConfig);
+// Inicializa apenas se não houver apps existentes
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Auth com persistência explícita usando AsyncStorage
-export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage)
-});
-
+export const auth = getAuth(app);
 export const db = getFirestore(app);
+
 export default app;

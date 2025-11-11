@@ -4,7 +4,6 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -16,10 +15,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { auth, db } from "./services/firebaseConfig.js";
+import { auth, db } from './services/firebaseConfig'; // Verifique se este caminho está correto
 
-// ✅ Importar funções de notificação
-import { getAllAdminIds, notifyAdminNewUser } from "@/hooks/userNotificacao";
+console.log("auth:", auth);
+console.log("db:", db);
 
 interface FormData {
   nome: string;
@@ -45,13 +44,11 @@ export default function Cadastro() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // -------------------- HANDLERS -------------------- //
   const handleInputChange = (name: keyof FormData, value: string) => {
     setFormData({ ...formData, [name]: value });
     setErrors({ ...errors, [name]: "" });
   };
 
-  // -------------------- VALIDAÇÕES -------------------- //
   const validateField = (name: keyof FormData, value: string) => {
     let message = "";
 
@@ -86,32 +83,64 @@ export default function Cadastro() {
 
   const validateForm = () => {
     let valid = true;
+    const newErrors: Partial<FormData> = {};
+
     (Object.keys(formData) as (keyof FormData)[]).forEach((key) => {
-      validateField(key, formData[key]);
-      if (!formData[key]) valid = false;
+      let message = "";
+
+      switch (key) {
+        case "nome":
+          if (!formData.nome.trim()) message = "Por favor, informe seu nome completo.";
+          else if (formData.nome.trim().split(" ").length < 2) message = "Digite nome e sobrenome.";
+          break;
+        case "email":
+          if (!formData.email.trim()) message = "O e-mail é obrigatório.";
+          else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
+            message = "Digite um e-mail válido.";
+          break;
+        case "propriedade":
+          if (!formData.propriedade.trim()) message = "Digite o nome da propriedade.";
+          break;
+        case "senha":
+          if (!formData.senha) message = "Crie uma senha.";
+          else if (formData.senha.length < 6) message = "Senha deve ter mínimo 6 caracteres.";
+          else if (!/[A-Z]/.test(formData.senha)) message = "Inclua pelo menos uma letra maiúscula.";
+          else if (!/[0-9]/.test(formData.senha)) message = "Inclua pelo menos um número.";
+          break;
+        case "confirmarSenha":
+          if (!formData.confirmarSenha) message = "Confirme sua senha.";
+          else if (formData.confirmarSenha !== formData.senha) message = "Senhas não coincidem.";
+          break;
+      }
+
+      if (message) valid = false;
+      newErrors[key] = message;
     });
-    return valid && Object.values(errors).every((msg) => !msg);
+
+    setErrors(newErrors);
+    return valid;
   };
 
-  // -------------------- SUBMIT -------------------- //
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
+
     try {
-      console.log('📝 Criando novo usuário...');
-      
-      // Criar usuário no Firebase Auth
+      console.log("Tentando criar usuário...");
+
+      // 1. Cria usuário no Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         formData.email,
         formData.senha
       );
+
+      console.log("Usuário criado:", userCredential.user.uid);
+
       const uid = userCredential.user.uid;
 
-      console.log('✅ Usuário criado com ID:', uid);
-
-      // Salvar dados do usuário no Firestore
+      // 2. Salva dados adicionais no Firestore
       await setDoc(doc(db, "usuarios", uid), {
         nome: formData.nome,
         email: formData.email,
@@ -121,55 +150,28 @@ export default function Cadastro() {
         status: "pendente",
       });
 
-      console.log('✅ Dados do usuário salvos no Firestore');
-
-      // ✅ ENVIAR NOTIFICAÇÃO PARA TODOS OS ADMINS
-      try {
-        console.log('📬 Buscando admins para notificar...');
-        const adminIds = await getAllAdminIds();
-        console.log(`👥 ${adminIds.length} admins encontrados`);
-
-        if (adminIds.length > 0) {
-          const notificationPromises = adminIds.map(adminId => {
-            console.log(`📨 Enviando notificação para admin: ${adminId}`);
-            return notifyAdminNewUser(adminId, {
-              userId: uid,
-              nome: formData.nome,
-              email: formData.email,
-              propriedade: formData.propriedade,
-            });
-          });
-
-          await Promise.all(notificationPromises);
-          console.log(`✅ ${adminIds.length} notificações enviadas com sucesso!`);
-        } else {
-          console.warn('⚠️ Nenhum admin encontrado para notificar');
-        }
-      } catch (notifError) {
-        console.error('⚠️ Erro ao enviar notificações (não afeta o cadastro):', notifError);
-        // Não bloqueamos o cadastro se houver erro nas notificações
-      }
+      console.log("Dados salvos no Firestore!");
+      
+      // SUCESSO: Desativa o loading e exibe alerta.
+      setIsLoading(false);
 
       Alert.alert(
         "Solicitação enviada!",
         "Sua conta foi criada com sucesso! Aguarde aprovação do administrador.",
-        [{ text: "OK", onPress: () => router.replace("/") }]
+        [{ text: "OK", onPress: () => router.back() }]
       );
     } catch (error: any) {
-      console.error('❌ Erro ao criar conta:', error);
-      let msg = "Erro ao criar conta.";
-      if (error.code === "auth/email-already-in-use") msg = "Este e-mail já está em uso.";
-      else if (error.code === "auth/invalid-email") msg = "E-mail inválido.";
-      else if (error.code === "auth/weak-password") msg = "Senha muito fraca.";
-      Alert.alert("Erro", msg);
-    } finally {
-      setIsLoading(false);
+      console.log("Erro no cadastro:", error);
+      
+      // ERRO: Exibe o alerta e garante que o loading seja desativado.
+      Alert.alert("Erro", error?.message || "Erro ao criar conta.");
+      setIsLoading(false); 
     }
   };
 
+
   const navigateToLogin = () => router.back();
 
-  // -------------------- RENDER -------------------- //
   const renderTextInput = (
     key: keyof FormData,
     label: string,
@@ -189,7 +191,7 @@ export default function Cadastro() {
           onChangeText={(v) => (onChangeText ? onChangeText(v) : handleInputChange(key, v))}
           onBlur={() => validateField(key, formData[key])}
           keyboardType={keyboardType || "default"}
-          autoCapitalize="words"
+          autoCapitalize={key === "email" ? "none" : "words"}
         />
       </View>
       {errors[key] && (
@@ -283,14 +285,9 @@ export default function Cadastro() {
               onPress={handleSubmit}
               disabled={isLoading}
             >
-              {isLoading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color="white" />
-                  <Text style={styles.submitButtonText}>Criando conta...</Text>
-                </View>
-              ) : (
-                <Text style={styles.submitButtonText}>Solicitar Acesso</Text>
-              )}
+              <Text style={styles.submitButtonText}>
+                {isLoading ? "Criando conta..." : "Solicitar Acesso"}
+              </Text>
             </TouchableOpacity>
 
             {/* Login */}
@@ -308,139 +305,30 @@ export default function Cadastro() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1, backgroundColor: "#fefefe"
-  },
-  keyboardContainer: {
-    flex: 1
-  },
-  header: {
-    flexDirection: "row", 
-    paddingTop: 20, 
-    paddingHorizontal: 16
-  },
-  backButton: {
-    width: 32, 
-    height: 32, 
-    justifyContent: "center", 
-    alignItems: "center"
-  },
-  scrollView: {
-    flex: 1
-  },
-  scrollContent: {
-    flexGrow: 1, 
-    paddingBottom: 100
-  },
-  formContainer: {
-    paddingHorizontal: 16, 
-    maxWidth: 400, 
-    alignSelf: "center", 
-    width: "100%"
-  },
-  welcomeSection: {
-    alignItems: "center", 
-    marginBottom: 32
-  },
-  appIconContainer: {
-    width: 48, 
-    height: 48, 
-    backgroundColor: "#f0fdf4", 
-    borderRadius: 24, 
-    justifyContent: "center", 
-    alignItems: "center", 
-    marginBottom: 12
-  },
-  welcomeTitle: {
-    fontSize: 26, 
-    fontWeight: "600", 
-    color: "#1F2937", 
-    marginBottom: 8
-  },
-  welcomeSubtitle: {
-    fontSize: 14, 
-    color: "#1F2937", textAlign: "center"
-  },
-  inputGroup: {
-    marginBottom: 20
-  },
-  label: {
-    fontSize: 14, 
-    fontWeight: "500", 
-    color: "#374151", 
-    marginBottom: 8
-  },
-  inputContainer: {
-    flexDirection: "row", 
-    alignItems: "center", 
-    borderWidth: 1, 
-    borderColor: "#D1D5DB", 
-    borderRadius: 12, 
-    backgroundColor: "white", 
-    minHeight: 48
-  },
-  inputIcon: {
-    paddingLeft: 12, 
-    paddingRight: 8
-  },
-  textInput: {
-    flex: 1, 
-    paddingVertical: 12, 
-    paddingRight: 8, 
-    fontSize: 14, 
-    color: "#1F2937"
-  },
-  eyeButton: {
-    paddingHorizontal: 12, 
-    paddingVertical: 12
-  },
-  submitButton: {
-    backgroundColor: "#16A34A", 
-    paddingVertical: 16, 
-    borderRadius: 12, 
-    alignItems: "center", 
-    justifyContent: "center", 
-    marginBottom: 24, 
-    marginTop: 8
-  },
-  submitButtonDisabled: {
-    opacity: 0.5
-  },
-  submitButtonText: {
-    color: "white", 
-    fontSize: 16, 
-    fontWeight: "600"
-  },
-  loadingContainer: {
-    flexDirection: "row", 
-    alignItems: "center", 
-    gap: 8
-  },
-  loginContainer: {
-    flexDirection: "row", 
-    justifyContent: "center", 
-    alignItems: "center", 
-    paddingBottom: 20
-  },
-  loginText: {
-    fontSize: 16, 
-    color: "#6B7280"
-  },
-  loginLink: {
-    fontSize: 16, 
-    color: "#16A34A", 
-    fontWeight: "600"
-  },
-  errorContainer: {
-    flexDirection: "row", 
-    alignItems: "center", 
-    marginTop: 4
-  },
-  errorIcon: {
-    marginRight: 4
-  },
-  errorText: {
-    color: "#dc2626", 
-    fontSize: 12
-  },
+  container: { flex: 1, backgroundColor: "#fefefe" },
+  keyboardContainer: { flex: 1 },
+  header: { flexDirection: "row", paddingTop: 20, paddingHorizontal: 16 },
+  backButton: { width: 32, height: 32, justifyContent: "center", alignItems: "center" },
+  scrollView: { flex: 1 },
+  scrollContent: { flexGrow: 1, paddingBottom: 100 },
+  formContainer: { paddingHorizontal: 16, maxWidth: 400, alignSelf: "center", width: "100%" },
+  welcomeSection: { alignItems: "center", marginBottom: 32 },
+  appIconContainer: { width: 48, height: 48, backgroundColor: "#f0fdf4", borderRadius: 24, justifyContent: "center", alignItems: "center", marginBottom: 12 },
+  welcomeTitle: { fontSize: 26, fontWeight: "600", color: "#1F2937", marginBottom: 8 },
+  welcomeSubtitle: { fontSize: 14, color: "#1F2937", textAlign: "center" },
+  inputGroup: { marginBottom: 20 },
+  label: { fontSize: 14, fontWeight: "500", color: "#374151", marginBottom: 8 },
+  inputContainer: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#D1D5DB", borderRadius: 12, backgroundColor: "white", minHeight: 48 },
+  inputIcon: { paddingLeft: 12, paddingRight: 8 },
+  textInput: { flex: 1, paddingVertical: 12, paddingRight: 8, fontSize: 14, color: "#1F2937" },
+  eyeButton: { paddingHorizontal: 12, paddingVertical: 12 },
+  submitButton: { backgroundColor: "#16A34A", paddingVertical: 16, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 24, marginTop: 8 },
+  submitButtonDisabled: { opacity: 0.5 },
+  submitButtonText: { color: "white", fontSize: 16, fontWeight: "600" },
+  loginContainer: { flexDirection: "row", justifyContent: "center", alignItems: "center", paddingBottom: 20 },
+  loginText: { fontSize: 16, color: "#6B7280" },
+  loginLink: { fontSize: 16, color: "#16A34A", fontWeight: "600" },
+  errorContainer: { flexDirection: "row", alignItems: "center", marginTop: 4 },
+  errorIcon: { marginRight: 4 },
+  errorText: { color: "#dc2626", fontSize: 12 },
 });
