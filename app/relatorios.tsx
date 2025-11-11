@@ -17,10 +17,32 @@ import VisaoGeral from '@/components/relatorios/VisaoGeral';
 import LotesView from '@/components/relatorios/LotesView';
 import PeriodoView from '@/components/relatorios/PeriodoView';
 
-// Hook customizado
+// Hooks
+import { useHomeData } from '@/hooks/useHomeData';
 import { useRelatoriosData } from '@/hooks/useRelatoriosData';
 
 const RelatoriosAnalyticsScreen: React.FC = () => {
+  const homeHook = useHomeData();
+
+
+  const {
+    lotesCount,
+    arvoresCount,
+    totalColhido,
+    melhorLote,
+    lotesAtivos,
+  } = homeHook;
+
+  // ✅ Dados do hook de Home
+  const homeData = {
+    lotesCount,
+    arvoresCount,
+    totalColhido,
+    melhorLote,
+    lotesAtivos,
+  };
+
+
   const {
     loading,
     activeTab,
@@ -28,7 +50,6 @@ const RelatoriosAnalyticsScreen: React.FC = () => {
     selectedPeriod,
     setSelectedPeriod,
     periods,
-    visaoGeralData,
     lotesData,
     periodData,
   } = useRelatoriosData();
@@ -52,7 +73,19 @@ const RelatoriosAnalyticsScreen: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <VisaoGeral data={[]} />;
+        return <VisaoGeral
+          dadosHome={homeData}
+          lotesData={lotesData.map(lote => ({
+            codigo: lote.codigo || lote.loteId || 'Sem código',
+            loteId: lote.loteId,
+            nome: lote.loteNome || 'Sem nome',
+            area: lote.area || 0,
+            arvores: lote.arvores || 0,
+            colhidoTotal: lote.producao ? `${lote.producao} kg` : '0 kg',
+            status: lote.status || 'Inativo',
+            ultimaColeta: lote.data || 'Nunca'
+          }))}
+        />
 
       case 'lotes':
         return <LotesView lotesData={lotesData} />;
