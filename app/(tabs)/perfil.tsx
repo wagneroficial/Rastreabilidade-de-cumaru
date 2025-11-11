@@ -1,24 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Sharing from 'expo-sharing';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
+  Image,
+  Modal,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
-  TextInput,
-  Modal,
-  ActivityIndicator,
-  Image,
 } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { captureRef } from 'react-native-view-shot';
 
-import * as ImagePicker from 'expo-image-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth, db } from '@/app/services/firebaseConfig.js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
@@ -42,11 +45,7 @@ interface MenuItem {
   route?: string;
   action?: string;
   color?: string;
-}
-
-interface StatItem {
-  label: string;
-  value: string;
+  adminOnly?: boolean;
 }
 
 const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
@@ -57,10 +56,15 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
 
   const [editVisible, setEditVisible] = useState(false);
+  const [qrVisible, setQrVisible] = useState(false);
   const [editNome, setEditNome] = useState('');
   const [editTelefone, setEditTelefone] = useState('');
   const [editPropriedade, setEditPropriedade] = useState('');
   const [saving, setSaving] = useState(false);
+  const [sharingQR, setSharingQR] = useState(false);
+
+  const qrCodeRef = useRef<View>(null);
+  const cumaruLink = 'https://rastreamentocumaru.netlify.app/';
 
   function randomColor({ seed }: { seed: string }): string {
     let hash = 0;
@@ -190,6 +194,29 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
     }
   };
 
+  // 🔹 Compartilhar QR Code como PNG
+  const handleShareQRCode = async () => {
+    try {
+      setSharingQR(true);
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        Alert.alert('Erro', 'Compartilhamento não disponível neste dispositivo.');
+        setSharingQR(false);
+        return;
+      }
+      const uri = await captureRef(qrCodeRef, { format: 'png', quality: 1 });
+      await Sharing.shareAsync(uri, { 
+        mimeType: 'image/png', 
+        dialogTitle: 'Compartilhar QR Code do Cumaru' 
+      });
+      setSharingQR(false);
+    } catch (error) {
+      console.error('Erro ao compartilhar QR Code:', error);
+      setSharingQR(false);
+      Alert.alert('Erro', 'Não foi possível compartilhar o QR Code.');
+    }
+  };
+
   // 🔹 Logout
   const handleLogout = async () => {
     try {
@@ -201,8 +228,9 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
   };
 
   // 🔹 Menu
-  const menuItems: MenuItem[] = [
-    { title: 'Relatórios', icon: 'document-text-outline', route: '/relatorios' },
+  const allMenuItems: MenuItem[] = [
+    { title: 'Relatórios', icon: 'document-text-outline', route: '/relatorios', adminOnly: true },
+    { title: 'Geolocalização', icon: 'location-outline', route: '/geolocalizacao' },
     { title: 'Notificações', icon: 'notifications-outline', route: '/notificacoes' },
     { title: 'Sobre Nós', icon: 'information-circle-outline', route: '/quem-somos' },
     { title: 'Segurança', icon: 'shield-checkmark-outline', route: '/seguranca' },
@@ -210,12 +238,10 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
     { title: 'Sair', icon: 'log-out-outline', action: 'logout', color: '#dc2626' },
   ];
 
-  // 🔹 Estatísticas (exemplo)
-  const stats: StatItem[] = [
-    { label: 'Total Lotes', value: '12' },
-    { label: 'Total Colhido', value: '1.2t' },
-    { label: 'Dias Ativo', value: '45' },
-  ];
+  // Filtra o menu baseado no tipo de usuário
+  const menuItems = allMenuItems.filter(
+    item => !item.adminOnly || userData?.tipo === 'admin'
+  );
 
   // Redirecionar se não autenticado
   useEffect(() => {
@@ -261,7 +287,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
 
               <TouchableOpacity
                 style={styles.editAvatarButton}
-                onPress={openEditModal} // <- função corrigida
+                onPress={openEditModal}
               >
                 <Ionicons name="brush" size={18} color="white" />
               </TouchableOpacity>
@@ -282,16 +308,12 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Estatísticas */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statsGrid}>
-            {stats.map((stat, index) => (
-              <View key={index} style={styles.statCard}>
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-              </View>
-            ))}
-          </View>
+        {/* Botão QR Code */}
+        <View style={styles.qrButtonContainer}>
+          <TouchableOpacity style={styles.qrButton} onPress={() => setQrVisible(true)}>
+            <Ionicons name="qr-code-outline" size={24} color="white" />
+            <Text style={styles.qrButtonText}>Ver QR Code do Cumaru</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Menu */}
@@ -413,6 +435,73 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Modal QR Code */}
+      <Modal visible={qrVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.qrModalContainer}>
+            <View style={styles.qrModalHeader}>
+              <Text style={styles.qrModalTitle}>QR Code - Cumaru</Text>
+              <TouchableOpacity onPress={() => setQrVisible(false)}>
+                <Ionicons name="close" size={28} color="#1f2937" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.qrModalSubtitle}>
+              Escaneie o QR Code para conhecer mais sobre o Cumaru
+            </Text>
+
+            {/* View que será capturada como imagem */}
+            <View 
+              ref={qrCodeRef} 
+              collapsable={false}
+              style={styles.qrCodeCaptureContainer}
+            >
+              <View style={styles.qrCodeHeader}>
+                <View style={styles.qrCodeHeaderIcon}>
+                  <Ionicons name="leaf" size={32} color="#16a34a" />
+                </View>
+                <Text style={styles.qrCodeHeaderTitle}>CumaruApp</Text>
+              </View>
+
+              <View style={styles.qrCodeWrapper}>
+                <QRCode
+                  value={cumaruLink}
+                  size={220}
+                  color="#000000"
+                  backgroundColor="white"
+                />
+              </View>
+
+              <View style={styles.qrCodeFooter}>
+                <Text style={styles.qrCodeFooterTitle}>Cumaru</Text>
+                <Text style={styles.qrCodeFooterSubtitle}>Dipteryx odorata</Text>
+                <Text style={styles.qrCodeFooterText}>
+                  Escaneie para saber mais
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.shareQrButton, sharingQR && styles.shareQrButtonDisabled]} 
+              onPress={handleShareQRCode}
+              disabled={sharingQR}
+            >
+              {sharingQR ? (
+                <>
+                  <ActivityIndicator size="small" color="white" />
+                  <Text style={styles.shareQrButtonText}>Preparando...</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="share-social-outline" size={20} color="white" />
+                  <Text style={styles.shareQrButtonText}>Compartilhar QR Code</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -502,20 +591,7 @@ const styles = StyleSheet.create({
     color: 'white',
     textAlign: "center",
   },
-  removePhotoButton: {
-    alignSelf: 'center',
-    marginBottom: 16,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: '#2a2a2a',
-    borderRadius: 8
-  },
 
-  removePhotoText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 14
-  },
   userTypeContainer: {
     marginTop: 8,
     marginBottom: 20
@@ -540,90 +616,37 @@ const styles = StyleSheet.create({
     color: '#0277bd'
   },
 
-  statsContainer: {
+  qrButtonContainer: {
     paddingHorizontal: 16,
-    marginTop: -32
+    marginTop: -32,
+    marginBottom: 24,
   },
 
-  statsGrid: {
+  qrButton: {
+    backgroundColor: '#16a34a',
     flexDirection: 'row',
-    gap: 12
-  },
-
-  statCard: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
     alignItems: 'center',
-    elevation: 1
-  },
-
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#16a34a'
-  },
-
-  statLabel: {
-    fontSize: 12,
-    color: '#1f2937',
-    textAlign: 'center',
-    marginTop: 6
-  },
-
-  profileInfoContainer: {
-    paddingHorizontal: 16,
-    marginTop: 24
-  },
-
-  profileInfoCard: {
-    backgroundColor: 'white',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     borderRadius: 12,
-    padding: 16
+    gap: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
 
-  profileInfoHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16
-  },
-
-  profileInfoTitle: {
-    fontSize: 18,
+  qrButtonText: {
+    color: 'white',
+    fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937'
-  },
-
-  profileInfoList: {
-    gap: 12
-  },
-
-  profileInfoItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8
-  },
-
-  profileInfoLabel: {
-    fontSize: 14,
-    color: '#6b7280'
-  },
-
-  profileInfoValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1f2937',
-    textAlign: 'right',
-    flex: 1,
-    marginLeft: 16
   },
 
   menuContainer: {
     paddingHorizontal: 16,
-    marginTop: 24
+    marginTop: 0
   },
 
   menuCard: {
@@ -661,7 +684,7 @@ const styles = StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -681,6 +704,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center'
   },
+
   avatarEditContainer: {
     alignItems: 'center',
     position: 'relative',
@@ -694,18 +718,24 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#1f2937',
   },
+
   avatarActions: {
     flexDirection: 'row',
     marginTop: 10,
     gap: 12,
   },
+
   avatarActionButton: {
     backgroundColor: '#1f2937',
     padding: 10,
     borderRadius: 50,
   },
+
   inputLabel: {
-    marginBottom: 12
+    marginBottom: 12,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151'
   },
 
   input: {
@@ -748,6 +778,117 @@ const styles = StyleSheet.create({
   saveText: {
     color: 'white',
     fontWeight: '600'
+  },
+
+  qrModalContainer: {
+    width: '90%',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 24,
+    elevation: 5,
+  },
+
+  qrModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+
+  qrModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+
+  qrModalSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+
+  qrCodeCaptureContainer: {
+    backgroundColor: 'white',
+    padding: 24,
+    alignItems: 'center',
+  },
+
+  qrCodeHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+
+  qrCodeHeaderIcon: {
+    width: 56,
+    height: 56,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+
+  qrCodeHeaderTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#16a34a',
+  },
+
+  qrCodeWrapper: {
+    padding: 16,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+
+  qrCodeFooter: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+
+  qrCodeFooterTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+
+  qrCodeFooterSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 8,
+  },
+
+  qrCodeFooterText: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+
+  shareQrButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#16a34a',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    gap: 10,
+    marginTop: 24,
+  },
+
+  shareQrButtonDisabled: {
+    opacity: 0.5,
+  },
+
+  shareQrButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

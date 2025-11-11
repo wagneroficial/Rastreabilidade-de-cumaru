@@ -57,8 +57,10 @@ export const useHomeData = () => {
         // --- LOTES COM LISTENER EM TEMPO REAL ---
         let lotesQuery;
         if (isAdmin) {
+          // Admin vê todos os lotes
           lotesQuery = collection(db, "lotes");
         } else {
+          // Colaborador vê apenas lotes onde é responsável
           lotesQuery = query(
             collection(db, "lotes"),
             where('colaboradoresResponsaveis', 'array-contains', currentUserId)
@@ -104,21 +106,14 @@ export const useHomeData = () => {
 
           let coletasQuery;
           if (isAdmin) {
+            // Admin vê todas as coletas
             coletasQuery = collection(db, "coletas");
           } else {
-            if (lotesDoUsuario.length > 0) {
-              coletasQuery = query(
-                collection(db, "coletas"),
-                where('loteId', 'in', lotesDoUsuario)
-              );
-            } else {
-              setKgHoje(0);
-              setKgOntem(0);
-              setTotalColhido(0);
-              setMelhorLote('--');
-              setAtividadeRecente([]);
-              return;
-            }
+            // Colaborador vê apenas SUAS coletas (filtrado por coletorId)
+            coletasQuery = query(
+              collection(db, "coletas"),
+              where('coletorId', '==', currentUserId)
+            );
           }
 
           unsubscribeColetas = onSnapshot(coletasQuery, (coletasSnap) => {
@@ -213,10 +208,10 @@ export const useHomeData = () => {
 
   // --- Percentual hoje vs ontem ---
   const percentualHoje = kgOntem > 0
-    ? `${(((kgHoje - kgOntem) / kgOntem) * 100).toFixed(1)}%`
+    ? `${(((kgHoje - kgOntem) / kgOntem) * 100).toFixed(1)}% em relação a ontem`
     : kgHoje > 0
-      ? '+100%'
-      : '0%';
+      ? '+100% em relação a ontem'
+      : '0% sem mudanças';
 
   return {
     lotesCount,
@@ -227,7 +222,7 @@ export const useHomeData = () => {
     isAdmin,
     loading,
     percentualHoje,
-    totalColhido: `${totalColhido.toFixed(1)}kg`, // ✅ ADICIONADO
-    melhorLote, // ✅ ADICIONADO
+    totalColhido: `${totalColhido.toFixed(1)}kg`,
+    melhorLote,
   };
 };

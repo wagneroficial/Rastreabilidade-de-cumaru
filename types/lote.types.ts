@@ -36,6 +36,7 @@ export interface HistoricoItem {
   observacoes?: string;
   hora: string;
   status: 'pendente' | 'aprovada' | 'rejeitada'; 
+  coletorId: string; 
 }
 
 export interface ArvoreItem {

@@ -75,7 +75,7 @@ const HomeScreen: React.FC = () => {
           changePercent={percentualHoje}
         />
         <StatsCards stats={stats} />
-        <QuickActions actions={quickActions} onActionPress={handleQuickAction} />
+        {isAdmin && <QuickActions actions={quickActions} onActionPress={handleQuickAction} />}
         <RecentActivity activities={atividadeRecente} isAdmin={isAdmin} />
         <View style={styles.bottomSpacing} />
       </ScrollView>
