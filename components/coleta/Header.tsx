@@ -9,42 +9,42 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onBack }) => {
   return (
     <View style={styles.header}>
-      <View style={styles.headerContent}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.title}>Registrar nova colheita</Text>
-      </View>
+        <Text style={styles.headerTitle}>Registrar nova colheita</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-   header: {
+  header: {
     backgroundColor: '#16a34a',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
     paddingLeft: 16,
     paddingVertical: 20,
-  },
-  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
   },
   backButton: {
     width: 32,
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 10,
+
   },
-  headerInfo: {
-    flex: 1,
-  },
-  title: {
+  headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#ffffff',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#dcfce7',
+    marginTop: 2,
+  },
+  headerInfo: {
+    flex: 1,
   },
 });
 

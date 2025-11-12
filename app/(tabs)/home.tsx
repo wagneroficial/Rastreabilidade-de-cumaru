@@ -66,7 +66,7 @@ const HomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#16a34a" barStyle="light-content" />
+      <StatusBar backgroundColor='#16a34a' barStyle="light-content" />
       <HomeHeader isAdmin={isAdmin} onNotificationsPress={handleNotifications} />
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>

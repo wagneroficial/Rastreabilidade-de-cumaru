@@ -19,7 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { auth } from './services/firebaseConfig.js'; // Ajuste o caminho conforme necessário
+import { auth } from './services/firebaseConfig.js';
 
 export default function AlterarSenhaScreen() {
   const [senhaAtual, setSenhaAtual] = useState('');
@@ -76,12 +76,12 @@ export default function AlterarSenhaScreen() {
       console.log('Tentando reautenticar usuário...');
       const credential = EmailAuthProvider.credential(user.email, senhaAtual);
       await reauthenticateWithCredential(user, credential);
-      
+
       console.log('Reautenticação bem-sucedida! Atualizando senha...');
 
       // 2. Atualizar a senha
       await updatePassword(user, novaSenha);
-      
+
       console.log('Senha atualizada com sucesso!');
 
       // 3. Limpar campos e mostrar sucesso
@@ -100,7 +100,7 @@ export default function AlterarSenhaScreen() {
       console.log('Erro capturado:', error);
       console.log('Código do erro:', error.code);
       console.log('Mensagem do erro:', error.message);
-      
+
       let mensagemErro = 'Erro ao alterar senha. Tente novamente.';
 
       // Tratamento de erros específicos
@@ -111,31 +111,31 @@ export default function AlterarSenhaScreen() {
           case 'auth/invalid-password':
             mensagemErro = 'Senha atual incorreta. Verifique e tente novamente.';
             break;
-          
+
           case 'auth/weak-password':
             mensagemErro = 'A nova senha é muito fraca. Use uma senha mais forte.';
             break;
-          
+
           case 'auth/requires-recent-login':
             mensagemErro = 'Por segurança, você precisa fazer login novamente antes de alterar a senha.';
             break;
-          
+
           case 'auth/too-many-requests':
             mensagemErro = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
             break;
-          
+
           case 'auth/network-request-failed':
             mensagemErro = 'Erro de conexão. Verifique sua internet e tente novamente.';
             break;
-          
+
           case 'auth/user-disabled':
             mensagemErro = 'Sua conta foi desabilitada. Entre em contato com o suporte.';
             break;
-          
+
           case 'auth/user-not-found':
             mensagemErro = 'Usuário não encontrado. Faça login novamente.';
             break;
-          
+
           default:
             mensagemErro = `Erro: ${error.message}`;
             break;
@@ -164,7 +164,7 @@ export default function AlterarSenhaScreen() {
     setShowPassword: (show: boolean) => void,
     placeholder: string
   ) => (
-    <View style={styles.inputContainer}>
+    <View>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.inputWrapper}>
         <TextInput
@@ -193,26 +193,21 @@ export default function AlterarSenhaScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#059669" barStyle="light-content" />
-      
+      <StatusBar backgroundColor='#16a34a' barStyle="light-content" />
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.headerLeft}>
-            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color="white" />
-            </TouchableOpacity>
-            <View style={styles.headerInfo}>
-              <Text style={styles.headerTitle}>Alterar Senha</Text>
-              <Text style={styles.headerSubtitle}>Defina uma nova senha segura</Text>
-            </View>
-          </View>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <View style={styles.headerInfo}>
+          <Text style={styles.headerTitle}>Alterar Senha</Text>
+          <Text style={styles.headerSubtitle}>Defina uma nova senha segura</Text>
         </View>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Formulário */}
-        <View style={styles.formContainer}>
+        <View>
           {renderPasswordField(
             'Senha Atual',
             senhaAtual,
@@ -221,7 +216,7 @@ export default function AlterarSenhaScreen() {
             setMostrarSenhaAtual,
             'Digite sua senha atual'
           )}
-          
+
           {renderPasswordField(
             'Nova Senha',
             novaSenha,
@@ -230,7 +225,7 @@ export default function AlterarSenhaScreen() {
             setMostrarNovaSenha,
             'Digite sua nova senha'
           )}
-          
+
           {renderPasswordField(
             'Confirmar Nova Senha',
             confirmarSenha,
@@ -265,9 +260,6 @@ export default function AlterarSenhaScreen() {
             ))}
           </View>
         ) : null}
-
-
-     
         {/* Botão de Alteração */}
         <TouchableOpacity
           onPress={handleAlterarSenha}
@@ -328,86 +320,66 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   header: {
-    backgroundColor: '#059669',
-    paddingHorizontal: 16,
-    paddingVertical: 32,
-    paddingTop: 48,
-  },
-  headerContent: {
+    backgroundColor: '#16a34a',
+    paddingLeft: 16,
+    paddingVertical: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
   },
   backButton: {
     width: 32,
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
-  },
-  headerInfo: {
-    flex: 1,
+    marginRight: 10,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#ffffff',
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#BBF7D0',
+    color: '#dcfce7',
     marginTop: 2,
+  },
+  headerInfo: {
+    flex: 1,
   },
   content: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 24,
+    paddingTop: 20,
   },
-  formContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-    overflow: 'hidden',
-  },
-  inputContainer: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  label: {
+  inputLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#374151',
     marginBottom: 8,
   },
   inputWrapper: {
-    position: 'relative',
-  },
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: 'white',
+  borderWidth: 1,
+  borderColor: '#D1D5DB',
+  borderRadius: 8,
+  marginTop: 12,
+  marginBottom: 16,
+  paddingRight: 10,
+},
   input: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingRight: 48,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    fontSize: 16,
-    color: '#1F2937',
-  },
-  eyeButton: {
-    position: 'absolute',
-    right: 12,
-    top: 12,
-    padding: 4,
-  },
+  flex: 1,
+  paddingHorizontal: 16,
+  paddingVertical: 14,
+  fontSize: 16,
+  color: '#1F2937',
+},
+
+eyeButton: {
+  justifyContent: 'center',
+  alignItems: 'center',
+},
   requirementsContainer: {
     backgroundColor: 'white',
     borderRadius: 12,

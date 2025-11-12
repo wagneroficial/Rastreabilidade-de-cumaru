@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Alert,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Switch,
   Text,
@@ -36,7 +37,7 @@ const SegurancaScreen: React.FC = () => {
     if (value) {
       // Verificar se o dispositivo suporta biometria antes de ativar
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      
+
       if (!hasHardware) {
         Alert.alert(
           'Biometria não disponível',
@@ -46,7 +47,7 @@ const SegurancaScreen: React.FC = () => {
       }
 
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-      
+
       if (!isEnrolled) {
         Alert.alert(
           'Biometria não configurada',
@@ -169,17 +170,13 @@ const SegurancaScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor='#16a34a' barStyle="light-content" />
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="white" />
-          </TouchableOpacity>
-          <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>Segurança</Text>
-            <Text style={styles.headerSubtitle}>Proteja sua conta</Text>
-          </View>
-        </View>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={28} color="white" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Segurança e Senha</Text>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -261,36 +258,29 @@ const SegurancaScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#fdfdfd',
   },
   header: {
     backgroundColor: '#16a34a',
     paddingLeft: 16,
     paddingVertical: 20,
-  },
-  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
   },
   backButton: {
     width: 32,
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  headerInfo: {
-    flex: 1,
+    marginRight: 10,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#ffffff',
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#bbf7d0',
-    marginTop: 2,
+  headerInfo: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,

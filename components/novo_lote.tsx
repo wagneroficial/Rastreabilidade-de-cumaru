@@ -10,6 +10,7 @@ import {
   Modal,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -17,6 +18,7 @@ import {
   View,
 } from 'react-native';
 import { db } from '../app/services/firebaseConfig.js';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 interface NovoLoteModalProps {
@@ -512,21 +514,20 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
+        <StatusBar backgroundColor="#16a34a" barStyle="light-content" />
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="arrow-back" size={24} color="white" />
-            </TouchableOpacity>
-            <View style={styles.headerInfo}>
-              <Text style={styles.headerTitle}>
-                {isEditMode ? 'Editar lote' : 'Cadastrar novo Lote'}
-              </Text>
-              <Text style={styles.headerSubtitle}>
-                {isEditMode ? loteParaEditar?.codigo : `Etapa ${currentStep} de 2`}
-              </Text>
-            </View>
+          <TouchableOpacity onPress={handleClose} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <View style={styles.headerInfo}>
+            <Text style={styles.headerTitle}>
+              {isEditMode ? 'Editar lote' : 'Cadastrar novo Lote'}
+            </Text>
+            <Text style={styles.headerSubtitle}>
+              {isEditMode ? loteParaEditar?.codigo : `Etapa ${currentStep} de 2`}
+            </Text>
           </View>
         </View>
 
@@ -991,7 +992,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
             minimumDate={new Date()}
           />
         )}
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 };
@@ -1003,25 +1004,17 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#16a34a',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
     paddingLeft: 16,
     paddingVertical: 20,
-  },
-  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
   },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  backButton: {
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  headerInfo: {
-    flex: 1,
+    marginRight: 10,
   },
   headerTitle: {
     fontSize: 20,
@@ -1030,8 +1023,11 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#ffffff',
+    color: '#dcfce7',
     marginTop: 2,
+  },
+  headerInfo: {
+    flex: 1,
   },
   content: {
     flex: 1,

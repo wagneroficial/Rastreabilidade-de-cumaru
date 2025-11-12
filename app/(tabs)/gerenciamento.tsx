@@ -22,16 +22,14 @@ const GerenciamentoScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="white" />
-          </TouchableOpacity>
-          <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>Gerenciamento</Text>
-            <Text style={styles.headerSubtitle}>
-              {activeMainTab === 'usuarios' ? 'Gerencie usuários do sistema' : 'Aprove ou rejeite coletas'}
-            </Text>
-          </View>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <View style={styles.headerInfo}>
+          <Text style={styles.headerTitle}>Gerenciamento</Text>
+          <Text style={styles.headerSubtitle}>
+            {activeMainTab === 'usuarios' ? 'Gerencie usuários do sistema' : 'Aprove ou rejeite coletas'}
+          </Text>
         </View>
       </View>
 
@@ -44,10 +42,10 @@ const GerenciamentoScreen: React.FC = () => {
             activeMainTab === 'usuarios' && styles.mainTabActive,
           ]}
         >
-          <Ionicons 
-            name={activeMainTab === 'usuarios' ? 'people' : 'people-outline'} 
-            size={20} 
-            color={activeMainTab === 'usuarios' ? '#16a34a' : '#6b7280'} 
+          <Ionicons
+            name={activeMainTab === 'usuarios' ? 'people' : 'people-outline'}
+            size={20}
+            color={activeMainTab === 'usuarios' ? '#16a34a' : '#6b7280'}
           />
           <Text style={[
             styles.mainTabText,
@@ -64,10 +62,10 @@ const GerenciamentoScreen: React.FC = () => {
             activeMainTab === 'coletas' && styles.mainTabActive,
           ]}
         >
-          <Ionicons 
-            name={activeMainTab === 'coletas' ? 'leaf' : 'leaf-outline'} 
-            size={20} 
-            color={activeMainTab === 'coletas' ? '#16a34a' : '#6b7280'} 
+          <Ionicons
+            name={activeMainTab === 'coletas' ? 'leaf' : 'leaf-outline'}
+            size={20}
+            color={activeMainTab === 'coletas' ? '#16a34a' : '#6b7280'}
           />
           <Text style={[
             styles.mainTabText,
@@ -91,34 +89,31 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#16a34a',
-    paddingTop: 20,
-    paddingBottom: 16,
-    marginTop: 0,
-  },
-  headerContent: {
+    paddingLeft: 16,
+    paddingVertical: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    gap: 12,
+    position: 'relative',
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  headerInfo: {
-    flex: 1,
+    marginRight: 10,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#ffffff',
   },
   headerSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: '#BBF7D0',
     marginTop: 2,
+  },
+  headerInfo: {
+    flex: 1,
   },
   mainTabsContainer: {
     flexDirection: 'row',

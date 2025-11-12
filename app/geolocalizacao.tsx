@@ -22,6 +22,7 @@ import {
   Linking,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -92,7 +93,7 @@ const GeolocalizacaoScreen: React.FC = () => {
   const handleLotePress = (lote: typeof lotes[0]) => {
     try {
       setSelectedLote(lote.id);
-      
+
       if (mapRef.current) {
         mapRef.current.animateToRegion({
           latitude: lote.coordinates.lat,
@@ -119,7 +120,7 @@ const GeolocalizacaoScreen: React.FC = () => {
   const handleNavigateToLote = async (lote: typeof lotes[0]) => {
     try {
       const { lat, lng } = lote.coordinates;
-      
+
       const url = Platform.select({
         ios: `maps:0,0?q=${lat},${lng}`,
         android: `geo:0,0?q=${lat},${lng}(${lote.nome})`,
@@ -163,7 +164,7 @@ const GeolocalizacaoScreen: React.FC = () => {
           latitude: lote.coordinates.lat,
           longitude: lote.coordinates.lng,
         }));
-        
+
         if (currentLocation) {
           coordinates.push({
             latitude: currentLocation.lat,
@@ -199,17 +200,16 @@ const GeolocalizacaoScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor='#16a34a' barStyle="light-content" />
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="white" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Geolocalização</Text>
-          <TouchableOpacity onPress={getCurrentLocation} style={styles.refreshButton}>
-            <Ionicons name="refresh" size={20} color="white" />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Geolocalização</Text>
+        <TouchableOpacity onPress={getCurrentLocation} style={styles.refreshButton}>
+          <Ionicons name="refresh" size={28} color="white" />
+        </TouchableOpacity>
       </View>
 
       {/* Seção do Mapa */}
@@ -294,29 +294,27 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#16a34a',
-    paddingHorizontal: 16,
+    paddingLeft: 16,
     paddingVertical: 20,
-    marginTop: 0,
-  },
-  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    position: 'relative',
   },
   backButton: {
     width: 32,
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 10,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
-    flex: 1,
-    marginLeft: 12,
+    color: '#ffffff',
   },
   refreshButton: {
+    position: 'absolute',
+    right: 16,
     width: 32,
     height: 32,
     justifyContent: 'center',

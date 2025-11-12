@@ -11,7 +11,8 @@ import {
   TouchableOpacity,
   View,
   Image,
-  ImageSourcePropType
+  ImageSourcePropType,
+  StatusBar
 } from 'react-native';
 
 interface TeamMember {
@@ -106,6 +107,7 @@ const QuemSomosScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor='#16a34a' barStyle="light-content" />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
@@ -270,31 +272,28 @@ const QuemSomosScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+    container: {
     flex: 1,
     backgroundColor: '#fdfdfd',
   },
   header: {
+    backgroundColor: '#16a34a',
+    paddingLeft: 16,
+    paddingVertical: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#16a34a',
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    gap: 12,
   },
   backButton: {
-    padding: 4,
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: 'white',
-    flex: 1,
-  },
-  headerContent: {
-    alignItems: 'center',
-    backgroundColor: '#16a34a',
-    paddingVertical: 32,
+    fontWeight: 'bold',
+    color: '#ffffff',
   },
   appIntro: {
     alignItems: 'center',

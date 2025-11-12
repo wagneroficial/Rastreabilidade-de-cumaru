@@ -72,19 +72,19 @@ const ColetaForm: React.FC<ColetaFormProps> = ({
         <View style={styles.dividerLine} />
       </View>
       <Text style={styles.title}>Registre Manualmente</Text>
-                {/* Quantidade */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>                        
-              <Text style={styles.span}>* </Text>Quantidade (kg)</Text>
-            <TextInput
-              style={styles.input}
-              value={quantidade}
-              onChangeText={onQuantidadeChange}
-              placeholder="0.0"
-              placeholderTextColor="#9ca3af"
-              keyboardType="decimal-pad"
-            />
-          </View>
+      {/* Quantidade */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>
+          <Text style={styles.span}>* </Text>Quantidade (kg)</Text>
+        <TextInput
+          style={styles.input}
+          value={quantidade}
+          onChangeText={onQuantidadeChange}
+          placeholder="0.0"
+          placeholderTextColor="#9ca3af"
+          keyboardType="decimal-pad"
+        />
+      </View>
       {lotes.length === 0 ? (
         <View style={styles.noDataContainer}>
           <Ionicons name="leaf-outline" size={48} color="#9ca3af" />
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontSize: 16,
     color: '#1f2937',
   },

@@ -13,11 +13,13 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const NotificacoesScreen: React.FC = () => {
   const router = useRouter();
@@ -82,8 +84,8 @@ const NotificacoesScreen: React.FC = () => {
       'Todas as notificações serão marcadas como lidas',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Confirmar', 
+        {
+          text: 'Confirmar',
           onPress: async () => {
             try {
               await markAllNotificationsAsRead(currentUserId);
@@ -114,7 +116,7 @@ const NotificacoesScreen: React.FC = () => {
     if (hours < 24) return `${hours}h atrás`;
     if (days === 1) return '1 dia atrás';
     if (days < 7) return `${days} dias atrás`;
-    
+
     return date.toLocaleDateString('pt-BR');
   };
 
@@ -128,27 +130,27 @@ const NotificacoesScreen: React.FC = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor='#16a34a' barStyle="light-content" />
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.headerLeft}>
-            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color="white" />
-            </TouchableOpacity>
-            <View style={styles.headerInfo}>
-              <Text style={styles.headerTitle}>Notificações</Text>
-              {unreadCount > 0 && (
-                <Text style={styles.headerSubtitle}>{unreadCount} não lidas</Text>
-              )}
-            </View>
+
+        <View style={styles.headerLeft}>
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <View style={styles.headerInfo}>
+            <Text style={styles.headerTitle}>Notificações</Text>
+            {unreadCount > 0 && (
+              <Text style={styles.headerSubtitle}>{unreadCount} não lidas</Text>
+            )}
           </View>
-          {unreadCount > 0 && (
-            <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.markAllButton}>
-              <Text style={styles.markAllButtonText}>Marcar todas</Text>
-            </TouchableOpacity>
-          )}
         </View>
+        {unreadCount > 0 && (
+          <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.markAllButton}>
+            <Text style={styles.markAllButtonText}>Marcar todas</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Filter Tabs */}
@@ -183,7 +185,7 @@ const NotificacoesScreen: React.FC = () => {
             <View style={styles.emptyState}>
               <Ionicons name="notifications-off-outline" size={64} color="#d1d5db" />
               <Text style={styles.emptyStateText}>
-                {filter === 'nao-lidas' 
+                {filter === 'nao-lidas'
                   ? 'Você não tem notificações não lidas'
                   : 'Você não tem notificações'
                 }
@@ -205,10 +207,10 @@ const NotificacoesScreen: React.FC = () => {
                       styles.notificationIcon,
                       { backgroundColor: notification.backgroundColor }
                     ]}>
-                      <Ionicons 
-                        name={notification.icon as any} 
-                        size={20} 
-                        color={notification.color} 
+                      <Ionicons
+                        name={notification.icon as any}
+                        size={20}
+                        color={notification.color}
                       />
                     </View>
                     <View style={styles.notificationBody}>
@@ -243,7 +245,7 @@ const NotificacoesScreen: React.FC = () => {
           )}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -251,7 +253,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f9fafb',
-    paddingTop: 0, 
+  },
+  header: {
+    backgroundColor: '#16a34a',
+    paddingLeft: 16,
+    paddingVertical: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+    headerSubtitle: {
+    fontSize: 14,
+    color: '#dcfce7',
+    marginTop: 2,
   },
   centerContent: {
     justifyContent: 'center',
@@ -262,40 +288,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
   },
-  header: {
-    backgroundColor: '#16a34a',
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    marginTop: 0,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   headerLeft: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
     alignItems: 'center',
   },
   headerInfo: {
     flex: 1,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#dcfce7',
-    marginTop: 2,
   },
   markAllButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',

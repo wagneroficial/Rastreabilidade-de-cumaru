@@ -106,7 +106,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ isAdmin, onNotificationsPress }
 };
 
 const styles = StyleSheet.create({
-  header: {
+    header: {
     backgroundColor: '#16a34a',
     paddingHorizontal: 16,
     paddingVertical: 20,
@@ -116,14 +116,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  backButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#ffffff',
+  },
+  headerInfo: {
+    flex: 1,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: '#bbf7d0',
+    fontSize: 14,
+    color: '#BBF7D0',
     marginTop: 2,
   },
   notificationButton: {
@@ -133,7 +143,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
-  // ✅ Estilos do badge
   badge: {
     position: 'absolute',
     top: 0,

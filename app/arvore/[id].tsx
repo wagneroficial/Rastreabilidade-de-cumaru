@@ -237,7 +237,7 @@ export default function DetalheArvoreScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#16a34a" barStyle="light-content" />
+      <StatusBar backgroundColor="#059669" barStyle="light-content" />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>

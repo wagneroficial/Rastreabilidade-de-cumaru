@@ -8,6 +8,7 @@ import {
   Modal,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -101,10 +102,10 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
         idArvore: arvoreToEdit.codigo || '',
         loteId: arvoreToEdit.loteId || '',
         estadoSaude: arvoreToEdit.estadoSaude || '',
-        dataPlantio: arvoreToEdit.dataPlantio 
-          ? (arvoreToEdit.dataPlantio.seconds 
-              ? new Date(arvoreToEdit.dataPlantio.seconds * 1000).toISOString()
-              : arvoreToEdit.dataPlantio)
+        dataPlantio: arvoreToEdit.dataPlantio
+          ? (arvoreToEdit.dataPlantio.seconds
+            ? new Date(arvoreToEdit.dataPlantio.seconds * 1000).toISOString()
+            : arvoreToEdit.dataPlantio)
           : '',
         latitude: arvoreToEdit.latitude?.toString() || '',
         longitude: arvoreToEdit.longitude?.toString() || '',
@@ -239,7 +240,7 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
           />
           {errors.idArvore && <Text style={styles.errorText}>{errors.idArvore}</Text>}
         </View>
-         {/* Lote */}
+        {/* Lote */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Lote</Text>
           <TouchableOpacity
@@ -251,8 +252,8 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
               {loadingLotes
                 ? 'Carregando lotes...'
                 : formData.loteId
-                ? lotes.find(lote => lote.id === formData.loteId)?.nome || 'Selecione um lote'
-                : 'Selecione um lote'}
+                  ? lotes.find(lote => lote.id === formData.loteId)?.nome || 'Selecione um lote'
+                  : 'Selecione um lote'}
             </Text>
             <Ionicons name="chevron-down" size={20} color="#6B7280" />
           </TouchableOpacity>
@@ -438,10 +439,16 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
   };
 
   const getButtonText = () => (currentStep === 1 ? 'Continuar' : (editMode ? 'Atualizar' : 'Cadastrar'));
-  
+
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={handleClose}
+    >
       <SafeAreaView style={styles.container}>
+        <StatusBar backgroundColor="#16a34a" barStyle="light-content" />
         <View style={styles.header}>
           <TouchableOpacity onPress={handleClose} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="white" />
@@ -525,37 +532,37 @@ const CadastrarArvoreModal: React.FC<CadastrarArvoreModalProps> = ({
 }
 
 const styles = StyleSheet.create({
-  // ... (mantenha todos os estilos iguais)
   container: {
     flex: 1,
     backgroundColor: '#fdfdfd',
   },
   header: {
     backgroundColor: '#16a34a',
+    paddingLeft: 16,
+    paddingVertical: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  headerInfo: {
-    flex: 1,
+    marginRight: 10,
+
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#ffffff',
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#BBF7D0',
+    color: '#dcfce7',
     marginTop: 2,
+  },
+  headerInfo: {
+    flex: 1,
   },
   content: {
     flex: 1,
@@ -590,7 +597,7 @@ const styles = StyleSheet.create({
     borderColor: '#D1D5DB',
     borderRadius: 8,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontSize: 16,
     color: '#1F2937',
   },

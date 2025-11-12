@@ -28,7 +28,7 @@ interface VisaoGeralProps {
 const VisaoGeral: React.FC<VisaoGeralProps> = ({ dadosHome, lotesData }) => {
   const [modalVisible, setModalVisible] = useState(false);
 
-// Gera o HTML do PDF
+  // Gera o HTML do PDF
   const generateHTML = () => {
     return `
       <html>
@@ -91,8 +91,8 @@ const VisaoGeral: React.FC<VisaoGeralProps> = ({ dadosHome, lotesData }) => {
 
           <h2>Detalhes dos Lotes</h2>
           ${lotesData
-            .map(
-              (lote) => `
+        .map(
+          (lote) => `
                 <div class="lote">
                   <p><strong>Código:</strong> ${lote.codigo}</p>
                   <p><strong>Nome:</strong> ${lote.nome}</p>
@@ -103,8 +103,8 @@ const VisaoGeral: React.FC<VisaoGeralProps> = ({ dadosHome, lotesData }) => {
                   <p><strong>Última Coleta:</strong> ${lote.ultimaColeta}</p>
                 </div>
               `
-            )
-            .join('')}
+        )
+        .join('')}
         </body>
       </html>
     `;
@@ -172,31 +172,32 @@ const VisaoGeral: React.FC<VisaoGeralProps> = ({ dadosHome, lotesData }) => {
           <Text style={styles.buttonSolidText}>Exportar PDF</Text>
         </TouchableOpacity>
       </View>
-
-      {/* 🔹 Lista detalhada dos lotes */}
-      {lotesData && lotesData.length > 0 ? (
-        lotesData.map((lote) => (
-          <View key={String(lote.codigo)} style={styles.loteCard}>
-            <Text style={styles.loteTitle}>{lote.nome || 'Sem nome'}</Text>
-            <Text style={styles.loteText}>Área: {lote.area || '0'} ha</Text>
-            <Text style={styles.loteText}>Árvores: {lote.arvores || 0}</Text>
-            <Text style={styles.loteText}>Total Colhido: {lote.colhidoTotal || '0 kg'}</Text>
-            <Text style={styles.loteText}>Status: {lote.status || 'Inativo'}</Text>
-            <Text style={styles.loteText}>Última Coleta: {lote.ultimaColeta || 'Nunca'}</Text>
-          </View>
-        ))
-      ) : (
-        <Text style={styles.emptyText}>Nenhum lote encontrado.</Text>
-      )}
-
-  {/* 🔹 Modal com preview do PDF */}
+      <View >
+        <Text style={styles.title}>Todos os Lotes</Text>
+        {/* 🔹 Lista detalhada dos lotes */}
+        {lotesData && lotesData.length > 0 ? (
+          lotesData.map((lote) => (
+            <View key={String(lote.codigo)} style={styles.loteCard}>
+              <Text style={styles.loteTitle}>{lote.nome || 'Sem nome'}</Text>
+              <Text style={styles.loteText}>Área: {lote.area || '0'} ha</Text>
+              <Text style={styles.loteText}>Árvores: {lote.arvores || 0}</Text>
+              <Text style={styles.loteText}>Total Colhido: {lote.colhidoTotal || '0 kg'}</Text>
+              <Text style={styles.loteText}>Status: {lote.status || 'Inativo'}</Text>
+              <Text style={styles.loteText}>Última Coleta: {lote.ultimaColeta || 'Nunca'}</Text>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.emptyText}>Nenhum lote encontrado.</Text>
+        )}
+      </View>
+      {/* 🔹 Modal com preview do PDF */}
       <Modal visible={modalVisible} animationType="slide">
         <View style={{ flex: 1 }}>
           {/* Cabeçalho do modal */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Pré-visualização do PDF</Text>
 
-            <View style={{ flexDirection: 'row',  gap: 20 }}>
+            <View style={{ flexDirection: 'row', gap: 20 }}>
               <TouchableOpacity style={styles.modalButtonExport} onPress={exportarPDF}>
                 <Ionicons name="download-outline" size={20} color="#fff" />
               </TouchableOpacity>
@@ -223,8 +224,8 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#fdfdfd', borderRadius: 12, padding: 16, width: '48%', marginBottom: 4, borderWidth: 1, borderColor: '#e5e7eb' },
   cardTitle: { fontSize: 12, color: '#6b7280', marginBottom: 4 },
   cardValue: { fontSize: 20, fontWeight: '600', color: '#1f2937' },
-  buttonsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 16, gap: 16},
-   // 🔹 Outline (secundário)
+  buttonsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 16, gap: 16, marginBottom: 32 },
+  // 🔹 Outline (secundário)
   buttonOutline: {
     flex: 1,
     flexDirection: 'row',
@@ -266,7 +267,7 @@ const styles = StyleSheet.create({
   loteTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 8, color: '#111827' },
   loteText: { fontSize: 14, color: '#4b5563', marginBottom: 4 },
   emptyText: { textAlign: 'center', color: '#9ca3af', fontSize: 15, marginTop: 16 },
-   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#16a34a', paddingHorizontal: 16, paddingVertical: 14 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#16a34a', paddingHorizontal: 16, paddingVertical: 14 },
   modalTitle: { color: '#fff', fontSize: 18, fontWeight: '600' },
   modalButtonExport: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#15803d', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 6, gap: 4 },
   backButton: { justifyContent: 'center', alignItems: 'center' },

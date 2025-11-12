@@ -205,9 +205,9 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
         return;
       }
       const uri = await captureRef(qrCodeRef, { format: 'png', quality: 1 });
-      await Sharing.shareAsync(uri, { 
-        mimeType: 'image/png', 
-        dialogTitle: 'Compartilhar QR Code do Cumaru' 
+      await Sharing.shareAsync(uri, {
+        mimeType: 'image/png',
+        dialogTitle: 'Compartilhar QR Code'
       });
       setSharingQR(false);
     } catch (error) {
@@ -229,13 +229,13 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
 
   // 🔹 Menu
   const allMenuItems: MenuItem[] = [
+    { title: 'Notificações', icon: 'notifications-outline', route: '/notificacoes' },
     { title: 'Relatórios', icon: 'document-text-outline', route: '/relatorios', adminOnly: true },
     { title: 'Geolocalização', icon: 'location-outline', route: '/geolocalizacao' },
-    { title: 'Notificações', icon: 'notifications-outline', route: '/notificacoes' },
     { title: 'Sobre Nós', icon: 'information-circle-outline', route: '/quem-somos' },
-    { title: 'Segurança', icon: 'shield-checkmark-outline', route: '/seguranca' },
+    { title: 'Segurança e Senha', icon: 'shield-checkmark-outline', route: '/seguranca' },
     { title: 'Ajuda & Suporte', icon: 'help-circle-outline', route: '/ajuda' },
-    { title: 'Sair', icon: 'log-out-outline', action: 'logout', color: '#dc2626' },
+    { title: 'Sair', icon: 'log-out-outline', action: 'logout', color: '#c82929' },
   ];
 
   // Filtra o menu baseado no tipo de usuário
@@ -266,7 +266,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#16a34a" barStyle="light-content" />
+      <StatusBar backgroundColor='#16a34a' barStyle="light-content" />
       <ScrollView>
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -305,17 +305,12 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
                 {userData.tipo === 'admin' ? 'Administrador' : 'Colaborador'}
               </Text>
             </View>
+            {/* Botão QR Code */}
+              <TouchableOpacity style={styles.qrcode} onPress={() => setQrVisible(true)}>
+                <Ionicons name="qr-code-outline" size={32} color="white" />
+              </TouchableOpacity>           
           </View>
         </View>
-
-        {/* Botão QR Code */}
-        <View style={styles.qrButtonContainer}>
-          <TouchableOpacity style={styles.qrButton} onPress={() => setQrVisible(true)}>
-            <Ionicons name="qr-code-outline" size={24} color="white" />
-            <Text style={styles.qrButtonText}>Ver QR Code do Cumaru</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Menu */}
         <View style={styles.menuContainer}>
           <View style={styles.menuCard}>
@@ -335,12 +330,12 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
                 }}
               >
                 <View style={styles.menuItemContent}>
-                  <Ionicons name={item.icon as any} size={20} color={item.color || '#6b7280'} />
+                  <Ionicons name={item.icon as any} size={22} color={item.color || "#73777f"} />
                   <Text style={[styles.menuItemText, item.color && { color: item.color }]}>
                     {item.title}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                <Ionicons name="chevron-forward" size={22} color="#9ca3af" />
               </TouchableOpacity>
             ))}
           </View>
@@ -441,19 +436,19 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.qrModalContainer}>
             <View style={styles.qrModalHeader}>
-              <Text style={styles.qrModalTitle}>QR Code - Cumaru</Text>
+              <Text style={styles.qrModalTitle}>QR Code da Propriedade</Text>
               <TouchableOpacity onPress={() => setQrVisible(false)}>
                 <Ionicons name="close" size={28} color="#1f2937" />
               </TouchableOpacity>
             </View>
 
             <Text style={styles.qrModalSubtitle}>
-              Escaneie o QR Code para conhecer mais sobre o Cumaru
+              Escaneie o QR Code para saber sobre a origem do Cumaru adquirido
             </Text>
 
             {/* View que será capturada como imagem */}
-            <View 
-              ref={qrCodeRef} 
+            <View
+              ref={qrCodeRef}
               collapsable={false}
               style={styles.qrCodeCaptureContainer}
             >
@@ -461,7 +456,7 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
                 <View style={styles.qrCodeHeaderIcon}>
                   <Ionicons name="leaf" size={32} color="#16a34a" />
                 </View>
-                <Text style={styles.qrCodeHeaderTitle}>CumaruApp</Text>
+                <Text style={styles.qrCodeHeaderTitle}>CumaTrack</Text>
               </View>
 
               <View style={styles.qrCodeWrapper}>
@@ -475,15 +470,14 @@ const PerfilScreen: React.FC<PerfilScreenProps> = ({ navigation }) => {
 
               <View style={styles.qrCodeFooter}>
                 <Text style={styles.qrCodeFooterTitle}>Cumaru</Text>
-                <Text style={styles.qrCodeFooterSubtitle}>Dipteryx odorata</Text>
                 <Text style={styles.qrCodeFooterText}>
                   Escaneie para saber mais
                 </Text>
               </View>
             </View>
 
-            <TouchableOpacity 
-              style={[styles.shareQrButton, sharingQR && styles.shareQrButtonDisabled]} 
+            <TouchableOpacity
+              style={[styles.shareQrButton, sharingQR && styles.shareQrButtonDisabled]}
               onPress={handleShareQRCode}
               disabled={sharingQR}
             >
@@ -524,9 +518,10 @@ const styles = StyleSheet.create({
 
   header: {
     backgroundColor: '#16a34a',
-    paddingHorizontal: 4,
-    paddingVertical: 32,
-    paddingTop: 62
+    paddingHorizontal: 16,
+    paddingTop: 52,
+    paddingBottom: 32,
+    marginBottom: 24,
   },
 
   headerContent: {
@@ -539,7 +534,7 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20
+    marginBottom: 20,
   },
 
   avatarFallback: {
@@ -575,7 +570,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: 'white',
-    textAlign: 'center',
     marginTop: 4,
   },
 
@@ -615,40 +609,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#e0f2fe',
     color: '#0277bd'
   },
-
-  qrButtonContainer: {
-    paddingHorizontal: 16,
-    marginTop: -32,
-    marginBottom: 24,
-  },
-
-  qrButton: {
-    backgroundColor: '#16a34a',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    gap: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-
-  qrButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
+  qrcode: {
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#69ce8c',
+    borderRadius: 4
+  },  
   menuContainer: {
     paddingHorizontal: 16,
-    marginTop: 0
+    marginTop: 0,
+    marginBottom: 132,
   },
-
   menuCard: {
     backgroundColor: 'white',
     borderRadius: 12,
@@ -656,7 +627,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6'
   },
-
   menuItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -857,13 +827,6 @@ const styles = StyleSheet.create({
     color: '#1f2937',
     marginBottom: 4,
   },
-
-  qrCodeFooterSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 8,
-  },
-
   qrCodeFooterText: {
     fontSize: 12,
     color: '#9ca3af',

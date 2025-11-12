@@ -39,7 +39,7 @@ const LotesScreen: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [userLoading, setUserLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  
+
 
   // Verificar se o usuário é admin e obter ID do usuário
   useEffect(() => {
@@ -284,21 +284,16 @@ const LotesScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#16a34a" barStyle="light-content" />
-
+      <StatusBar backgroundColor='#16a34a' barStyle="light-content" />
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.headerLeft}>
-            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color="white" />
-            </TouchableOpacity>
-            <View style={styles.headerInfo}>
-              <Text style={styles.headerTitle}>
-                {isAdmin ? 'Todos os Lotes' : 'Meus Lotes'}
-              </Text>
-            </View>
-          </View>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <View style={styles.headerInfo}>
+          <Text style={styles.headerTitle}>
+            {isAdmin ? 'Todos Lotes' : 'Meus Lotes'}
+          </Text>
         </View>
       </View>
 
@@ -474,34 +469,25 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#16a34a',
-    paddingHorizontal: 16,
+    paddingLeft: 16,
     paddingVertical: 20,
-    marginTop: 0,
-  },
-  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
   },
   backButton: {
     width: 32,
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
-  },
-  headerInfo: {
-    flex: 1,
+    marginRight: 10,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#ffffff',
+  },
+  headerInfo: {
+    flex: 1,
   },
   headerSubtitle: {
     fontSize: 14,

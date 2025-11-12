@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
@@ -111,6 +112,7 @@ const RelatoriosAnalyticsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor='#16a34a' barStyle="light-content" />
       <HeaderRelatorios />
       <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>

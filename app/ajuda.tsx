@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,7 +9,9 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
@@ -29,7 +30,7 @@ const AjudaScreen = () => {
     { question: 'Como gerar relatórios?', answer: 'Vá até "Relatórios", escolha o período e clique em "Gerar Relatório".' },
     { question: 'Como alterar meus dados?', answer: 'Vá em "Perfil" → "Clique no ícone de Editar Perfil" e atualize as informações.' },
     { question: 'Esqueci minha senha, o que fazer?', answer: 'Vá em "Perfil" → "Clique em Segurança" → "Clique em Alterar Senha" e atualize as informações.' },
-];
+  ];
 
   const toggleExpand = (index: number) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -38,14 +39,13 @@ const AjudaScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor='#16a34a' barStyle="light-content" />
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="white" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Ajuda & Suporte</Text>
-        </View>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Ajuda & Suporte</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -87,74 +87,71 @@ const AjudaScreen = () => {
 export default AjudaScreen;
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#fff' 
+  container: {
+    flex: 1,
+    backgroundColor: '#fdfdfd',
   },
-  header: { 
-    backgroundColor: '#16a34a', 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#e5e7eb', 
-    paddingLeft: 16, 
-    paddingVertical: 20 
+  header: {
+    backgroundColor: '#16a34a',
+    paddingLeft: 16,
+    paddingVertical: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  headerContent: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 12 
+  backButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
   },
-  backButton: { 
-    width: 32, 
-    height: 32, 
-    justifyContent: 'center', 
-    alignItems: 'center' 
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+
   },
-  headerTitle: { 
-    fontSize: 20, 
-    fontWeight: 'bold', 
-    color: '#ffffff' 
+  scrollContent: {
+    padding: 20
   },
-  scrollContent: { 
-    padding: 20 
+  section: {
+    marginBottom: 25
   },
-  section: { 
-    marginBottom: 25 
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#111'
   },
-  sectionTitle: { 
-    fontSize: 18, 
-    fontWeight: '600', 
-    marginBottom: 12, 
-    color: '#111' 
+  faqItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    paddingVertical: 16,
+    borderRadius: 8
   },
-  faqItem: { 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#ddd', 
-    paddingVertical: 16, 
-    borderRadius: 8 
+  faqHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
   },
-  faqHeader: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center' 
+  question: {
+    fontSize: 16,
+    color: '#111'
   },
-  question: { 
-    fontSize: 16, 
-    color: '#111' 
+  answer: {
+    marginTop: 6,
+    fontSize: 14,
+    color: '#555',
+    lineHeight: 20
   },
-  answer: { 
-    marginTop: 6, 
-    fontSize: 14, 
-    color: '#555', 
-    lineHeight: 20 
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8
   },
-  contactItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 8, 
-    paddingVertical: 8 
-  },
-  contactText: { 
-    fontSize: 16, 
+  contactText: {
+    fontSize: 16,
     color: '#1f2937'
   },
 });

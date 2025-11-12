@@ -28,16 +28,15 @@ const LoteHeader: React.FC<LoteHeaderProps> = ({
   };
 
   return (
-    <View style={styles.header}>
+    
+    <View style={styles.header}>   
       <View style={styles.headerContent}>
-        <View style={styles.headerLeft}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             <Text style={styles.headerTitle}>{loteData.nome}</Text>
           </View>
-        </View>
         {isAdmin && onStatusPress && (
           <View style={[styles.statusContainer, { backgroundColor: '#16a34a', borderWidth: 1,borderColor: getStatusColor(loteData.status) }]}>
             <TouchableOpacity onPress={onStatusPress} style={styles.statusTouchable}>
@@ -50,11 +49,9 @@ const LoteHeader: React.FC<LoteHeaderProps> = ({
       
       {/* Stats */}
       <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-    
+        <View style={styles.statItem}>   
         </View>
         <View style={styles.statItem}>
-
         </View>
       </View>
     </View>
@@ -66,7 +63,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#16a34a',
     paddingHorizontal: 16,
     paddingVertical: 20,
-    
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
   },
   headerContent: {
     flexDirection: 'row',
@@ -78,25 +88,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  backButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
   headerInfo: {
     flex: 1,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#BBF7D0',
-    marginTop: 2,
   },
   statusContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
