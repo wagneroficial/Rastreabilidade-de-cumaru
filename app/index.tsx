@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  StatusBar,
   StyleSheet,
   View,
 } from 'react-native';
@@ -21,18 +22,18 @@ export default function Index() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       console.log('Auth state changed:', user ? 'Logado' : 'Não logado');
-      
+
       if (user) {
         // Usuário está logado - AGORA vamos verificar o status
         try {
           const userDoc = await getDoc(doc(db, "usuarios", user.uid));
-          
+
           if (userDoc.exists()) {
             const userData = userDoc.data();
             const status = userData.status || 'pendente';
-            
+
             console.log('Status do usuário:', status); // DEBUG
-            
+
             if (status === 'aprovado') {
               // Status aprovado - pode acessar
               setIsAuthenticated(true);
@@ -50,8 +51,8 @@ export default function Index() {
                 'Acesso Negado',
                 'Sua solicitação de acesso foi recusada. Entre em contato com o administrador.',
                 [
-                  { 
-                    text: 'OK', 
+                  {
+                    text: 'OK',
                     onPress: async () => {
                       await auth.signOut();
                       setIsAuthenticated(false);
@@ -89,6 +90,7 @@ export default function Index() {
   if (isChecking) {
     return (
       <SafeAreaView style={styles.container}>
+        <StatusBar backgroundColor='#16a34a' barStyle="light-content" />
         <View style={styles.content}>
           <View style={styles.logoContainer}>
             <Ionicons name="leaf" size={64} color="#16a34a" />

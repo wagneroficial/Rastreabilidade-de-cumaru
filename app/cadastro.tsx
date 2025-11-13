@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { auth, db } from './services/firebaseConfig'; // Verifique se este caminho está correto
+import { auth, db } from './services/firebaseConfig'; 
 
 console.log("auth:", auth);
 console.log("db:", db);
@@ -183,7 +183,7 @@ export default function Cadastro() {
     <View style={styles.inputGroup} key={key}>
       <Text style={styles.label}>{label}</Text>
       <View style={[styles.inputContainer, errors[key] && { borderColor: "#dc2626" }]}>
-        <Ionicons name={icon} size={20} color="#1F2937" style={styles.inputIcon} />
+
         <TextInput
           style={styles.textInput}
           placeholder={placeholder}
@@ -252,7 +252,7 @@ export default function Cadastro() {
                     onBlur={() => validateField("senha", formData.senha)}
                     secureTextEntry={!showPassword}
                   />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} >
                     <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color="#1F2937" />
                   </TouchableOpacity>
                 </View>
@@ -271,7 +271,7 @@ export default function Cadastro() {
                     onBlur={() => validateField("confirmarSenha", formData.confirmarSenha)}
                     secureTextEntry={!showConfirmPassword}
                   />
-                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeButton}>
+                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
                     <Ionicons name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} size={20} color="#1F2937" />
                   </TouchableOpacity>
                 </View>
@@ -305,30 +305,156 @@ export default function Cadastro() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fefefe" },
-  keyboardContainer: { flex: 1 },
-  header: { flexDirection: "row", paddingTop: 20, paddingHorizontal: 16 },
-  backButton: { width: 32, height: 32, justifyContent: "center", alignItems: "center" },
-  scrollView: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingBottom: 100 },
-  formContainer: { paddingHorizontal: 16, maxWidth: 400, alignSelf: "center", width: "100%" },
-  welcomeSection: { alignItems: "center", marginBottom: 32 },
-  appIconContainer: { width: 48, height: 48, backgroundColor: "#f0fdf4", borderRadius: 24, justifyContent: "center", alignItems: "center", marginBottom: 12 },
-  welcomeTitle: { fontSize: 26, fontWeight: "600", color: "#1F2937", marginBottom: 8 },
-  welcomeSubtitle: { fontSize: 14, color: "#1F2937", textAlign: "center" },
-  inputGroup: { marginBottom: 20 },
-  label: { fontSize: 14, fontWeight: "500", color: "#374151", marginBottom: 8 },
-  inputContainer: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#D1D5DB", borderRadius: 12, backgroundColor: "white", minHeight: 48 },
-  inputIcon: { paddingLeft: 12, paddingRight: 8 },
-  textInput: { flex: 1, paddingVertical: 12, paddingRight: 8, fontSize: 14, color: "#1F2937" },
-  eyeButton: { paddingHorizontal: 12, paddingVertical: 12 },
-  submitButton: { backgroundColor: "#16A34A", paddingVertical: 16, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 24, marginTop: 8 },
-  submitButtonDisabled: { opacity: 0.5 },
-  submitButtonText: { color: "white", fontSize: 16, fontWeight: "600" },
-  loginContainer: { flexDirection: "row", justifyContent: "center", alignItems: "center", paddingBottom: 20 },
-  loginText: { fontSize: 16, color: "#6B7280" },
-  loginLink: { fontSize: 16, color: "#16A34A", fontWeight: "600" },
-  errorContainer: { flexDirection: "row", alignItems: "center", marginTop: 4 },
-  errorIcon: { marginRight: 4 },
-  errorText: { color: "#dc2626", fontSize: 12 },
+container: { 
+  flex: 1, 
+  backgroundColor: "#fefefe" 
+},
+
+keyboardContainer: { 
+  flex: 1 
+},
+
+header: { 
+  flexDirection: "row", 
+  paddingTop: 20, 
+  paddingHorizontal: 16 
+},
+
+backButton: { 
+  width: 32, 
+  height: 32, 
+  justifyContent: "center", 
+  alignItems: "center" 
+},
+
+scrollView: { 
+  flex: 1 
+},
+
+scrollContent: { 
+  flexGrow: 1, 
+  paddingBottom: 100 
+},
+
+formContainer: { 
+  paddingHorizontal: 16, 
+  maxWidth: 400, 
+  alignSelf: "center", 
+  width: "100%" 
+},
+
+welcomeSection: { 
+  alignItems: "center", 
+  marginBottom: 32 
+},
+
+appIconContainer: { 
+  width: 48, 
+  height: 48, 
+  backgroundColor: "#f0fdf4", 
+  borderRadius: 24, 
+  justifyContent: "center", 
+  alignItems: "center", 
+  marginBottom: 12 
+},
+
+welcomeTitle: { 
+  fontSize: 26, 
+  fontWeight: "600", 
+  color: "#1F2937", 
+  marginBottom: 8 
+},
+
+welcomeSubtitle: { 
+  fontSize: 14, 
+  color: "#1F2937", 
+  textAlign: "center" 
+},
+
+inputGroup: { 
+  marginBottom: 20 
+},
+
+label: { 
+  fontSize: 14, 
+  fontWeight: "400", 
+  color: "#374151", 
+  marginBottom: 10,
+},
+
+inputContainer: { 
+  flexDirection: "row", 
+  alignItems: "center", 
+  borderWidth: 1, 
+  borderColor: "#D1D5DB", 
+  borderRadius: 12, 
+  backgroundColor: "white",
+  paddingHorizontal: 16, 
+  paddingVertical: 2 
+
+},
+
+inputIcon: { 
+  paddingRight: 10 
+},
+
+textInput: { 
+  flex: 1, 
+  paddingRight: 8, 
+  fontSize: 16, 
+  color: "#1F2937" 
+},
+
+submitButton: { 
+  backgroundColor: "#16A34A", 
+  paddingVertical: 16, 
+  borderRadius: 12, 
+  alignItems: "center", 
+  justifyContent: "center", 
+  marginBottom: 24, 
+  marginTop: 16,
+},
+
+submitButtonDisabled: { 
+  opacity: 0.5 
+},
+
+submitButtonText: { 
+  color: "white", 
+  fontSize: 16, 
+  fontWeight: "600" 
+},
+
+loginContainer: { 
+  flexDirection: "row", 
+  justifyContent: "center", 
+  alignItems: "center", 
+  paddingBottom: 20 
+},
+
+loginText: { 
+  fontSize: 16, 
+  color: "#6B7280" 
+},
+
+loginLink: { 
+  fontSize: 16, 
+  color: "#16A34A", 
+  fontWeight: "600" 
+},
+
+errorContainer: { 
+  flexDirection: "row", 
+  alignItems: "center", 
+  marginTop: 4 
+},
+
+errorIcon: { 
+  marginRight: 4 
+},
+
+errorText: { 
+  color: "#dc2626", 
+  fontSize: 12 
+},
 });

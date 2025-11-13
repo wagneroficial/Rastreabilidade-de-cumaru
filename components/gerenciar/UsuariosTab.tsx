@@ -101,14 +101,14 @@ const UsuariosTab: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Search Bar */}
+      {/* Search */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
           <Ionicons name="search" size={20} color="#9ca3af" />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar por nome, email ou propriedade..."
-            placeholderTextColor='#6b7280'
+            placeholderTextColor="#9ca3af"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -124,32 +124,37 @@ const UsuariosTab: React.FC = () => {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.tabsContainer}
-
+        contentContainerStyle={styles.tabsWrapper}
       >
-        {tabs.map((tab) => (
+        {tabs.map(tab => (
           <TouchableOpacity
             key={tab.key}
             onPress={() => setActiveTab(tab.key)}
             style={[
-              styles.tab,
-              activeTab === tab.key && styles.tabActive,
+              styles.tabItem,
+              activeTab === tab.key && styles.tabItemActive,
             ]}
           >
-            <Text style={[
-              styles.tabText,
-              activeTab === tab.key && styles.tabTextActive,
-            ]}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === tab.key && styles.tabTextActive,
+              ]}
+            >
               {tab.label}
             </Text>
-            <View style={[
-              styles.tabBadge,
-              activeTab === tab.key && styles.tabBadgeActive,
-            ]}>
-              <Text style={[
-                styles.tabBadgeText,
-                activeTab === tab.key && styles.tabBadgeTextActive,
-              ]}>
+            <View
+              style={[
+                styles.tabBadge,
+                activeTab === tab.key && styles.tabBadgeActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tabBadgeText,
+                  activeTab === tab.key && styles.tabBadgeTextActive,
+                ]}
+              >
                 {tab.count}
               </Text>
             </View>
@@ -171,16 +176,13 @@ const UsuariosTab: React.FC = () => {
           </Text>
           <Text style={styles.emptyText}>
             {searchQuery
-              ? 'Tente ajustar sua busca ou verifique a ortografia'
-              : 'Não há usuários com este status no momento'}
+              ? 'Tente ajustar sua busca ou verificar a ortografia.'
+              : 'Não há usuários com este status no momento.'}
           </Text>
         </View>
       ) : (
-        <ScrollView
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {filteredUsers.map((user) => (
+        <ScrollView contentContainerStyle={styles.listContent}>
+          {filteredUsers.map(user => (
             <UserCard
               key={user.id}
               user={user}
@@ -196,7 +198,7 @@ const UsuariosTab: React.FC = () => {
         </ScrollView>
       )}
 
-      {/* Modals */}
+  {/* Modals */}
       <UserDetailModal
         visible={!!viewingUser}
         user={viewingUser}
@@ -260,108 +262,105 @@ const UsuariosTab: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#fefefe',
+    backgroundColor: '#fdfdfd',
   },
   searchContainer: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: 'white',
   },
   searchBar: {
     flexDirection: 'row',
-
-    backgroundColor: '#f9f9f9',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
     borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 48,
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    gap: 8,
+    paddingHorizontal: 12,
+    height: 48,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#1f2937',
+    color: '#111827',
+    marginLeft: 8,
   },
-  tabsContainer: {
-    paddingVertical:15,
+  tabsWrapper: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
-
-  tab: {
+  tabItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#f3f4f6',
     paddingHorizontal: 14,
-    
-
+    height: 36,
     borderRadius: 20,
-    backgroundColor: '#26bd12ff',
-    minWidth: 110,
-    height: 38,
-  },
-  tabActive: {
-    backgroundColor: '#dcfce7',
-    borderColor: '#dcfce7',
+    marginRight: 8,
     borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  tabItemActive: {
+    backgroundColor: '#dcfce7',
+    borderColor: '#16a34a',
   },
   tabText: {
     fontSize: 14,
+    color: '#4b5563',
     fontWeight: '500',
-    color: '#6b7280',
   },
   tabTextActive: {
     color: '#166534',
   },
   tabBadge: {
     backgroundColor: '#e5e7eb',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
     marginLeft: 6,
-
-
+    paddingHorizontal: 6,
+    borderRadius: 10,
   },
   tabBadgeActive: {
     backgroundColor: '#16a34a',
   },
   tabBadgeText: {
+    color: '#374151',
     fontSize: 12,
     fontWeight: '600',
-    color: '#374151',
   },
   tabBadgeTextActive: {
     color: 'white',
+  },
+  listContent: {
+    padding: 16,
+    gap: 12,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 16,
+    gap: 8,
   },
   loadingText: {
-    fontSize: 14,
     color: '#6b7280',
+    fontSize: 14,
+    marginTop: 8,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
-
+    alignItems: 'center',
+    padding: 32,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#6b7280',
-    marginTop: 16,
-    textAlign: 'center',
+    marginTop: 12,
   },
   emptyText: {
     fontSize: 14,
     color: '#9ca3af',
+    marginTop: 6,
     textAlign: 'center',
-    marginTop: 8,
-  },
-
-  listContent: {
-    padding: 16,
   },
 });
 

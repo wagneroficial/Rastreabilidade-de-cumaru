@@ -165,7 +165,7 @@ export default function AlterarSenhaScreen() {
     placeholder: string
   ) => (
     <View>
-      <Text style={styles.label}>{label}</Text>
+      <Text>{label}</Text>
       <View style={styles.inputWrapper}>
         <TextInput
           style={styles.input}

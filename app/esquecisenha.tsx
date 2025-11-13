@@ -192,6 +192,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         backgroundColor: "white",
         minHeight: 48,
+        paddingVertical: 4,
     },
     inputIcon: {
         paddingLeft: 12,
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
     textInput: {
         flex: 1,
         paddingVertical: 12,
-        fontSize: 14,
+        fontSize: 16,
         color: "#1F2937",
     },
     errorText: {

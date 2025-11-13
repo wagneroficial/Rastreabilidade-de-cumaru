@@ -95,7 +95,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ visible, coleta, onClose })
             {/* Informações Principais */}
             <View style={detailsStyles.section}>
               <Text style={detailsStyles.sectionTitle}>Informações Principais</Text>
-              
+
               <View style={detailsStyles.infoRow}>
                 <View style={detailsStyles.infoIconContainer}>
                   <Ionicons name="layers-outline" size={20} color="#16a34a" />
@@ -160,7 +160,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({ visible, coleta, onClose })
             {/* Informações Adicionais */}
             <View style={detailsStyles.section}>
               <Text style={detailsStyles.sectionTitle}>Informações Adicionais</Text>
-              
+
               <View style={detailsStyles.additionalInfo}>
                 <Text style={detailsStyles.additionalLabel}>ID da Coleta:</Text>
                 <Text style={detailsStyles.additionalValue}>{coleta.id}</Text>
@@ -199,6 +199,7 @@ const detailsStyles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   container: {
+       flex: 1,
     backgroundColor: 'white',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -211,7 +212,9 @@ const detailsStyles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: '#dddddd',
+        width: 500,
+
   },
   headerTitle: {
     fontSize: 20,
@@ -321,11 +324,11 @@ interface ConfirmationModalProps {
   onCancel: () => void;
 }
 
-const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ 
-  visible, 
-  data, 
-  onConfirm, 
-  onCancel 
+const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
+  visible,
+  data,
+  onConfirm,
+  onCancel
 }) => {
   if (!data) return null;
 
@@ -346,11 +349,11 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <View style={[modalStyles.iconContainer, { backgroundColor: isApproval ? '#dcfce7' : '#fee2e2' }]}>
             <Ionicons name={actionIcon} size={48} color={actionColor} />
           </View>
-          
+
           <Text style={modalStyles.title}>
             Confirmar {actionText}?
           </Text>
-          
+
           <Text style={modalStyles.description}>
             Você está prestes a {actionText.toLowerCase()} esta coleta:
           </Text>
@@ -375,14 +378,14 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           </View>
 
           <View style={modalStyles.buttonContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[modalStyles.button, modalStyles.cancelButton]}
               onPress={onCancel}
             >
               <Text style={modalStyles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[modalStyles.button, modalStyles.confirmButton, { backgroundColor: actionColor }]}
               onPress={onConfirm}
             >
@@ -409,11 +412,7 @@ const modalStyles = StyleSheet.create({
     padding: 24,
     width: '100%',
     maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+       flex: 1,
   },
   iconContainer: {
     width: 80,
@@ -494,9 +493,9 @@ interface ColetaCardProps {
   onViewDetails: (coleta: Coleta) => void;
 }
 
-const ColetaCard: React.FC<ColetaCardProps> = ({ 
-  coleta, 
-  onApprove, 
+const ColetaCard: React.FC<ColetaCardProps> = ({
+  coleta,
+  onApprove,
   onReject,
   onViewDetails
 }) => {
@@ -539,28 +538,28 @@ const ColetaCard: React.FC<ColetaCardProps> = ({
       </View>
 
       <View style={cardStyles.actionRow}>
-        <TouchableOpacity 
-          style={cardStyles.actionButton} 
+        <TouchableOpacity
+          style={cardStyles.actionButton}
           onPress={() => onViewDetails(coleta)}
         >
           <Text style={cardStyles.actionText}>Ver Detalhes</Text>
         </TouchableOpacity>
-        
+
         {coleta.status === 'pendente' && (
-            <>
-              <TouchableOpacity 
-                style={[cardStyles.actionButton, cardStyles.actionApprove]} 
-                onPress={() => onApprove(coleta.id)}
-              >
-                <Text style={[cardStyles.actionText, cardStyles.actionApproveText]}>Aprovar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[cardStyles.actionButton, cardStyles.actionReject]}
-                onPress={() => onReject(coleta.id)}
-              >
-                <Text style={[cardStyles.actionText, cardStyles.actionRejectText]}>Rejeitar</Text>
-              </TouchableOpacity>
-            </>
+          <>
+            <TouchableOpacity
+              style={[cardStyles.actionButton, cardStyles.actionApprove]}
+              onPress={() => onApprove(coleta.id)}
+            >
+              <Text style={[cardStyles.actionText, cardStyles.actionApproveText]}>Aprovar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[cardStyles.actionButton, cardStyles.actionReject]}
+              onPress={() => onReject(coleta.id)}
+            >
+              <Text style={[cardStyles.actionText, cardStyles.actionRejectText]}>Rejeitar</Text>
+            </TouchableOpacity>
+          </>
         )}
       </View>
     </View>
@@ -574,11 +573,6 @@ const cardStyles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 3,
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
@@ -744,21 +738,21 @@ const ColetasTab: React.FC = () => {
     if (!confirmationData) return;
 
     const newStatus: ColetaStatus = confirmationData.action === 'aprovar' ? 'aprovada' : 'rejeitada';
-    
+
     try {
       // Buscar dados completos da coleta para enviar notificação
       const coleta = coletas.find(c => c.id === confirmationData.coletaId);
-      
+
       console.log('🔍 DEBUG - Coleta encontrada:', coleta);
       console.log('🔍 DEBUG - Status novo:', newStatus);
       console.log('🔍 DEBUG - Coletor ID:', coleta?.coletorId);
-      
+
       await updateColetaStatusService(confirmationData.coletaId, newStatus);
-      
+
       setColetas(prevColetas =>
         prevColetas.map(coleta =>
-          coleta.id === confirmationData.coletaId 
-            ? { ...coleta, status: newStatus } 
+          coleta.id === confirmationData.coletaId
+            ? { ...coleta, status: newStatus }
             : coleta
         )
       );
@@ -813,7 +807,7 @@ const ColetasTab: React.FC = () => {
     setConfirmationData(null);
   }, []);
 
-  const allColetas = useMemo(() => 
+  const allColetas = useMemo(() =>
     coletas.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()),
     [coletas]
   );
@@ -853,10 +847,10 @@ const ColetasTab: React.FC = () => {
     };
 
     if (searchQuery) {
-        return {
-            ...baseCounts,
-            [activeTab]: filteredColetas.length
-        }
+      return {
+        ...baseCounts,
+        [activeTab]: filteredColetas.length
+      }
     }
     return baseCounts;
   }, [allColetas, filteredColetas, activeTab, searchQuery]);
@@ -870,9 +864,9 @@ const ColetasTab: React.FC = () => {
 
   const EmptyState = ({ message }: { message: string }) => (
     <View style={styles.emptyContainer}>
-        <Ionicons name="leaf-outline" size={64} color="#d1d5db" />
-        <Text style={styles.emptyTitle}>Nenhuma Coleta Encontrada</Text>
-        <Text style={styles.emptyText}>{message}</Text>
+      <Ionicons name="leaf-outline" size={64} color="#d1d5db" />
+      <Text style={styles.emptyTitle}>Nenhuma Coleta Encontrada</Text>
+      <Text style={styles.emptyText}>{message}</Text>
     </View>
   );
 
@@ -960,21 +954,21 @@ const ColetasTab: React.FC = () => {
         data={filteredColetas}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <ColetaCard 
+          <ColetaCard
             coleta={item}
-            onApprove={handleApprove} 
+            onApprove={handleApprove}
             onReject={handleReject}
             onViewDetails={handleViewDetails}
           />
         )}
         contentContainerStyle={styles.listContentContainer}
         ListEmptyComponent={() => (
-            <EmptyState
-                message={searchQuery
-                    ? `Nenhuma coleta encontrada para "${searchQuery}" em "${tabs.find(t => t.key === activeTab)?.label}"`
-                    : `Não há coletas ${tabs.find(t => t.key === activeTab)?.label.toLowerCase()}`
-                }
-            />
+          <EmptyState
+            message={searchQuery
+              ? `Nenhuma coleta encontrada para "${searchQuery}" em "${tabs.find(t => t.key === activeTab)?.label}"`
+              : `Não há coletas ${tabs.find(t => t.key === activeTab)?.label.toLowerCase()}`
+            }
+          />
         )}
         refreshing={refreshing}
         onRefresh={handleRefresh}
@@ -985,8 +979,7 @@ const ColetasTab: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#fefefe', 
+    backgroundColor: '#fefefe',
   },
   centerContent: {
     justifyContent: 'center',
@@ -997,31 +990,72 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
   },
+
+  clearButton: {
+    padding: 4,
+  },
   searchContainer: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: 'white',
-    zIndex: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6', 
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9f9f9', 
+    backgroundColor: '#f9fafb',
     borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 48,
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    gap: 8,
+    paddingHorizontal: 12,
+    height: 48,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#1f2937', 
+    color: '#111827',
+    marginLeft: 8,
   },
-  clearButton: {
-    padding: 4,
+  tabsWrapper: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  tabItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 14,
+    height: 36,
+    borderRadius: 20,
+    marginRight: 8,
+  },
+  tabItemActive: {
+    backgroundColor: '#dcfce7',
+    borderColor: '#16a34a',
+  },
+  tabText: {
+    fontSize: 14,
+    color: '#4b5563',
+    fontWeight: '500',
+  },
+  tabTextActive: {
+    color: '#166534',
+  },
+  tabBadge: {
+    backgroundColor: '#e5e7eb',
+    marginLeft: 6,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+  },
+  tabBadgeActive: {
+    backgroundColor: '#16a34a',
+  },
+  tabBadgeText: {
+    color: '#374151',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  tabBadgeTextActive: {
+    color: 'white',
   },
   tabsContainer: {
     paddingHorizontal: 16,
@@ -1034,43 +1068,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: '#f3f4f6', 
+    backgroundColor: '#f3f4f6',
     height: 38,
   },
   tabActive: {
-    backgroundColor: '#dcfce7', 
-    borderColor: '#16a34a', 
+    backgroundColor: '#dcfce7',
+    borderColor: '#16a34a',
     borderWidth: 1,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6b7280', 
-  },
-  tabTextActive: {
-    color: '#166534', 
-    fontWeight: '600',
-  },
-  tabBadge: {
-    backgroundColor: '#e5e7eb', 
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginLeft: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 24,
-  },
-  tabBadgeActive: {
-    backgroundColor: '#16a34a', 
-  },
-  tabBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'white', 
-  },
-  tabBadgeTextActive: {
-    color: 'white',
   },
   listContentContainer: {
     paddingVertical: 16,

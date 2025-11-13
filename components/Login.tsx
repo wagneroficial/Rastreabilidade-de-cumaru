@@ -133,14 +133,14 @@ export default function Login() {
             <View style={styles.appIconContainer}>
               <Ionicons name="leaf" size={24} color="#16a34a" />
             </View>
-            <Text style={styles.welcomeTitle}>Bem-vindo!</Text>
+            <Text style={styles.welcomeTitle}>Bem-vindo(a)!</Text>
             <Text style={styles.welcomeSubtitle}>Entre na sua conta para continuar</Text>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>E-mail</Text>
             <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color='#1F2937' style={styles.inputIcon} />
+              <Ionicons name="mail-outline" size={20} color="#1F2937" style={styles.inputIcon} />
               <TextInput
                 style={styles.textInput}
                 placeholder="seu.email@email.com"
@@ -149,6 +149,7 @@ export default function Login() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+
               />
             </View>
           </View>
@@ -156,22 +157,19 @@ export default function Login() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Senha</Text>
             <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color='#1F2937' style={styles.inputIcon} />
+              <Ionicons name="lock-closed-outline" size={20} color="#1F2937" style={styles.inputIcon} />
               <TextInput
-                style={[styles.textInput, styles.passwordInput]}
+                style={styles.textInput}
                 placeholder="Digite sua senha"
                 value={formData.password}
                 onChangeText={(value) => handleInputChange('password', value)}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
+
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
-                <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={20}
-                  color='#1F2937'
-                />
+                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#1F2937" />
               </TouchableOpacity>
             </View>
           </View>
@@ -200,7 +198,7 @@ export default function Login() {
           <View style={styles.registerContainer}>
             <Text style={styles.registerText}>Não tem uma conta? </Text>
             <TouchableOpacity onPress={navigateToRegister}>
-              <Text style={styles.registerLink}>Cadastre-se</Text>
+              <Text style={styles.registerLink}>Solicitar Acesso</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -248,9 +246,9 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#1F2937',
-    marginBottom: 8,
+    fontWeight: '400',
+    color: '#374151',
+    marginBottom: 10,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -259,26 +257,23 @@ const styles = StyleSheet.create({
     borderColor: '#D1D5DB',
     borderRadius: 12,
     backgroundColor: 'white',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    overflow: 'hidden', // <- impede o texto sair do limite visual
   },
   inputIcon: {
-    paddingLeft: 12,
-    paddingRight: 8,
+    marginRight: 8,
   },
   textInput: {
     flex: 1,
-    paddingVertical: 12,
-    paddingRight: 12,
-    fontSize: 14,
+    fontSize: 16,
     color: '#1F2937',
-  },
-  passwordInput: {
-    paddingRight: 40,
+    minWidth: 0, // <- essencial no Android
   },
   eyeButton: {
-    position: 'absolute',
-    right: 12,
-    padding: 4,
+    marginLeft: 8,
   },
+
   optionsRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -309,7 +304,7 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     backgroundColor: '#16A34A',
-    paddingVertical: 12,
+    paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
