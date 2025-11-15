@@ -1,9 +1,11 @@
 import { BiometricProvider } from '@/contexts/BiometricContext';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'react-native';
 
 export default function RootLayout() {
   return (
     <BiometricProvider>
+      <StatusBar barStyle="light-content" backgroundColor="#16a34a" />
       <Stack screenOptions={{ headerShown: false }}>
         {/* Tela inicial do app - será exibida primeiro */}
         <Stack.Screen

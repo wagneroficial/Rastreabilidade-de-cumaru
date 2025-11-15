@@ -807,7 +807,7 @@ const NovoLoteModal: React.FC<NovoLoteModalProps> = ({
         <View style={styles.navigationContainer}>
           <View style={styles.navigationButtons}>
             {currentStep > 1 && !isEditMode && (
-              <TouchableOpacity onPress={prevStep} style={styles.backButton}>
+              <TouchableOpacity onPress={prevStep} style={styles.returnButton}>
                 <Ionicons name="arrow-back" size={16} color="#374151" />
                 <Text style={styles.backButtonText}>Voltar</Text>
               </TouchableOpacity>
@@ -1309,7 +1309,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
-  backButton: {
+  returnButton: {
     flex: 1,
     paddingVertical: 12,
     borderWidth: 1,

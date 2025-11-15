@@ -8,11 +8,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { doc, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useRef, useState } from 'react';
-import { AppState, Platform, TouchableOpacity } from 'react-native';
-
+import { AppState, Platform, StatusBar, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const INACTIVITY_TIMEOUT = 5 * 60 * 1000;
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
   const { biometriaAtivada, isAuthenticated, lockApp } = useBiometric();
   const appState = useRef(AppState.currentState);
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -79,26 +80,27 @@ export default function TabLayout() {
 
   return (
     <>
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: '#16a34a',
-          tabBarInactiveTintColor: '#797d85',
-          headerShown: false,
-          tabBarButton: HapticTab,
-          tabBarBackground: TabBarBackground,
-          tabBarStyle: Platform.select({
-            ios: { position: 'absolute' },
-            default: {
-              backgroundColor: '#ffffff',
-              borderTopColor: '#e5e7eb',
-              borderTopWidth: 1,
-              position: 'absolute',
-              bottom: 0,
-              height: 100,
-            },
-          }),
-        }}
-      >
+      <StatusBar backgroundColor='#16a34a' barStyle="light-content" />
+<Tabs
+  screenOptions={{
+    tabBarActiveTintColor: '#16a34a',
+    tabBarInactiveTintColor: '#797d85',
+    headerShown: false,
+    tabBarButton: HapticTab,
+    tabBarBackground: TabBarBackground,
+    tabBarStyle: {
+      backgroundColor: '#ffffff',
+      borderTopColor: '#e5e7eb',
+      borderTopWidth: 1,
+      height: 70 + insets.bottom,
+      paddingBottom: insets.bottom,
+      paddingTop: 8,
+      position: 'absolute',
+    },
+  }}
+>
+
+
         <Tabs.Screen
           name="home"
           options={{

@@ -452,7 +452,7 @@ export default function DetalheArvoreScreen() {
                 <View style={styles.qrCodeHeaderIcon}>
                   <Ionicons name="leaf" size={32} color="#059669" />
                 </View>
-                <Text style={styles.qrCodeHeaderTitle}>CumaruApp</Text>
+                <Text style={styles.qrCodeHeaderTitle}>CumaTrack</Text>
               </View>
 
               <View style={styles.qrCodeWrapper}>
