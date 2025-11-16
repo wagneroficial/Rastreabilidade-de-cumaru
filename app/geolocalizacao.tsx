@@ -206,12 +206,13 @@ const GeolocalizacaoScreen: React.FC = () => {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
+
         <Text style={styles.headerTitle}>Geolocalização</Text>
+
         <TouchableOpacity onPress={getCurrentLocation} style={styles.refreshButton}>
           <Ionicons name="refresh" size={28} color="white" />
         </TouchableOpacity>
       </View>
-
       {/* Seção do Mapa */}
       <View style={styles.mapSection}>
         <MapViewComponent
@@ -292,34 +293,36 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fdfdfd',
   },
-  header: {
-    backgroundColor: '#16a34a',
-    paddingLeft: 16,
-    paddingVertical: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  refreshButton: {
-    position: 'absolute',
-    right: 16,
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+header: {
+  backgroundColor: '#16a34a',
+  paddingHorizontal: 16,
+  paddingVertical: 16,
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+
+backButton: {
+  width: 32,
+  height: 32,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+headerTitle: {
+  fontSize: 20,
+  fontWeight: 'bold',
+  color: '#ffffff',
+  marginLeft: 10,     
+  flexShrink: 1,       
+},
+
+refreshButton: {
+  marginLeft: 'auto',  
+  width: 32,
+  height: 32,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
   mapSection: {
     height: 300,
     position: 'relative',
