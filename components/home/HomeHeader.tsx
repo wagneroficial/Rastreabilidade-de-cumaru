@@ -5,10 +5,15 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { auth, db } from '@/app/services/firebaseConfig.js';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-
-// ✅ Importar serviço de notificações
-import { subscribeToUserNotifications } from '@/hooks/userNotificacao';
+import {
+  collection,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  Unsubscribe,
+  where
+} from 'firebase/firestore';
 
 interface HomeHeaderProps {
   isAdmin: boolean;
@@ -24,49 +29,136 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ isAdmin, onNotificationsPress }
   const [unreadCount, setUnreadCount] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Carregar dados do usuário
+  // 🔥 Monitorar autenticação
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
+        console.log('✅ Usuário autenticado:', user.uid);
         setCurrentUserId(user.uid);
-        try {
-          const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            console.log('📄 Dados do usuário carregados:', data);
-            setUserData({
-              nome: data.nomeCompleto || data.displayName || data.nome || 'Usuário',
-            });
-          }
-        } catch (error) {
-          console.error('Erro ao buscar dados do usuário:', error);
-        }
       } else {
-        setUserData(null);
+        console.log('❌ Usuário deslogado');
         setCurrentUserId(null);
+        setUserData(null);
+        setUnreadCount(0);
       }
     });
 
     return () => unsubscribe();
   }, []);
 
-  // ✅ Listener em tempo real para notificações não lidas
+  // 🔥 LISTENER EM TEMPO REAL PARA DADOS DO USUÁRIO
+  useEffect(() => {
+    if (!currentUserId) {
+      setUserData(null);
+      return;
+    }
+
+    console.log('📡 Iniciando listener de dados do usuário:', currentUserId);
+
+    const userDocRef = doc(db, 'usuarios', currentUserId);
+
+    const unsubscribe: Unsubscribe = onSnapshot(
+      userDocRef,
+      (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const data = docSnapshot.data();
+          const nomeUsuario = data.nomeCompleto || data.displayName || data.nome || 'Usuário';
+          
+          console.log('👤 Dados do usuário atualizados:', {
+            nome: nomeUsuario,
+            email: data.email,
+            tipo: data.tipo
+          });
+          
+          setUserData({
+            nome: nomeUsuario,
+          });
+        } else {
+          console.warn('⚠️ Documento de usuário não existe');
+          setUserData({ nome: 'Usuário' });
+        }
+      },
+      (error) => {
+        console.error('❌ Erro ao buscar dados do usuário:', error);
+        setUserData({ nome: 'Usuário' });
+      }
+    );
+
+    return () => {
+      console.log('🛑 Removendo listener de dados do usuário');
+      unsubscribe();
+    };
+  }, [currentUserId]);
+
+  // 🔥 LISTENER EM TEMPO REAL PARA NOTIFICAÇÕES NÃO LIDAS
   useEffect(() => {
     if (!currentUserId) {
       setUnreadCount(0);
       return;
     }
 
-    console.log('📡 Inscrevendo para contagem de notificações do usuário:', currentUserId);
+    console.log('📡 Iniciando listener de notificações para usuário:', currentUserId);
 
-    const unsubscribe = subscribeToUserNotifications(currentUserId, (notifications) => {
-      const unread = notifications.filter(n => !n.read).length;
-      console.log(`🔔 ${unread} notificações não lidas`);
-      setUnreadCount(unread);
-    });
+    // Query para buscar notificações não lidas do usuário
+    const notificationsQuery = query(
+      collection(db, 'notificacoes'),
+      where('userId', '==', currentUserId),
+      where('read', '==', false),
+      orderBy('createdAt', 'desc')
+    );
 
+    // ⚡ onSnapshot atualiza em tempo real
+    const unsubscribe: Unsubscribe = onSnapshot(
+      notificationsQuery,
+      (snapshot) => {
+        const unreadNotifications = snapshot.docs.length;
+        console.log(`🔔 Notificações não lidas atualizadas: ${unreadNotifications}`);
+        
+        // Log das notificações para debug
+        if (unreadNotifications > 0) {
+          console.log('📬 Notificações não lidas:', 
+            snapshot.docs.map(doc => ({
+              id: doc.id,
+              tipo: doc.data().tipo,
+              mensagem: doc.data().mensagem,
+              createdAt: doc.data().createdAt?.toDate?.()
+            }))
+          );
+        }
+        
+        setUnreadCount(unreadNotifications);
+      },
+      (error) => {
+        console.error('❌ Erro ao buscar notificações:', error);
+        // Em caso de erro, tenta sem orderBy (se o índice não existir)
+        console.log('⚠️ Tentando query sem orderBy...');
+        
+        const simpleQuery = query(
+          collection(db, 'notificacoes'),
+          where('userId', '==', currentUserId),
+          where('read', '==', false)
+        );
+        
+        const fallbackUnsubscribe = onSnapshot(
+          simpleQuery,
+          (snapshot) => {
+            const count = snapshot.docs.length;
+            console.log(`🔔 Notificações não lidas (fallback): ${count}`);
+            setUnreadCount(count);
+          },
+          (fallbackError) => {
+            console.error('❌ Erro no fallback de notificações:', fallbackError);
+            setUnreadCount(0);
+          }
+        );
+        
+        return () => fallbackUnsubscribe();
+      }
+    );
+
+    // 🧹 Cleanup: remove listener quando componente desmontar
     return () => {
-      console.log('🔌 Desinscrevendo de notificações no header');
+      console.log('🛑 Removendo listener de notificações');
       unsubscribe();
     };
   }, [currentUserId]);
@@ -88,6 +180,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ isAdmin, onNotificationsPress }
         <TouchableOpacity
           onPress={onNotificationsPress}
           style={styles.notificationButton}
+          activeOpacity={0.7}
         >
           <Ionicons name="notifications-outline" size={24} color="white" />
           
@@ -106,7 +199,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ isAdmin, onNotificationsPress }
 };
 
 const styles = StyleSheet.create({
-    header: {
+  header: {
     backgroundColor: '#16a34a',
     paddingHorizontal: 16,
     paddingVertical: 20,

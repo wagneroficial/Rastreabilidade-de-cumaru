@@ -24,7 +24,7 @@ export default function Index() {
       console.log('Auth state changed:', user ? 'Logado' : 'Não logado');
 
       if (user) {
-        // Usuário está logado - AGORA vamos verificar o status
+        // Usuário está logado - verifica o status
         try {
           const userDoc = await getDoc(doc(db, "usuarios", user.uid));
 
@@ -32,21 +32,36 @@ export default function Index() {
             const userData = userDoc.data();
             const status = userData.status || 'pendente';
 
-            console.log('Status do usuário:', status); // DEBUG
+            console.log('Status do usuário:', status);
 
             if (status === 'aprovado') {
               // Status aprovado - pode acessar
               setIsAuthenticated(true);
+              setIsChecking(false);
               setTimeout(() => {
                 router.replace('/(tabs)/home');
               }, 100);
             } else if (status === 'pendente') {
-              // Status pendente - desloga silenciosamente
-              await auth.signOut();
+              // Status pendente - mostra mensagem mas NÃO desloga automaticamente
               setIsAuthenticated(false);
               setIsChecking(false);
+              Alert.alert(
+                'Aguardando Aprovação',
+                'Sua conta está aguardando aprovação do administrador. Você receberá uma notificação quando for aprovado.',
+                [
+                  {
+                    text: 'OK',
+                    onPress: async () => {
+                      // Desloga APENAS quando o usuário clicar em OK
+                      await auth.signOut();
+                    }
+                  }
+                ]
+              );
             } else if (status === 'recusado') {
               // Status recusado - mostra alerta e desloga
+              setIsAuthenticated(false);
+              setIsChecking(false);
               Alert.alert(
                 'Acesso Negado',
                 'Sua solicitação de acesso foi recusada. Entre em contato com o administrador.',
@@ -55,8 +70,6 @@ export default function Index() {
                     text: 'OK',
                     onPress: async () => {
                       await auth.signOut();
-                      setIsAuthenticated(false);
-                      setIsChecking(false);
                     }
                   }
                 ]
@@ -84,7 +97,7 @@ export default function Index() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   // Enquanto verifica autenticação, mostra splash
   if (isChecking) {

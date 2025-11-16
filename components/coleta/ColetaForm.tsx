@@ -10,19 +10,21 @@ import {
   View
 } from 'react-native';
 
-interface Lote {
+export interface Lote {
   id: string;
   codigo: string;
   nome: string;
+  ativo?: boolean;
+  colaboradores?: string[];
 }
 
-interface Arvore {
+export interface Arvore {
   id: string;
   codigo: string;
   loteId: string;
 }
 
-interface ColetaFormProps {
+export interface ColetaFormProps {
   lotes: Lote[];
   selectedLote: string;
   selectedArvore: string;
@@ -72,10 +74,12 @@ const ColetaForm: React.FC<ColetaFormProps> = ({
         <View style={styles.dividerLine} />
       </View>
       <Text style={styles.title}>Registre Manualmente</Text>
+      
       {/* Quantidade */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>
-          <Text style={styles.span}>* </Text>Quantidade (kg)</Text>
+          <Text style={styles.span}>* </Text>Quantidade (kg)
+        </Text>
         <TextInput
           style={styles.input}
           value={quantidade}
@@ -85,6 +89,7 @@ const ColetaForm: React.FC<ColetaFormProps> = ({
           keyboardType="decimal-pad"
         />
       </View>
+
       {lotes.length === 0 ? (
         <View style={styles.noDataContainer}>
           <Ionicons name="leaf-outline" size={48} color="#9ca3af" />
@@ -209,12 +214,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     fontWeight: '500',
-  },
-  dividerTitle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
   },
   title: {
     fontSize: 20,

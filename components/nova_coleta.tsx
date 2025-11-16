@@ -1,4 +1,3 @@
-// screens/ColetaScreen.tsx
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -19,12 +18,10 @@ import QRScannerButton from '@/components/coleta/QRScannerButton';
 import QRScannerModal from '@/components/coleta/QRScannerModal';
 import SelectionModal from '@/components/coleta/SelectionModal';
 
-
 import {
   getAllAdminIds,
   notifyAdminNewColeta
 } from '@/hooks/userNotificacao';
-
 
 import { onAuthStateChanged } from 'firebase/auth';
 import {
@@ -33,8 +30,10 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
   query,
   serverTimestamp,
+  Unsubscribe,
   where,
 } from 'firebase/firestore';
 
@@ -52,6 +51,8 @@ interface Lote {
   id: string;
   codigo: string;
   nome: string;
+  ativo?: boolean;
+  colaboradoresResponsaveis?: string[];
 }
 
 interface Arvore {
@@ -117,74 +118,142 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
     return () => unsubscribe();
   }, []);
 
+  // 🔥 LISTENER EM TEMPO REAL PARA LOTES
   useEffect(() => {
-    const loadData = async () => {
-      if (!currentUserId) return;
+    if (!currentUserId || !visible) {
+      setLotes([]);
+      return;
+    }
 
-      try {
-        setIsLoading(true);
+    let q;
 
-        // Carrega lotes
-        let lotesQuery;
-        if (isAdmin) {
-          lotesQuery = collection(db, 'lotes'); // sem filtro para testar
-        } else {
-          lotesQuery = query(
-            collection(db, 'lotes'),
-            where('colaboradoresResponsaveis', 'array-contains', currentUserId)
-          );
-        }
+    if (isAdmin) {
+      // Admin vê todos os lotes ativos
+      q = query(
+        collection(db, 'lotes'),
+        where('ativo', '==', true)
+      );
+    } else {
+      // Colaborador vê apenas lotes onde tem permissão
+      q = query(
+        collection(db, 'lotes'),
+        where('ativo', '==', true),
+        where('colaboradoresResponsaveis', 'array-contains', currentUserId)
+      );
+    }
 
-        const lotesSnapshot = await getDocs(lotesQuery);
-        const lotesData: Lote[] = lotesSnapshot.docs.map((doc) => ({
+    console.log('📡 Iniciando listener de lotes...');
+    setIsLoading(true);
+
+    const unsubscribe: Unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        console.log('🔄 Lotes atualizados! Total:', snapshot.docs.length);
+
+        const lotesData: Lote[] = snapshot.docs.map((doc) => ({
           id: doc.id,
           codigo: doc.data().codigo || `L-${doc.id.slice(-3)}`,
           nome: doc.data().nome || 'Lote sem nome',
+          ativo: doc.data().ativo,
+          colaboradoresResponsaveis: doc.data().colaboradoresResponsaveis || [],
         }));
 
         setLotes(lotesData);
+        setIsLoading(false);
 
-        // Carrega árvores dos lotes
-        if (lotesData.length > 0) {
-          // Firestore limita o "in" a 10 elementos
-          const loteChunks = [];
-          for (let i = 0; i < lotesData.length; i += 10) {
-            loteChunks.push(lotesData.slice(i, i + 10).map(l => l.id));
-          }
-
-          let arvoresData: Arvore[] = [];
-          for (const chunk of loteChunks) {
-            const arvoresQuery = query(
-              collection(db, 'arvores'),
-              where('loteId', 'in', chunk)
-            );
-            const arvoresSnapshot = await getDocs(arvoresQuery);
-            arvoresData = arvoresData.concat(
-              arvoresSnapshot.docs.map((doc) => ({
-                id: doc.id,
-                codigo: doc.data().codigo || `ARV-${doc.id.slice(-3)}`,
-                loteId: doc.data().loteId,
-              }))
-            );
-          }
-
-          setArvores(arvoresData);
+        // Se o lote selecionado não está mais disponível, limpa a seleção
+        if (selectedLote && !lotesData.find(l => l.id === selectedLote)) {
+          setSelectedLote('');
+          setSelectedArvore('');
+          Alert.alert(
+            'Aviso',
+            'O lote selecionado não está mais disponível para você'
+          );
         }
-
-        await loadRecentCollections(lotesData);
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        Alert.alert('Erro', 'Falha ao carregar dados. Tente novamente.');
-      } finally {
+      },
+      (error) => {
+        console.error('❌ Erro ao buscar lotes:', error);
+        Alert.alert('Erro', 'Falha ao carregar lotes. Tente novamente.');
         setIsLoading(false);
       }
+    );
+
+    return () => {
+      console.log('🛑 Removendo listener de lotes');
+      unsubscribe();
     };
+  }, [currentUserId, isAdmin, visible, selectedLote]);
 
-    loadData();
-  }, [currentUserId, isAdmin]);
+  // 🔥 LISTENER EM TEMPO REAL PARA ÁRVORES
+  useEffect(() => {
+    if (!visible || lotes.length === 0) {
+      setArvores([]);
+      return;
+    }
 
+    console.log('📡 Iniciando listener de árvores...');
 
-  // Carregar coletas recentes
+    // Firestore limita o "in" a 10 elementos, então vamos usar múltiplos listeners
+    const loteIds = lotes.map(l => l.id);
+    const loteChunks: string[][] = [];
+    
+    for (let i = 0; i < loteIds.length; i += 10) {
+      loteChunks.push(loteIds.slice(i, i + 10));
+    }
+
+    const unsubscribes: Unsubscribe[] = [];
+    let allArvores: Arvore[] = [];
+
+    loteChunks.forEach((chunk) => {
+      const q = query(
+        collection(db, 'arvores'),
+        where('loteId', 'in', chunk)
+      );
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          // Remove árvores antigas deste chunk
+          allArvores = allArvores.filter(a => !chunk.includes(a.loteId));
+          
+          // Adiciona árvores novas
+          const newArvores = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            codigo: doc.data().codigo || `ARV-${doc.id.slice(-3)}`,
+            loteId: doc.data().loteId,
+          }));
+
+          allArvores = [...allArvores, ...newArvores];
+          setArvores([...allArvores]);
+
+          console.log('🔄 Árvores atualizadas! Total:', allArvores.length);
+
+          // Se a árvore selecionada não existe mais, limpa a seleção
+          if (selectedArvore && !allArvores.find(a => a.id === selectedArvore)) {
+            setSelectedArvore('');
+          }
+        },
+        (error) => {
+          console.error('❌ Erro ao buscar árvores:', error);
+        }
+      );
+
+      unsubscribes.push(unsubscribe);
+    });
+
+    return () => {
+      console.log('🛑 Removendo listeners de árvores');
+      unsubscribes.forEach(unsub => unsub());
+    };
+  }, [lotes, visible, selectedArvore]);
+
+  // Carregar coletas recentes (mantém getDocs pois é histórico)
+  useEffect(() => {
+    if (!currentUserId || !visible || lotes.length === 0) return;
+    
+    loadRecentCollections(lotes);
+  }, [currentUserId, visible, lotes]);
+
   const loadRecentCollections = async (lotesData: Lote[]) => {
     if (!currentUserId) return;
     try {
@@ -278,12 +347,11 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
 
       const status = isAdmin ? 'aprovada' : 'pendente';
       
-      // ✅ AGORA COM loteNome E arvoreCodigo
       const coletaData = {
         loteId: selectedLote,
-        loteNome: lote.nome,              // ✅ Adicionar nome do lote
+        loteNome: lote.nome,
         arvoreId: selectedArvore,
-        arvoreCodigo: arvore.codigo,      // ✅ Adicionar código da árvore
+        arvoreCodigo: arvore.codigo,
         coletorId: currentUserId,
         coletorNome: userData.nome || 'Usuário sem nome',
         quantidade: quantidadeNum,
@@ -308,20 +376,13 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
       console.log('✅ Coleta salva com sucesso!');
 
       // ✅ ENVIAR NOTIFICAÇÃO PARA ADMINS (apenas se não for admin)
-      console.log('🔍 Verificando envio de notificações...');
-      console.log('🔍 isAdmin:', isAdmin);
-      console.log('🔍 currentUserId:', currentUserId);
-      
       if (!isAdmin) {
         console.log('📬 Iniciando envio de notificações para admins...');
         try {
           const adminIds = await getAllAdminIds();
           console.log(`👥 ${adminIds.length} admins encontrados:`, adminIds);
           
-          if (adminIds.length === 0) {
-            console.warn('⚠️ NENHUM ADMIN ENCONTRADO! Verifique a coleção usuarios no Firestore');
-            Alert.alert('Aviso', 'Nenhum admin encontrado para notificar');
-          } else {
+          if (adminIds.length > 0) {
             const notificationPromises = adminIds.map(adminId => {
               console.log(`📨 Enviando notificação para admin ID: ${adminId}`);
               return notifyAdminNewColeta(adminId, {
@@ -337,12 +398,8 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
             console.log(`✅ ${adminIds.length} notificações enviadas com sucesso!`);
           }
         } catch (notifError: any) {
-          console.error('❌ ERRO DETALHADO ao enviar notificações:', notifError);
-          console.error('❌ Stack:', notifError.stack);
-          // NÃO mostrar alert para não interromper o fluxo
+          console.error('❌ Erro ao enviar notificações:', notifError);
         }
-      } else {
-        console.log('ℹ️ Usuário é admin - notificações não serão enviadas');
       }
 
       // Limpar formulário
@@ -355,7 +412,7 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
       await loadRecentCollections(lotes);
       onSuccess?.(coletaData);
 
-      // Mostrar mensagem de sucesso (sem fechar o modal)
+      // Mostrar mensagem de sucesso
       Alert.alert(
         'Sucesso!',
         isAdmin
@@ -374,10 +431,12 @@ const NovaColetaModal: React.FC<NovaColetaModalProps> = ({
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color="#16a34a" />
-        <Text style={styles.loadingText}>Carregando dados...</Text>
-      </SafeAreaView>
+      <Modal visible={visible} transparent={false} animationType="slide">
+        <SafeAreaView style={[styles.container, styles.centerContent]}>
+          <ActivityIndicator size="large" color="#16a34a" />
+          <Text style={styles.loadingText}>Carregando dados...</Text>
+        </SafeAreaView>
+      </Modal>
     );
   }
 
