@@ -2,12 +2,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 interface SelectionOption {
@@ -18,7 +18,7 @@ interface SelectionOption {
 interface SelectionModalProps {
   visible: boolean;
   title: string;
-  options: SelectionOption[];
+  options: SelectionOption[];   // ← ESTA É A PROP CORRETA
   selectedId: string;
   onClose: () => void;
   onSelect: (id: string) => void;
@@ -65,12 +65,15 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
                   ]}
                   onPress={() => onSelect(option.id)}
                 >
-                  <Text style={[
-                    styles.optionText,
-                    selectedId === option.id && styles.optionTextSelected
-                  ]}>
+                  <Text
+                    style={[
+                      styles.optionText,
+                      selectedId === option.id && styles.optionTextSelected
+                    ]}
+                  >
                     {option.label}
                   </Text>
+
                   {selectedId === option.id && (
                     <Ionicons name="checkmark" size={20} color="#16a34a" />
                   )}
