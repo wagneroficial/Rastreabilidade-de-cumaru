@@ -129,8 +129,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ isAdmin, onNotificationsPress }
         setUnreadCount(unreadNotifications);
       },
       (error) => {
-        console.error('❌ Erro ao buscar notificações:', error);
-        // Em caso de erro, tenta sem orderBy (se o índice não existir)
         console.log('⚠️ Tentando query sem orderBy...');
         
         const simpleQuery = query(
